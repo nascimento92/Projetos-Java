@@ -1,0 +1,350 @@
+package br.com.ManutencaoPreventiva;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Iterator;
+
+import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
+import br.com.sankhya.extensions.actionbutton.ContextoAcao;
+import br.com.sankhya.extensions.actionbutton.Registro;
+import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.bmp.PersistentLocalEntity;
+import br.com.sankhya.jape.util.FinderWrapper;
+import br.com.sankhya.jape.vo.DynamicVO;
+import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
+import br.com.sankhya.modelcore.util.DynamicEntityNames;
+import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
+
+public class btnManutencaoPreventiva implements AcaoRotinaJava {
+	
+	private int cont=0;
+	
+	public void doAction(ContextoAcao contexto) throws Exception {
+		Registro[] linhas = contexto.getLinhas();
+		
+		Timestamp primeiraOS = (Timestamp) linhas[0].getCampo("DTPRIMEIRA");
+		
+		if(primeiraOS==null){
+			if(linhas.length>1){
+				contexto.mostraErro("<p align=\"center\"><img src=\"http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-325x100.png\" height=\"100\" width=\"325\"></img></p><br/><br/><br/><br/><br/><br/>"+
+									"<font size=\"15\">\n<b>Selecione apenas <u>um</u> Patrimônio para a geração da OS</b></font>");
+			}else{
+				BigDecimal numos = gerarPrimeiraOs(linhas,contexto);
+				contexto.setMensagemRetorno("Os gerada! número da OS: "+numos);
+			}
+		}else{
+			verificaOsPendentesDoDia(contexto);
+			
+			if(cont==0){
+			contexto.setMensagemRetorno("Não existem OS pendentes para hoje!");	
+			}else{
+			contexto.setMensagemRetorno(cont+" OS Pendentes geradas!");
+			}
+			
+		}	
+		
+	}
+	
+	//PRIMEIRA OS
+	
+	private BigDecimal gerarPrimeiraOs(Registro[] linhas, ContextoAcao contexto) throws Exception{
+		
+		Timestamp dataAtual = new Timestamp(System.currentTimeMillis());
+		linhas[0].setCampo("DTPRIMEIRA", dataAtual);
+		linhas[0].setCampo("DTULTMANUTENCAO", dataAtual);
+		String codbem = (String) linhas[0].getCampo("CODBEM");
+		BigDecimal prazo = (BigDecimal) linhas[0].getCampo("PRAZO");		
+			
+		//calculaProximaManutencao(dataAtual,prazo,linhas);
+		linhas[0].setCampo("DTPROXMANUTENCAO", addDays(prazo.intValue(),dataAtual));
+		BigDecimal numos = gerarCabecalhoOS(contexto);
+		geraItemOS(numos,codbem,prazo);
+		linhas[0].setCampo("ULTIMAOS", numos);
+		salvaMANPREVOS(linhas);
+		
+		return numos;
+		
+	}
+		
+	private BigDecimal gerarCabecalhoOS(ContextoAcao contexto){
+		
+		Registro[] linhas = contexto.getLinhas();
+		String codbem = (String) linhas[0].getCampo("CODBEM");
+		Timestamp dtUltimaManutencao = (Timestamp) linhas[0].getCampo("DTULTMANUTENCAO");
+		Timestamp dtProximaManutencao = (Timestamp) linhas[0].getCampo("DTPROXMANUTENCAO");
+		BigDecimal numcontrato = (BigDecimal) linhas[0].getCampo("NUMCONTRATO");
+		BigDecimal codparc = (BigDecimal) linhas[0].getCampo("CODPARC");
+		BigDecimal numos = BigDecimal.ZERO;
+		BigDecimal prazo = (BigDecimal) linhas[0].getCampo("PRAZO");
+		
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("OrdemServico",new BigDecimal(381744));
+			DynamicVO NotaProdVO = ModeloNPVO.buildClone();
+			
+			Timestamp dataAtual=new Timestamp(System.currentTimeMillis());
+		
+			NotaProdVO.setProperty("DHCHAMADA", dataAtual);
+			NotaProdVO.setProperty("DTPREVISTA",addDays(prazo.intValue(),dataAtual) );
+			NotaProdVO.setProperty("DTFECHAMENTO", null);
+			NotaProdVO.setProperty("MODELOVISIVELAPPOS",null);
+			NotaProdVO.setProperty("NOMEMODELO",null);
+			NotaProdVO.setProperty("NUMOS",null);
+			NotaProdVO.setProperty("SITUACAO","P");
+			NotaProdVO.setProperty("CODUSUSOLICITANTE",getUsuLogado());		
+			NotaProdVO.setProperty("CODUSURESP",getUsuLogado());	
+			NotaProdVO.setProperty("DESCRICAO",montaDescricao(codbem,dtUltimaManutencao,dtProximaManutencao));
+			NotaProdVO.setProperty("SERIE",codbem);
+			NotaProdVO.setProperty("CODBEM",codbem);
+			NotaProdVO.setProperty("NUMCONTRATO",numcontrato);
+			NotaProdVO.setProperty("CODPARC",codparc);
+			NotaProdVO.setProperty("CODCONTATO",new BigDecimal(1));
+			NotaProdVO.setProperty("AD_MANPREVENTIVA", "S");
+			NotaProdVO.setProperty("CODATEND", getUsuLogado());
+			
+			dwfFacade.createEntity(DynamicEntityNames.ORDEM_SERVICO,(EntityVO) NotaProdVO);
+			numos = NotaProdVO.asBigDecimal("NUMOS");
+
+			return numos;
+
+		} catch (Exception e) {
+			System.out.println("Problema ao gerar cabecalho da OS!!");
+			e.printStackTrace();
+		}
+		return numos;
+	}
+	
+	private Timestamp addDays(int days, Timestamp t1) throws Exception{
+	    Long miliseconds = dayToMiliseconds(days);
+	    return new Timestamp(t1.getTime() + miliseconds);
+	}
+	
+	private Long dayToMiliseconds(int days){
+	    Long result = Long.valueOf(days * 24 * 60 * 60 * 1000);
+	    return result;
+	}
+	
+	private BigDecimal getUsuLogado() {
+		BigDecimal codUsuLogado = BigDecimal.ZERO;
+	    codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
+	    return codUsuLogado;
+	    	
+	}
+	
+	private String montaDescricao(String codbem, Timestamp dtUltimaManutencao, Timestamp dtProximaManutencao){
+		
+		SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy");
+		Date data = new Date(dtUltimaManutencao.getTime());
+		String ultimaManutencaoFormatada = formato.format(data);
+		
+		data = new Date(dtProximaManutencao.getTime());
+		String proximaManutencaoFormatada = formato.format(data);
+		
+		return  "** Manutenção Preventiva **"+
+				"\nPatrimônio: "+codbem+
+				"\nData última Manutenção: "+ultimaManutencaoFormatada+
+				"\nData Próxima Manutenção: "+proximaManutencaoFormatada+"*"+
+				"\n*A data da próxima manutenção pode sofrer alterações, verificar com o responsável";
+	}
+	
+	private void geraItemOS(BigDecimal numos, String codbem, BigDecimal prazo){
+		
+		Timestamp dataAtual=new Timestamp(System.currentTimeMillis());
+		
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("ItemOrdemServico",new Object[]{new BigDecimal(381744),new BigDecimal(1)});
+			DynamicVO NotaProdVO = ModeloNPVO.buildClone();
+			
+			NotaProdVO.setProperty("NUMOS",numos);			
+			NotaProdVO.setProperty("HRINICIAL", null);
+			NotaProdVO.setProperty("HRFINAL", null);
+			NotaProdVO.setProperty("DHPREVISTA", addDays(prazo.intValue(),dataAtual));
+			NotaProdVO.setProperty("INICEXEC", null);
+			NotaProdVO.setProperty("TERMEXEC", null);
+			NotaProdVO.setProperty("SERIE", codbem);
+			NotaProdVO.setProperty("CODPROD", getTCIBEM(codbem).asBigDecimal("CODPROD"));
+			NotaProdVO.setProperty("CODSIT", new BigDecimal(1));
+			NotaProdVO.setProperty("CODOCOROS", new BigDecimal(14));
+			NotaProdVO.setProperty("SOLUCAO", " ");
+			NotaProdVO.setProperty("CODUSU", new BigDecimal(2195));
+			
+			dwfFacade.createEntity(DynamicEntityNames.ITEM_ORDEM_SERVICO,(EntityVO) NotaProdVO);
+
+
+		} catch (Exception e) {
+			System.out.println("Problema ao gerar Item da OS!!");
+			e.printStackTrace();
+		}
+	}
+	
+	private DynamicVO getTCIBEM(String codbem) throws Exception{
+		JapeWrapper DAO = JapeFactory.dao("Imobilizado");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { codbem });
+		return VO;	
+	}
+	
+	private void salvaMANPREVOS(Registro[] linhas) throws Exception{
+		
+		BigDecimal numos = (BigDecimal) linhas[0].getCampo("ULTIMAOS");
+		Timestamp dtAbertura = (Timestamp) linhas[0].getCampo("DTPRIMEIRA");
+		String codbem = (String) linhas[0].getCampo("CODBEM");
+		BigDecimal codusu = getUsuLogado();
+		
+		EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+		EntityVO padraoNPVO = dwfFacade.getDefaultValueObjectInstance("AD_MANUPREVOS");
+		DynamicVO prodservicoVO = (DynamicVO) padraoNPVO;
+		
+		prodservicoVO.setProperty("NUMOS", numos);
+		prodservicoVO.setProperty("DTABERTURA", dtAbertura);
+		prodservicoVO.setProperty("CODUSU", codusu);
+		prodservicoVO.setProperty("CODBEM", codbem);
+		
+		dwfFacade.createEntity("AD_MANUPREVOS", (EntityVO) prodservicoVO);
+	}
+
+	
+	//OS PENDENTES DO DIA
+	
+	private void verificaOsPendentesDoDia(ContextoAcao arg0) throws Exception{
+		
+		Timestamp dataAtual = new Timestamp(System.currentTimeMillis());
+		SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy");
+		Date data = new Date(dataAtual.getTime());
+		String dataFormatada = formato.format(data);
+		
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+		Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_MANUPREV","this.DTPROXMANUTENCAO = ? ", new Object[] { dataFormatada }));
+
+		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+		PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+		DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+		
+		abrirOS(DynamicVO);
+			
+		}
+	}
+	
+	private void abrirOS(DynamicVO DynamicVO) throws Exception{
+		
+		String codbem = DynamicVO.asString("CODBEM");
+		Timestamp dtUltimaManutencao = DynamicVO.asTimestamp("DTULTMANUTENCAO");
+		Timestamp dtProximaManutencao = DynamicVO.asTimestamp("DTPROXMANUTENCAO");
+		BigDecimal numcontrato = DynamicVO.asBigDecimal("NUMCONTRATO");
+		BigDecimal codparc = DynamicVO.asBigDecimal("CODPARC");
+		BigDecimal prazo = DynamicVO.asBigDecimal("PRAZO");
+	
+		
+		BigDecimal numos = gerarCabecalhoOS(codbem,dtUltimaManutencao,dtProximaManutencao,numcontrato,codparc,prazo);
+		geraItemOS(numos,codbem,prazo);
+		atualizarInformacoes(numos,codbem);
+		salvaHistorico(numos,codbem);
+		
+		if(numos!=null){
+			cont++;
+		}	
+	}
+	
+	private BigDecimal gerarCabecalhoOS(String codbem,Timestamp dtUltimaManutencao,Timestamp dtProximaManutencao,BigDecimal numcontrato,BigDecimal codparc, BigDecimal prazo) throws Exception{
+		BigDecimal numos = BigDecimal.ZERO;
+		
+		try {			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("OrdemServico",new BigDecimal(381744));
+			DynamicVO NotaProdVO = ModeloNPVO.buildClone();
+			
+			Timestamp dataAtual=new Timestamp(System.currentTimeMillis());
+		
+			NotaProdVO.setProperty("DHCHAMADA", dataAtual);
+			NotaProdVO.setProperty("DTPREVISTA",addDays(prazo.intValue(),dataAtual) );
+			NotaProdVO.setProperty("DTFECHAMENTO", null);
+			NotaProdVO.setProperty("MODELOVISIVELAPPOS",null);
+			NotaProdVO.setProperty("NOMEMODELO",null);
+			NotaProdVO.setProperty("NUMOS",null);
+			NotaProdVO.setProperty("SITUACAO","P");
+			NotaProdVO.setProperty("CODUSUSOLICITANTE",getUsuLogado());
+			NotaProdVO.setProperty("CODUSURESP",getUsuLogado());
+			NotaProdVO.setProperty("DESCRICAO",montaDescricao(codbem,dtUltimaManutencao,dtProximaManutencao,prazo));
+			NotaProdVO.setProperty("SERIE",codbem);
+			NotaProdVO.setProperty("CODBEM",codbem);
+			NotaProdVO.setProperty("NUMCONTRATO",numcontrato);
+			NotaProdVO.setProperty("CODPARC",codparc);
+			NotaProdVO.setProperty("CODCONTATO",new BigDecimal(1));
+			NotaProdVO.setProperty("AD_MANPREVENTIVA", "S");
+			NotaProdVO.setProperty("CODATEND", getUsuLogado());
+			
+			dwfFacade.createEntity(DynamicEntityNames.ORDEM_SERVICO,(EntityVO) NotaProdVO);
+			numos = NotaProdVO.asBigDecimal("NUMOS");		
+
+		return numos;
+			
+		} catch (Exception e) {
+			System.out.println("ERRO AO GERAR CABEÇALHO DA OS!");
+			e.printStackTrace();
+		}
+		
+		return numos;		
+	}
+	
+	private String montaDescricao(String codbem, Timestamp dtUltimaManutencao, Timestamp dtProximaManutencao, BigDecimal prazo) throws Exception{
+		
+		SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy");
+		Date data = new Date(dtUltimaManutencao.getTime());
+		String ultimaManutencaoFormatada = formato.format(data);
+		
+		data = new Date(addDays(prazo.intValue(),dtUltimaManutencao).getTime());
+		String proximaManutencaoFormatada = formato.format(data);
+		
+		return  "** Manutenção Preventiva **"+
+				"\nPatrimônio: "+codbem+
+				"\nData última Manutenção: "+ultimaManutencaoFormatada+
+				"\nData Próxima Manutenção: "+proximaManutencaoFormatada+"*"+
+				"\n*A data da próxima manutenção pode sofrer alterações, verificar com o responsável";
+	}
+	
+	private void atualizarInformacoes(BigDecimal numos, String codbem) throws Exception{
+		
+		Timestamp dataAtual=new Timestamp(System.currentTimeMillis());
+		
+		EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+		PersistentLocalEntity PersistentLocalEntity = dwfFacade.findEntityByPrimaryKey("AD_MANUPREV", codbem);
+		EntityVO NVO = PersistentLocalEntity.getValueObject();
+		DynamicVO VO = (DynamicVO) NVO;
+						
+		VO.setProperty("ULTIMAOS", numos);
+		VO.setProperty("DTULTMANUTENCAO", dataAtual);
+		
+		Timestamp datainicial = VO.asTimestamp("DTULTMANUTENCAO");
+		BigDecimal prazo = VO.asBigDecimal("PRAZO");
+		
+		VO.setProperty("DTPROXMANUTENCAO", addDays(prazo.intValue(),datainicial));
+						
+		PersistentLocalEntity.setValueObject(NVO);
+	}
+	
+	private void salvaHistorico(BigDecimal numos,String codbem) throws Exception{
+		
+		Timestamp dtAbertura =new Timestamp(System.currentTimeMillis());
+		BigDecimal codusu = new BigDecimal(0);
+		
+		EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+		EntityVO padraoNPVO = dwfFacade.getDefaultValueObjectInstance("AD_MANUPREVOS");
+		DynamicVO prodservicoVO = (DynamicVO) padraoNPVO;
+		
+		prodservicoVO.setProperty("NUMOS", numos);
+		prodservicoVO.setProperty("DTABERTURA", dtAbertura);
+		prodservicoVO.setProperty("CODUSU", codusu);
+		prodservicoVO.setProperty("CODBEM", codbem);
+		
+		dwfFacade.createEntity("AD_MANUPREVOS", (EntityVO) prodservicoVO);
+	}
+}

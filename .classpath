@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/api_sankhya/jape-3.22b128.jar"/>
+	<classpathentry kind="lib" path="/api_sankhya/mge-modelcore-client.jar"/>
+	<classpathentry kind="lib" path="/api_sankhya/mge-modelcore.jar" sourcepath="/MGE-Modelcore-3.16.0"/>
+	<classpathentry kind="lib" path="/api_custom/Atualizados/java-lib/sanutil-4.0b91.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Atualizados/java-lib/sanws-4.0b91.jar"/>
+	<classpathentry kind="lib" path="/api_sankhya/SWService.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Flow/java-lib/mgeworkflow-model-4.0b91.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Flow/java-lib/SankhyaW-extensions.jar"/>
+	<classpathentry kind="lib" path="/api_outros/dom4j-1.6.1.jar"/>
+	<classpathentry kind="lib" path="/api_sankhya/gson-2.6.2.jar"/>
+	<classpathentry kind="lib" path="/api_outros/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="/api_outros/Jboss_326/jboss-j2ee.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Flow/java-lib/javax.mail.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Flow/java-lib/pop3.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Senha-Hash/java-lib/jbcrypt.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Atualizados/java-lib/common-lang3.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Flow/java-lib/org.apache.commons.io.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Atualizados/java-lib/jaxb-api-2.3.0.jar"/>
+	<classpathentry kind="lib" path="/api_custom/Atualizados/java-lib/jsoup-1.12.1.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
