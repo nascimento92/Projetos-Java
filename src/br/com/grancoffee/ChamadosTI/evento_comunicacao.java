@@ -58,6 +58,16 @@ public class evento_comunicacao implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		
+		if(validaUsuario(getUsuLogado())) {
+			if(validacoes(VO)) {
+				throw new PersistenceException(
+						"<p align=\"center\"><img src=\"http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-325x100.png\" height=\"100\" width=\"325\"></img></p><br/>"+
+						"\n<font size=\"20\"><b>Antes de enviar uma comunicação classifique o chamado e defina um atendente!</b></font>\n<br/><br/>");
+			}
+		}
+		
 		start(arg0);
 	}
 
@@ -266,5 +276,34 @@ public class evento_comunicacao implements EventoProgramavelJava {
 			System.out.println("## [ChamadosTI.btn_statusOS] NAO FOI POSSIVEL ALTERAR A COR DO SLA!"+e.getMessage());
 			e.printStackTrace();
 		}
+	}
+	
+	private boolean validaUsuario(BigDecimal usuario) throws Exception {
+		boolean valida=false;
+		JapeWrapper DAO = JapeFactory.dao("Usuario");
+		DynamicVO VO = DAO.findOne("CODUSU=?",new Object[] { usuario });
+		String visualizaTodosOsChamados = VO.asString("AD_CHAMADOSTI");
+		if("S".equals(visualizaTodosOsChamados)) {
+			valida=true;
+		}
+		return valida;
+	}
+	
+	private boolean validacoes(DynamicVO VO) throws Exception {
+		boolean valida = false;
+		BigDecimal idChamado = VO.asBigDecimal("ID");
+		DynamicVO chamado = getChamado(idChamado);
+		String tipo = chamado.asString("TIPO");
+		BigDecimal atendimento = chamado.asBigDecimal("ATENDENTE");
+		
+		if(tipo==null) {
+			valida=true;
+		}else {valida=false;}
+		
+		if(atendimento==null) {
+			valida=true;
+		}
+		
+		return valida;
 	}
 }
