@@ -88,7 +88,7 @@ public class evento_valida_lote_tgfite implements EventoProgramavelJava {
 			if(grupoProduto.intValue()==500104) {
 				if(lote!="99999") {
 					
-					if("V".equals(tipoMovimento)) {
+					if("P".equals(tipoMovimento)) {
 						if(!verificaLote(lote,empresa)) {
 							throw new PersistenceException(
 									"<p align=\"center\"><img src=\"http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-325x100.png\" height=\"100\" width=\"325\"></img></p><br/><br/><br/><br/><br/><br/>"+

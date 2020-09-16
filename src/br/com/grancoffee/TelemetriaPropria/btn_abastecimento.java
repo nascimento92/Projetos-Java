@@ -4,9 +4,7 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Calendar;
-
 import com.sankhya.util.TimeUtils;
-
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -49,6 +47,18 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			if(dtAbastecimento.before(reduzUmDia(dtSolicitacao))) {
 				arg0.mostraErro("<b>ERRO!</b> - Data de agendamento não pode ser menor que a data de hoje!");
 			}
+			
+			int diaDataAgendada = TimeUtils.getDay(dtAbastecimento);
+			int diaDataAtual = TimeUtils.getDay(dtSolicitacao);
+			
+			int minutoDataAgendada = TimeUtils.getTimeInMinutes(dtAbastecimento);
+			int minutoDataAtual = TimeUtils.getTimeInMinutes(dtSolicitacao);
+			
+			if(diaDataAtual==diaDataAgendada) {
+				if(minutoDataAtual==minutoDataAgendada) {
+					dtAbastecimento = null;
+				}
+			}
 		}
 		
 		for(int i=0; i<linhas.length; i++) {
@@ -57,10 +67,27 @@ public class btn_abastecimento implements AcaoRotinaJava{
 				
 				if(dtAbastecimento!=null) {
 					dtSolicitacao = TimeUtils.getNow();
-					agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao,dtAbastecimento);
+					BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao);
+					
+					if(idAbastecimento!=null) {
+						agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao,dtAbastecimento,idAbastecimento);
+					}else {
+						cont=0;
+						retornoNegativo = retornoNegativo+linhas[i].getCampo("CODBEM").toString();
+					}
+					
+					
 				}else {
 					dtSolicitacao = TimeUtils.getNow();
-					agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao,dtSolicitacao);
+					BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao);
+					
+					if(idAbastecimento!=null) {
+						agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao,dtSolicitacao,idAbastecimento);
+					}else {
+						cont=0;
+						retornoNegativo = retornoNegativo+linhas[i].getCampo("CODBEM").toString();
+					}
+					
 				}
 								
 			}
@@ -71,6 +98,36 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		}else {
 			arg0.setMensagemRetorno(cont+" - Abastecimento(s) Agendado(s)");
 		}
+	}
+	
+	private BigDecimal cadastrarNovoAbastecimento(String patrimonio, Timestamp data) {
+		BigDecimal idAbastecimento = null;
+		
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCControleAbastecimento");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			int rota = getRota(patrimonio);
+			
+			VO.setProperty("CODBEM", patrimonio);
+			VO.setProperty("DTSOLICITACAO", data);
+			VO.setProperty("STATUS", "1");
+			VO.setProperty("SOLICITANTE", getUsuLogado());
+			VO.setProperty("ROTA", Integer.toString(rota));
+			
+			dwfFacade.createEntity("GCControleAbastecimento", (EntityVO) VO);
+			
+			idAbastecimento = VO.asBigDecimal("ID");
+			
+		} catch (Exception e) {
+			retornoNegativo = retornoNegativo+e.getMessage();
+			e.getMessage();
+			e.printStackTrace();
+		}
+		
+		return idAbastecimento;
 	}
 	
 	private boolean validaPedido(String patrimonio) {
@@ -85,7 +142,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
 			nativeSql.appendSql(
-					"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS='1'");
+					"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS IN ('1','2')");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				int count = contagem.getInt("COUNT(*)");
@@ -104,7 +161,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		return valida;
 	}
 	
-	private void agendarAbastecimento(String patrimonio, Timestamp dtSolicitacao, Timestamp dtAgendamento) {
+	private void agendarAbastecimento(String patrimonio, Timestamp dtSolicitacao, Timestamp dtAgendamento,BigDecimal idAbastecimento) {
 		try {
 			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -117,6 +174,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			VO.setProperty("DTSOLICIT", dtSolicitacao);
 			VO.setProperty("DTAGENDAMENTO", dtAgendamento);
 			VO.setProperty("ROTA", new BigDecimal(getRota(patrimonio)));
+			VO.setProperty("IDABASTECIMENTO", idAbastecimento);
 			
 			dwfFacade.createEntity("GCSolicitacoesAbastecimento", (EntityVO) VO);
 			
