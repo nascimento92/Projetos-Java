@@ -56,7 +56,12 @@ public class btn_ajustaLote implements AcaoRotinaJava {
 			this.retorno="Lote: "+lote+" ajustado / cadastrado!";
 			geraLog(lote);
 		}else if("2".equals(tipo)) {
-			excluirLote(lote);
+			
+			if(local==null) {
+				local="1500";
+			}
+			
+			excluirLote(lote,local);
 			this.retorno="Lote: "+lote+" excluido!";
 			geraLog(lote);
 		}else {
@@ -92,6 +97,17 @@ public class btn_ajustaLote implements AcaoRotinaJava {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("Estoque", "this.CONTROLE=?",new Object[] {lote}));
+			
+		} catch (Exception e) {
+			System.out.println("## [br.tcibem.btn_ajustaLote] ## - Nao foi possivel excluir o lote!"+e.getMessage());
+			e.printStackTrace();
+		}
+	}
+	
+	private void excluirLote(String lote, String local) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("Estoque", "this.CONTROLE=? AND this.CODLOCAL=?",new Object[] {lote,local}));
 			
 		} catch (Exception e) {
 			System.out.println("## [br.tcibem.btn_ajustaLote] ## - Nao foi possivel excluir o lote!"+e.getMessage());

@@ -156,7 +156,7 @@ public class flow_rel_inst_acaoAgendada_LeituraEmail implements ScheduledAction 
 	    			 insereDadosNoFluxo(id);
 	    			 insertAnexoNoFluxoFLow(id);
 	    			 enviarEmail(emailSolicitante,idflow);
-	    			 enviarEmailValidacao("gabriel.nascimento@grancoffee.com.br",idflow);
+	    			 //enviarEmailValidacao("gabriel.nascimento@grancoffee.com.br",idflow);
 	    			 salvaFluxoNaTelaGerencial();
 	    			 
 	    			 if(token!=null) {
@@ -657,7 +657,7 @@ public class flow_rel_inst_acaoAgendada_LeituraEmail implements ScheduledAction 
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("MSDFilaMensagem");
 			DynamicVO VO = (DynamicVO) NPVO;
-			
+
 			VO.setProperty("CODFILA", getUltimoCodigoFila());
 			VO.setProperty("DTENTRADA", new Timestamp(System.currentTimeMillis()));
 			VO.setProperty("MENSAGEM", mensagem.toCharArray());
@@ -666,7 +666,11 @@ public class flow_rel_inst_acaoAgendada_LeituraEmail implements ScheduledAction 
 			VO.setProperty("EMAIL", email);
 			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("STATUS", "Pendente");
-			VO.setProperty("CODCON", new BigDecimal(0));		
+			VO.setProperty("CODCON", new BigDecimal(0));	
+			VO.setProperty("CODSMTP", new BigDecimal(1));
+			VO.setProperty("MAXTENTENVIO", new BigDecimal(3));
+			VO.setProperty("TENTENVIO", new BigDecimal(0));
+			VO.setProperty("REENVIAR", "N");		
 			
 			dwfFacade.createEntity("MSDFilaMensagem", (EntityVO) VO);
 			
@@ -736,8 +740,12 @@ public class flow_rel_inst_acaoAgendada_LeituraEmail implements ScheduledAction 
 			VO.setProperty("EMAIL", email);
 			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("STATUS", "Pendente");
-			VO.setProperty("CODCON", new BigDecimal(0));		
-			
+			VO.setProperty("CODCON", new BigDecimal(0));	
+			VO.setProperty("CODSMTP", new BigDecimal(1));
+			VO.setProperty("MAXTENTENVIO", new BigDecimal(3));
+			VO.setProperty("TENTENVIO", new BigDecimal(0));
+			VO.setProperty("REENVIAR", "N");
+
 			dwfFacade.createEntity("MSDFilaMensagem", (EntityVO) VO);
 			
 		} catch (Exception e) {

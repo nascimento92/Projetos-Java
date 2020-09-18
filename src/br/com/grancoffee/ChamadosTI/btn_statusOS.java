@@ -257,7 +257,7 @@ public class btn_statusOS implements AcaoRotinaJava {
 				  textoComplementar="O seu chamado foi Atendido, porém está aguardando aprovação, verificar as tratativas na tela Chamados TI.";//em aprovacao
 			break;
 		case "4": statusAtual="CONCLUIDO";
-				  textoComplementar="O seu chamado foi Finalizado, verificar as tratativas na tela Chamados TI.";//concluido
+				  textoComplementar="O seu chamado foi Finalizado, verificar as tratativas na tela Chamados TI.\n O que achou do atendimento ? de sua opinião: <a href=\"https://forms.office.com/Pages/ResponsePage.aspx?id=oJBZB5UVOUWeyfQH8I-ZsciCmKe9i-lAuAx2UMlzcq1UM0VBMlZUTFVDVjZSTkxYT1ozOUpXVkNTTi4u\"> clique aqui.</a>";//concluido
 			break;
 		case "5": statusAtual="CANCELADO";
 				  textoComplementar="O seu chamado foi Cancelado, verificar o motivo nas tratativas na tela Chamados TI.";//cancelado
@@ -291,7 +291,7 @@ public class btn_statusOS implements AcaoRotinaJava {
 					+ "<br/>Departamento TI"
 					+ "<br/>Gran Coffee Comércio, Locação e Serviços S.A."
 					+ "<br/>"
-					+ "<img src=http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-pq.png  alt=\"\"/>";
+					+ "<img src=https://grancoffee.com.br/wp-content/themes/gran-coffe/assets/img/logo-gran-coffee-black.svg  alt=\"\"/>";
 			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("MSDFilaMensagem");
@@ -305,7 +305,11 @@ public class btn_statusOS implements AcaoRotinaJava {
 			VO.setProperty("EMAIL", email);
 			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("STATUS", "Pendente");
-			VO.setProperty("CODCON", new BigDecimal(0));		
+			VO.setProperty("CODCON", new BigDecimal(0));	
+			VO.setProperty("CODSMTP", new BigDecimal(1));
+			VO.setProperty("MAXTENTENVIO", new BigDecimal(3));
+			VO.setProperty("TENTENVIO", new BigDecimal(0));
+			VO.setProperty("REENVIAR", "N");
 			
 			dwfFacade.createEntity("MSDFilaMensagem", (EntityVO) VO);
 		} catch (Exception e) {

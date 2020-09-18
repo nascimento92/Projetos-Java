@@ -142,7 +142,7 @@ public class evento_comunicacao implements EventoProgramavelJava {
 			String mensagem = new String();
 			
 			mensagem = "Prezado,<br/><br/> "
-					+ "Referente ao chamado de número <b>"+numos+"</b> existe uma nova comunicação:"
+					+ "Referente ao chamado de número <b>"+numos+"</b>. Existe uma nova comunicação: "
 					+ "<br/><br/><b>Responsável pela comunicação:</b> "+nomeCompleto
 					+ "<br/><br/><b>Comunicação:</b> <i>"+comunicacao+"</i>"
 					+ "<br/><br/><b>Esta é uma mensagem automática, por gentileza não respondê-la</b>"
@@ -164,7 +164,11 @@ public class evento_comunicacao implements EventoProgramavelJava {
 			VO.setProperty("EMAIL", email);
 			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("STATUS", "Pendente");
-			VO.setProperty("CODCON", new BigDecimal(0));		
+			VO.setProperty("CODCON", new BigDecimal(0));	
+			VO.setProperty("CODSMTP", new BigDecimal(1));
+			VO.setProperty("MAXTENTENVIO", new BigDecimal(3));
+			VO.setProperty("TENTENVIO", new BigDecimal(0));
+			VO.setProperty("REENVIAR", "N");		
 			
 			dwfFacade.createEntity("MSDFilaMensagem", (EntityVO) VO);
 		} catch (Exception e) {

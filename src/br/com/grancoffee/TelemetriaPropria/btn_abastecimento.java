@@ -4,13 +4,19 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.Iterator;
+
 import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.sql.NativeSql;
+import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
@@ -70,6 +76,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 					BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao);
 					
 					if(idAbastecimento!=null) {
+						carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idAbastecimento);
 						agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao,dtAbastecimento,idAbastecimento);
 					}else {
 						cont=0;
@@ -82,6 +89,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 					BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao);
 					
 					if(idAbastecimento!=null) {
+						carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idAbastecimento);
 						agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao,dtSolicitacao,idAbastecimento);
 					}else {
 						cont=0;
@@ -221,5 +229,48 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		dataAtual.setTime(data);
 		dataAtual.add(Calendar.DAY_OF_MONTH, -1);
 		return new Timestamp(dataAtual.getTimeInMillis());
+	}
+	
+	private void carregaTeclasNosItensDeAbast(String patrimonio, BigDecimal idAbastecimento) throws Exception {
+		
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade
+					.findByDynamicFinder(new FinderWrapper("GCPlanograma", "this.CODBEM = ? ", new Object[] { patrimonio }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				String tecla = DynamicVO.asString("TECLA");
+				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+				BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
+				
+				try {
+					
+					EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+					EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCItensAbastecimento");
+					DynamicVO VO = (DynamicVO) NPVO;
+					
+					VO.setProperty("IDABASTECIMENTO", idAbastecimento);
+					VO.setProperty("CODBEM", patrimonio);
+					VO.setProperty("TECLA", tecla);
+					VO.setProperty("CODPROD", produto);
+					VO.setProperty("CAPACIDADE", capacidade);
+					VO.setProperty("NIVELPAR", nivelPar);
+					
+					dwfFacade.createEntity("GCItensAbastecimento", (EntityVO) VO);
+					
+				} catch (Exception e) {
+					System.out.println("***** NAO FOI POSSIVEL CADASTRAR AS TECLAS *******");
+					e.getMessage();
+					e.printStackTrace();
+				}
+				
+			
+			}
 	}
 }

@@ -85,7 +85,11 @@ public class btn_classificar implements AcaoRotinaJava {
 			VO.setProperty("EMAIL", email);
 			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("STATUS", "Pendente");
-			VO.setProperty("CODCON", new BigDecimal(0));		
+			VO.setProperty("CODCON", new BigDecimal(0));	
+			VO.setProperty("CODSMTP", new BigDecimal(1));
+			VO.setProperty("MAXTENTENVIO", new BigDecimal(3));
+			VO.setProperty("TENTENVIO", new BigDecimal(0));
+			VO.setProperty("REENVIAR", "N");		
 			
 			dwfFacade.createEntity("MSDFilaMensagem", (EntityVO) VO);
 		} catch (Exception e) {

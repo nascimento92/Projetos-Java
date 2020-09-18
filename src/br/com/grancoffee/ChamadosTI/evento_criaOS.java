@@ -179,16 +179,20 @@ public class evento_criaOS implements EventoProgramavelJava {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("MSDFilaMensagem");
 			DynamicVO VO = (DynamicVO) NPVO;
-			
+
 			VO.setProperty("CODFILA", getUltimoCodigoFila());
 			VO.setProperty("DTENTRADA", new Timestamp(System.currentTimeMillis()));
 			VO.setProperty("MENSAGEM", mensagem.toCharArray());
 			VO.setProperty("TIPOENVIO", "E");
 			VO.setProperty("ASSUNTO", new String("CHAMADO - "+numos));
 			VO.setProperty("EMAIL", email);
-			VO.setProperty("CODUSU", getUsuLogado());
+			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("STATUS", "Pendente");
-			VO.setProperty("CODCON", new BigDecimal(0));		
+			VO.setProperty("CODCON", new BigDecimal(0));	
+			VO.setProperty("CODSMTP", new BigDecimal(1));
+			VO.setProperty("MAXTENTENVIO", new BigDecimal(3));
+			VO.setProperty("TENTENVIO", new BigDecimal(0));
+			VO.setProperty("REENVIAR", "N");
 			
 			dwfFacade.createEntity("MSDFilaMensagem", (EntityVO) VO);
 		} catch (Exception e) {
