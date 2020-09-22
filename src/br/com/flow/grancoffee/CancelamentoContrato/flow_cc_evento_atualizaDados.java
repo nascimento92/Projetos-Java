@@ -86,10 +86,6 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 			limpaPatrimonios(idflow);
 			cadastrarTodosOsPatrimonios(contrato,idflow);
 		}
-		
-		if("1".equals(tipo)) {
-			limpaPatrimonios(idflow);	
-		}
 	}
 	
 	private void limpaPatrimonios(BigDecimal idflow) {
@@ -129,6 +125,9 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 				VO.setProperty("IDTAREFA", "UserTask_1rgod34");
 				VO.setProperty("IDPLANTA", DynamicVO.asBigDecimal("ID"));
 				VO.setProperty("NUMCONTRATO", contrato);
+				VO.setProperty("ESCADA", "N");
+				VO.setProperty("RAMPA", "N");
+				VO.setProperty("ELEVADOR", "N");
 				
 				dwfEntityFacade.createEntity("AD_PATCANCELAMENTO", (EntityVO) VO);
 

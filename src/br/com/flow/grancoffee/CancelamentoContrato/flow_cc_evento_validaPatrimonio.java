@@ -1,14 +1,21 @@
 package br.com.flow.grancoffee.CancelamentoContrato;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Iterator;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
+import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.PersistenceException;
+import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
+import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
+import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class flow_cc_evento_validaPatrimonio implements EventoProgramavelJava {
 
@@ -38,7 +45,7 @@ public class flow_cc_evento_validaPatrimonio implements EventoProgramavelJava {
 
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		alteraTipoCancelamento(arg0);
 		
 	}
 
@@ -97,5 +104,32 @@ public class flow_cc_evento_validaPatrimonio implements EventoProgramavelJava {
 		JapeWrapper DAO = JapeFactory.dao("ENDERECAMENTO");
 		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
 		return VO;
+	}
+	
+	private void alteraTipoCancelamento(PersistenceEvent arg0) {
+		DynamicVO VOS = (DynamicVO) arg0.getVo();
+		BigDecimal idFlow = VOS.asBigDecimal("IDINSTPRN");
+		
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_FORMCANCELAMENTO",
+					"this.IDINSTPRN=?", new Object[] { idFlow }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("TIPOCANCEL", "1");
+
+				itemEntity.setValueObject(NVO);
+			}
+
+			
+		} catch (Exception e) {
+			e.getMessage();
+			e.getCause();
+			e.printStackTrace();
+		}
 	}
 }
