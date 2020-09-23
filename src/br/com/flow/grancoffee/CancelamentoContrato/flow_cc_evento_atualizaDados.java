@@ -6,6 +6,7 @@ import java.util.Iterator;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.PersistenceException;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
@@ -64,27 +65,62 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 		 
 		
 		if(contrato!=null) {
-			VO.setProperty("CODCENCUS", getTcsCon(contrato).asBigDecimal("CODCENCUS"));
-			VO.setProperty("DTCONTRATO", getTcsCon(contrato).asTimestamp("DTCONTRATO"));
-			VO.setProperty("CODPARC", getTcsCon(contrato).asBigDecimal("CODPARC"));
 			
-			String ie = getTgfPar(getTcsCon(contrato).asBigDecimal("CODPARC")).asString("IDENTINSCESTAD");
-			if(ie!=null) {
-				VO.setProperty("TEMIE", "S");
-			}else {
-				VO.setProperty("TEMIE", "N");
-			}
+			salvaDados(VO,contrato);
+			validaCancelamento(VO,contrato);
+			validaRestricaoDeHoratio(VO);
+			validaDataRetirada(VO);
+			validaRetiradaAcessorios(VO);
 			
-			String tipoCancelamento = VO.asString("TIPOCANCEL");
-			BigDecimal idflow = VO.asBigDecimal("IDINSTPRN");
-			validaCancelamento(tipoCancelamento,contrato,idflow);
+		}
+	}
+	
+	private void salvaDados(DynamicVO VO, BigDecimal contrato) throws Exception {
+		VO.setProperty("CODCENCUS", getTcsCon(contrato).asBigDecimal("CODCENCUS"));
+		VO.setProperty("DTCONTRATO", getTcsCon(contrato).asTimestamp("DTCONTRATO"));
+		VO.setProperty("CODPARC", getTcsCon(contrato).asBigDecimal("CODPARC"));
+		
+		String ie = getTgfPar(getTcsCon(contrato).asBigDecimal("CODPARC")).asString("IDENTINSCESTAD");
+		if(ie!=null) {
+			VO.setProperty("TEMIE", "S");
+		}else {
+			VO.setProperty("TEMIE", "N");
 		}
 	}
 		
-	private void validaCancelamento(String tipo, BigDecimal contrato, BigDecimal idflow) {
+	private void validaCancelamento(DynamicVO VO, BigDecimal contrato) {
+		String tipo = VO.asString("TIPOCANCEL");
+		BigDecimal idflow = VO.asBigDecimal("IDINSTPRN");
+		
 		if("2".equals(tipo)) {
 			limpaPatrimonios(idflow);
 			cadastrarTodosOsPatrimonios(contrato,idflow);
+		}
+	}
+	
+	private void validaRestricaoDeHoratio(DynamicVO VO) throws PersistenceException {
+		String possuiRestricao = VO.asString("RESTRICAOHORARIO");
+		String horarioRestricao = VO.asString("DESCRRESTRICAO");
+		
+		if("1".equals(possuiRestricao)) {
+			if(horarioRestricao==null) {
+				throw new PersistenceException("<br/><br/><br/><b>Informar os Horários da Restrição!</b><br/><br/><br/>");
+			}
+		}
+	}
+	
+	private void validaDataRetirada(DynamicVO VO) {
+		//deve ser no mínimo 10 dias depois da criação do flow.
+	}
+	
+	private void validaRetiradaAcessorios(DynamicVO VO) throws PersistenceException {
+		String retiraAcessorios = VO.asString("RETIRAACESSORIOS");
+		String acessorios = VO.asString("ACESSORIOS");
+		
+		if("1".equals(retiraAcessorios)) {
+			if(acessorios==null) {
+				throw new PersistenceException("<br/><br/><br/><b>Informar os acessórios para retirada!</b><br/><br/><br/>");
+			}
 		}
 	}
 	
@@ -125,9 +161,9 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 				VO.setProperty("IDTAREFA", "UserTask_1rgod34");
 				VO.setProperty("IDPLANTA", DynamicVO.asBigDecimal("ID"));
 				VO.setProperty("NUMCONTRATO", contrato);
-				VO.setProperty("ESCADA", "N");
-				VO.setProperty("RAMPA", "N");
-				VO.setProperty("ELEVADOR", "N");
+				VO.setProperty("ESCADA", "2");
+				VO.setProperty("RAMPA", "2");
+				VO.setProperty("ELEVADOR", "2");
 				
 				dwfEntityFacade.createEntity("AD_PATCANCELAMENTO", (EntityVO) VO);
 
