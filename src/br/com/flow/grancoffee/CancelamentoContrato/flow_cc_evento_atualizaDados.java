@@ -3,7 +3,6 @@ package br.com.flow.grancoffee.CancelamentoContrato;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
-
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.PersistenceException;
@@ -62,7 +61,6 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 	private void start(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
-		 
 		
 		if(contrato!=null) {
 			
@@ -71,7 +69,8 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 			validaRestricaoDeHoratio(VO);
 			validaDataRetirada(VO);
 			validaRetiradaAcessorios(VO);
-			
+			validaTaxaDeRetirada(VO);
+			validaMulta(VO);
 		}
 	}
 	
@@ -120,6 +119,42 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 		if("1".equals(retiraAcessorios)) {
 			if(acessorios==null) {
 				throw new PersistenceException("<br/><br/><br/><b>Informar os acessórios para retirada!</b><br/><br/><br/>");
+			}
+		}
+	}
+	
+	private void validaTaxaDeRetirada(DynamicVO VO) throws PersistenceException {
+		String cobrarMulta = VO.asString("COBRARMULTA");
+		String multa = VO.asString("MULTA");
+		String justificativa = VO.asString("JUSTIFICATIVAMULTA");
+		
+		if("1".equals(cobrarMulta)) {
+			if(multa==null) {
+				throw new PersistenceException("<br/><br/><br/><b>Informar o valor da Multa!</b><br/><br/><br/>");
+			}
+		}
+		else
+		if("2".equals(cobrarMulta)) {
+			if(justificativa==null) {
+				throw new PersistenceException("<br/><br/><br/><b>Informar a justificativa de não cobrar a Multa!</b><br/><br/><br/>");
+			}
+		}
+	}
+	
+	private void validaMulta(DynamicVO VO) throws PersistenceException {
+		String cobrarTaxa = VO.asString("COBRATAXA");
+		String taxa = VO.asString("TAXA");
+		String justificativa = VO.asString("JUSTIFICATIVATAXA");
+		
+		if("1".equals(cobrarTaxa)) {
+			if(taxa==null) {
+				throw new PersistenceException("<br/><br/><br/><b>Informar o valor da Taxa!</b><br/><br/><br/>");
+			}
+		}
+		else
+		if("2".equals(cobrarTaxa)) {
+			if(justificativa==null) {
+				throw new PersistenceException("<br/><br/><br/><b>Informar a justificativa de não cobrar a taxa de retirada!</b><br/><br/><br/>");
 			}
 		}
 	}
