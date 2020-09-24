@@ -3,6 +3,7 @@ package br.com.grancoffee.TelemetriaPropria;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
+
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -15,32 +16,25 @@ import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 
-public class btn_ajustarAbastecimento implements AcaoRotinaJava {
+public class btn_FinalizarAjuste implements AcaoRotinaJava {
 
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
-
+		start(arg0);		
+	}
+	
+	private void start(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
-
-		String campo = (String) linhas[0].getCampo("AJUSTADO");
-
-		if ("S".equals(campo)) {
-			arg0.mostraErro("Abastecimento já ajustado!");
-		} else {
-			boolean confirmarSimNao = arg0.confirmarSimNao("Atenção!",
-					"Todas as informações digitadas manualmente serão aceitas e o <b>inventário será ajustado</b>, onde não foi digitado manualmente será adotado o que o promotor digitou, continuar?",
-					1);
-
-			if (confirmarSimNao) {
-
-				Object idObjeto = linhas[0].getCampo("IDABASTECIMENTO");
-				pegarTeclas(idObjeto, arg0);
-
-			}
+		if(linhas.length>1) {
+			arg0.mostraErro("Selecione apenas uma linha!");
+		}else {
+			BigDecimal id = (BigDecimal) linhas[0].getCampo("ID");
+			//inserir Validação para prosseguir apenas se for um ajuste de inventário manual, validar pelo campo
+			pegarTeclas(id,arg0);
 		}
 	}
-
-	private void pegarTeclas(Object idObjeto, ContextoAcao arg0) throws Exception {
+		
+	private void pegarTeclas(BigDecimal idObjeto, ContextoAcao arg0) throws Exception {
 
 		int cont = 0;
 
@@ -54,10 +48,10 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 
 			BigDecimal qtdajuste = DynamicVO.asBigDecimal("QTDAJUSTE");
-			BigDecimal diferenca = DynamicVO.asBigDecimal("DIFERENCA");
 			String tipoAjuste = DynamicVO.asString("TIPOAJUSTE");
-			BigDecimal idabast = DynamicVO.asBigDecimal("IDABASTECIMENTO");
-
+			
+			//validar para rodar apenas se pelo menos uma tecla tiver sido preenchida, fazer um count
+			
 			if (qtdajuste != null) {
 				if(qtdajuste.intValue()!=0) {
 					if(tipoAjuste!=null) {
@@ -83,47 +77,22 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 
 						String obs = DynamicVO.asString("OBSAJUSTE");
 						if (obs == null) {
-							obs = "Botão ajustar abastecimento.";
+							obs = "Ajuste de Inventário Manual.";
 						}
 
-						inserirSolicitacaoDeAjuste(tecla, produto, capacidade, nivelpar, saldoAtual, codbem, valor, obs,idabast);
+						inserirSolicitacaoDeAjuste(tecla, produto, capacidade, nivelpar, saldoAtual, codbem, valor, obs,idObjeto);
 						cont++;
 					}else {
 						DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
 					}
 					
-				}else if(diferenca.intValue() != 0) {
-					String tecla = DynamicVO.asString("TECLA");
-					BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-					BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-					BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-					BigDecimal saldoAtual = DynamicVO.asBigDecimal("SALDOATUAL");
-					String codbem = DynamicVO.asString("CODBEM");
-
-					inserirSolicitacaoDeAjuste(tecla, produto, capacidade, nivelpar, saldoAtual, codbem, diferenca,
-							"Botão ajustar abastecimento.",idabast);
-					cont++;
-					DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
 				}else {
 					DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
 					DynamicVO.setProperty("OBSAJUSTE", "");
 					DynamicVO.setProperty("TIPOAJUSTE", "");
 				}
 
-			} else if (diferenca.intValue() != 0) {
-				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal saldoAtual = DynamicVO.asBigDecimal("SALDOATUAL");
-				String codbem = DynamicVO.asString("CODBEM");
-
-				inserirSolicitacaoDeAjuste(tecla, produto, capacidade, nivelpar, saldoAtual, codbem, diferenca,
-						"Botão ajustar abastecimento.",idabast);
-				cont++;
-				DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
-				
-			}else {
+			} else {
 				DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
 				DynamicVO.setProperty("OBSAJUSTE", "");
 				DynamicVO.setProperty("TIPOAJUSTE", "");
@@ -135,13 +104,11 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 
 		if (cont > 0) {
 			arg0.setMensagemRetorno("Ajuste Agendado!");
-		} else {
-			arg0.setMensagemRetorno("Não existem diferenças para serem ajustadas!");
 		}
 	}
-
+	
 	private void inserirSolicitacaoDeAjuste(String tecla, BigDecimal produto, BigDecimal capacidade,
-			BigDecimal nivelpar, BigDecimal saldoAtual, String codbem, BigDecimal diferenca, String obs,BigDecimal idabast) {
+			BigDecimal nivelpar, BigDecimal saldoAtual, String codbem, BigDecimal valor, String obs,BigDecimal idabast) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCSolicitAjuste");
@@ -154,27 +121,26 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			VO.setProperty("CAPACIDADE", capacidade);
 			VO.setProperty("NIVELPAR", nivelpar);
 			VO.setProperty("SALDOANTERIOR", saldoAtual);
-			VO.setProperty("QTDAJUSTE", diferenca);
-			VO.setProperty("MANUAL", "N");
+			VO.setProperty("QTDAJUSTE", valor);
+			VO.setProperty("MANUAL", "S");
 			VO.setProperty("OBSERVACAO", obs);
-			VO.setProperty("SALDOFINAL", saldoAtual.add(diferenca));
+			VO.setProperty("SALDOFINAL", saldoAtual.add(valor));
 			//VO.setProperty("IDABASTECIMENTO", idabast);
 
 			dwfFacade.createEntity("GCSolicitAjuste", (EntityVO) VO);
 
 		} catch (Exception e) {
 			System.out
-					.println("## [btn_ajustarAbastecimento] ## - Não foi possivel cadastrar a solicitação de ajuste!");
+					.println("## [btn_FinalizarAjuste] ## - Não foi possivel cadastrar a solicitação de ajuste!");
 			e.getMessage();
 			e.getCause();
 			e.printStackTrace();
 		}
 	}
-
+	
 	private BigDecimal getUsuLogado() {
 		BigDecimal codUsuLogado = BigDecimal.ZERO;
 		codUsuLogado = ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID();
 		return codUsuLogado;
 	}
-
 }

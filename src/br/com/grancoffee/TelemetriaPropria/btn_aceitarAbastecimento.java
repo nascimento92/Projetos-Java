@@ -53,6 +53,7 @@ public class btn_aceitarAbastecimento implements AcaoRotinaJava {
 			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 			
 			BigDecimal diferenca = DynamicVO.asBigDecimal("DIFERENCA");
+			BigDecimal idabast = DynamicVO.asBigDecimal("IDABASTECIMENTO");
 			
 			if(diferenca.intValue()!=0) {
 				String tecla = DynamicVO.asString("TECLA");
@@ -62,7 +63,7 @@ public class btn_aceitarAbastecimento implements AcaoRotinaJava {
 				BigDecimal saldoAtual = DynamicVO.asBigDecimal("SALDOATUAL");
 				String codbem = DynamicVO.asString("CODBEM");
 				
-				inserirSolicitacaoDeAjuste(tecla,produto,capacidade,nivelpar,saldoAtual,codbem,diferenca);
+				inserirSolicitacaoDeAjuste(tecla,produto,capacidade,nivelpar,saldoAtual,codbem,diferenca,idabast);
 				cont++;
 			}
 			
@@ -78,7 +79,7 @@ public class btn_aceitarAbastecimento implements AcaoRotinaJava {
 		}
 	}
 	
-	private void inserirSolicitacaoDeAjuste(String tecla,BigDecimal produto,BigDecimal capacidade,BigDecimal nivelpar,BigDecimal saldoAtual,String codbem,BigDecimal diferenca) {
+	private void inserirSolicitacaoDeAjuste(String tecla,BigDecimal produto,BigDecimal capacidade,BigDecimal nivelpar,BigDecimal saldoAtual,String codbem,BigDecimal diferenca,BigDecimal idabast) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCSolicitAjuste");
@@ -95,6 +96,7 @@ public class btn_aceitarAbastecimento implements AcaoRotinaJava {
 			VO.setProperty("MANUAL", "N");
 			VO.setProperty("OBSERVACAO", "Botão aceitar abastecimento.");
 			VO.setProperty("SALDOFINAL", saldoAtual.add(diferenca));
+			//VO.setProperty("IDABASTECIMENTO", idabast);
 			
 			dwfFacade.createEntity("GCSolicitAjuste", (EntityVO) VO);
 			
