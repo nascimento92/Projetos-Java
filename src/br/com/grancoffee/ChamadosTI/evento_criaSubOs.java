@@ -100,16 +100,26 @@ public class evento_criaSubOs implements EventoProgramavelJava {
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
 		Timestamp fimAtividade = oldVO.asTimestamp("FIMATIVIDADE");
 		
+		String resol = VO.asString("DESCRICAO");
+		
 		if(!validaUsuario(getUsuLogado())) {
 			throw new PersistenceException(
 					"<p align=\"center\"><img src=\"http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-325x100.png\" height=\"100\" width=\"325\"></img></p><br/>"+
 					"\n<font size=\"20\"><b>O seu usuário não tem permissão para alterar atividades!</b></font>\n<br/><br/>");
 		}
 		
-		if(fimAtividade!=null) {
+		if(fimAtividade!=null && resol==null) {
 			throw new PersistenceException(
 					"<p align=\"center\"><img src=\"http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-325x100.png\" height=\"100\" width=\"325\"></img></p><br/>"+
-					"\n<font size=\"20\"><b>Atividades concluidas não podem ser alteradas!</b></font>\n<br/><br/>");
+					"\n<font size=\"20\"><b>Atividades não podem ser concluidas sem uma resolução!</b></font>\n<br/><br/>");
+		}
+		
+		DynamicVO chamado = getChamado(VO.asBigDecimal("ID"));
+		
+		if(chamado.asTimestamp("DTFECHAMENTO")!=null) {
+			throw new PersistenceException(
+					"<p align=\"center\"><img src=\"http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-325x100.png\" height=\"100\" width=\"325\"></img></p><br/>"+
+					"\n<font size=\"20\"><b>Chamados concluidos não podem ter suas tarefas alteradas!</b></font>\n<br/><br/>");
 		}
 		
 		atualizaSubOs(VO);
