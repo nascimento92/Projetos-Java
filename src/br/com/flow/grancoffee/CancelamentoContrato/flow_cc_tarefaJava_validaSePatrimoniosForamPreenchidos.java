@@ -34,7 +34,4 @@ public class flow_cc_tarefaJava_validaSePatrimoniosForamPreenchidos implements E
 		
 		return valida;
 	}
-
-	
-
 }
