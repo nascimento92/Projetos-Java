@@ -69,6 +69,16 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		
 		for(int i=0; i<linhas.length; i++) {
 			if(!validaPedido(linhas[i].getCampo("CODBEM").toString())) {
+				retornoNegativo = retornoNegativo+linhas[i].getCampo("CODBEM").toString()+", ";
+			}
+		}
+		
+		if(retornoNegativo!="") {
+			arg0.mostraErro("<b>Erro</b> Patrimônios com pedidos pendentes:"+ retornoNegativo);
+		}
+		
+		
+		for(int i=0; i<linhas.length; i++) {
 				cont++;
 				
 				if(dtAbastecimento!=null) {
@@ -97,8 +107,6 @@ public class btn_abastecimento implements AcaoRotinaJava{
 					}
 					
 				}
-								
-			}
 		}
 		
 		if(retornoNegativo!="") {
