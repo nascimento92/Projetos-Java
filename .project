@@ -3,6 +3,9 @@
 	<name>Gabriel</name>
 	<comment></comment>
 	<projects>
+		<project>api_custom</project>
+		<project>api_outros</project>
+		<project>api_sankhya</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
