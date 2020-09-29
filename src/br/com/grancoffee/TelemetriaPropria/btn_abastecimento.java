@@ -33,7 +33,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		start(linhas,arg0);
 		
 		if(cont>0) {
-			arg0.setMensagemRetorno("Foram solicitados <b>"+cont+"</b> abastecimentos!");
+			arg0.setMensagemRetorno("Foram solicitado(s) <b>"+cont+"</b> abastecimento(s)!");
 		}
 	}
 	
