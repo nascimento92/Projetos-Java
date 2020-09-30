@@ -6,13 +6,12 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
-
 import com.sankhya.util.TimeUtils;
-
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.PersistenceException;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.sql.NativeSql;
@@ -32,91 +31,76 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		Registro[] linhas = arg0.getLinhas();
 		
 		start(linhas,arg0);
+		
+		if(cont>0) {
+			arg0.setMensagemRetorno("Foram solicitado(s) <b>"+cont+"</b> abastecimento(s)!");
+		}
 	}
 	
 	private void start(Registro[] linhas,ContextoAcao arg0) throws Exception {
 		
 		String tipoAbastecimento = (String) arg0.getParam("TIPABAST");
-		Timestamp dtAbastecimento = (Timestamp) arg0.getParam("DTABAST");
-		Timestamp dtSolicitacao;
-		
-		if("2".equals(tipoAbastecimento) && dtAbastecimento==null) {
-			arg0.mostraErro("<b>ERRO!</b> - Pedidos agendados precisam de uma data de abastecimento!");
-		}
-		
-		if("1".equals(tipoAbastecimento) && dtAbastecimento!=null) {
-			dtAbastecimento = null;
-		}
-		
-		if("2".equals(tipoAbastecimento) && dtAbastecimento!=null) {
-			dtSolicitacao = TimeUtils.getNow();
-			if(dtAbastecimento.before(reduzUmDia(dtSolicitacao))) {
-				arg0.mostraErro("<b>ERRO!</b> - Data de agendamento não pode ser menor que a data de hoje!");
-			}
-			
-			int diaDataAgendada = TimeUtils.getDay(dtAbastecimento);
-			int diaDataAtual = TimeUtils.getDay(dtSolicitacao);
-			
-			int minutoDataAgendada = TimeUtils.getTimeInMinutes(dtAbastecimento);
-			int minutoDataAtual = TimeUtils.getTimeInMinutes(dtSolicitacao);
-			
-			if(diaDataAtual==diaDataAgendada) {
-				if(minutoDataAtual==minutoDataAgendada) {
-					dtAbastecimento = null;
-				}
-			}
-		}
 		
 		for(int i=0; i<linhas.length; i++) {
-			if(!validaPedido(linhas[i].getCampo("CODBEM").toString())) {
-				retornoNegativo = retornoNegativo+linhas[i].getCampo("CODBEM").toString()+", ";
-			}
-		}
-		
-		if(retornoNegativo!="") {
-			arg0.mostraErro("<b>Erro</b> Patrimônios com pedidos pendentes:"+ retornoNegativo);
-		}
-		
-		
-		for(int i=0; i<linhas.length; i++) {
-				cont++;
+			
+			Timestamp dtAbastecimento = validacoes(linhas[i],arg0, tipoAbastecimento);
+			BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString());//salva tela Abastecimento
+			
+			if(idAbastecimento!=null) {
 				
-				if(dtAbastecimento!=null) {
-					dtSolicitacao = TimeUtils.getNow();
-					BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao);
-					
-					if(idAbastecimento!=null) {
-						carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idAbastecimento);
-						agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao,dtAbastecimento,idAbastecimento);
-					}else {
-						cont=0;
-						retornoNegativo = retornoNegativo+linhas[i].getCampo("CODBEM").toString();
-					}
-					
-					
-				}else {
-					dtSolicitacao = TimeUtils.getNow();
-					BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao);
-					
-					if(idAbastecimento!=null) {
-						carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idAbastecimento);
-						agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),dtSolicitacao,dtSolicitacao,idAbastecimento);
-					}else {
-						cont=0;
-						retornoNegativo = retornoNegativo+linhas[i].getCampo("CODBEM").toString();
-					}
-					
+				carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idAbastecimento);//salva tela Itens Abastecimento
+				
+				if(dtAbastecimento!=null) {//agendado
+					agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),TimeUtils.getNow(),dtAbastecimento,idAbastecimento);
+				}else { //agora
+					agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),TimeUtils.getNow(),TimeUtils.getNow(),idAbastecimento);
 				}
-		}
-		
-		if(retornoNegativo!="") {
-			arg0.setMensagemRetorno("<b>Erro</b> Patrimônios com pedidos pendentes: "+retornoNegativo);
-		}else {
-			arg0.setMensagemRetorno(cont+" - Abastecimento(s) Agendado(s)");
+				cont++;
+			}
 		}
 	}
 	
-	private BigDecimal cadastrarNovoAbastecimento(String patrimonio, Timestamp data) {
+	private Timestamp validacoes(Registro linhas,ContextoAcao arg0, String tipoAbastecimento) throws PersistenceException {
+		
+		Timestamp dtAbastecimento = (Timestamp) arg0.getParam("DTABAST");
+		Timestamp dtSolicitacao=null;
+
+			if(validaPedido(linhas.getCampo("CODBEM").toString())) {
+				throw new PersistenceException("<br/>Patrimônio <b>"+linhas.getCampo("CODBEM")+"</b> já possui pedido pendente!<br/>");
+			}	
+			
+			if("1".equals(tipoAbastecimento) && dtAbastecimento!=null) {
+				dtAbastecimento=null;
+			}
+			
+			if("2".equals(tipoAbastecimento) && dtAbastecimento==null) {
+				throw new PersistenceException("<b>ERRO!</b> - Pedidos agendados precisam de uma data de abastecimento!");
+			}
+			
+			if("2".equals(tipoAbastecimento) && dtAbastecimento!=null) {
+				dtSolicitacao = TimeUtils.getNow();
+				
+				if(dtAbastecimento.before(reduzUmDia(dtSolicitacao))) {
+					throw new PersistenceException("<b>ERRO!</b> - Data de agendamento não pode ser menor que a data de hoje!");
+				}
+				
+				int diaDataAgendada = TimeUtils.getDay(dtAbastecimento);
+				int diaDataAtual = TimeUtils.getDay(dtSolicitacao);
+				
+				int minutoDataAgendada = TimeUtils.getTimeInMinutes(dtAbastecimento);
+				int minutoDataAtual = TimeUtils.getTimeInMinutes(dtSolicitacao);
+				
+				if(diaDataAtual==diaDataAgendada) {
+					if(minutoDataAtual==minutoDataAgendada) {
+						dtAbastecimento = null;
+				}
+			}
+		}
+			
+			return dtAbastecimento;
+	}
+	
+	private BigDecimal cadastrarNovoAbastecimento(String patrimonio) {
 		BigDecimal idAbastecimento = null;
 		
 		try {
@@ -128,7 +112,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			int rota = getRota(patrimonio);
 			
 			VO.setProperty("CODBEM", patrimonio);
-			VO.setProperty("DTSOLICITACAO", data);
+			VO.setProperty("DTSOLICITACAO", TimeUtils.getNow());
 			VO.setProperty("STATUS", "1");
 			VO.setProperty("SOLICITANTE", getUsuLogado());
 			VO.setProperty("ROTA", Integer.toString(rota));
