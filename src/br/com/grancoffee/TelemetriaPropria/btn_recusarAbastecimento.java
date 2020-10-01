@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
 
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -12,7 +14,11 @@ import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class btn_recusarAbastecimento implements AcaoRotinaJava {
 
@@ -21,10 +27,16 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 		Registro[] linhas = arg0.getLinhas();
 
 		String campo = (String) linhas[0].getCampo("AJUSTADO");
+		BigDecimal idabast = (BigDecimal) linhas[0].getCampo("IDABASTECIMENTO");
+		String status = verificaStatusAbastecimento(idabast);
 
 		if ("S".equals(campo)) {
-			arg0.mostraErro("Abastecimento já ajustado!");
-		} else {
+			arg0.mostraErro("<br/><b>Abastecimento já ajustado!</b><br/>");
+		}else if("1".equals(status)) {
+			arg0.mostraErro("<br/><b>Abastecimento Pendente, não pode ser realizado a validação!</b><br/>");
+		}else if("2".equals(status)) {
+			arg0.mostraErro("<br/><b>Contagem pendente, não pode ser realizado a validação!</b><br/>");
+		}else {
 			boolean confirmarSimNao = arg0.confirmarSimNao("Atenção!",
 					"Todas as informações digitadas pelo promotor serão <b>recusadas</b> e o inventário <b>não será ajustado</b>, continuar?",
 					1);
@@ -33,6 +45,7 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 
 				Object idObjeto = linhas[0].getCampo("IDABASTECIMENTO");
 				pegarTeclas(idObjeto, arg0);
+				salvaResonsavelPeloAjuste(idObjeto);
 				arg0.setMensagemRetorno("Finalizado!");
 			}
 		}
@@ -56,7 +69,61 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 			
 		} catch (Exception e) {
 			System.out.println("## [btn_recusarAbastecimento] ## - Não foi possivel salvar as informações nas teclas");
+			e.getCause();
+			e.getMessage();
+			e.printStackTrace();
 		}
+	}
+	
+	private String verificaStatusAbastecimento(BigDecimal idabast) {
+		String status = "";
+		try {
+			
+			JapeWrapper DAO = JapeFactory.dao("GCControleAbastecimento");
+			DynamicVO VO = DAO.findOne("ID=?",new Object[] { idabast });
+			status = VO.asString("STATUS");
+			
+			
+		} catch (Exception e) {
+			System.out.println("## [btn_recusarAbastecimento] ## - Não foi possivel verificar o status");
+			e.getCause();
+			e.getMessage();
+			e.printStackTrace();
+		}
+		
+		return status;
+	}
+	
+	private void salvaResonsavelPeloAjuste(Object idObjeto) {
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("GCControleAbastecimento",
+					"this.ID=?", new Object[] { idObjeto }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("DTVALIDACAO", TimeUtils.getNow());
+				VO.setProperty("STATUSVALIDACAO", "2");
+				VO.setProperty("CODUSUVALIDACAO", getUsuLogado());
+
+				itemEntity.setValueObject(NVO);
+			}
+			
+		} catch (Exception e) {
+			System.out.println("## [btn_recusarAbastecimento] ## - Não foi possivel salvar o responsavel pelo ajuste.");
+			e.getCause();
+			e.getMessage();
+			e.printStackTrace();
+		}
+	}
+	
+	private BigDecimal getUsuLogado() {
+		BigDecimal codUsuLogado = BigDecimal.ZERO;
+	    codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
+	    return codUsuLogado;    	
 	}
 
 }

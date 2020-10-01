@@ -170,6 +170,7 @@ public class btnManutencaoPreventiva implements AcaoRotinaJava {
 			NotaProdVO.setProperty("TEMPOGASTOSLA", null);
 			NotaProdVO.setProperty("AD_CODIGOLIBERACAO", null);
 			NotaProdVO.setProperty("AD_TELASAC", "S");
+			NotaProdVO.setProperty("CODCENCUS", getTCSCON(numcontrato).asBigDecimal("CODCENCUS"));
 			
 			dwfFacade.createEntity(DynamicEntityNames.ORDEM_SERVICO,(EntityVO) NotaProdVO);
 			numos = NotaProdVO.asBigDecimal("NUMOS");
@@ -368,6 +369,7 @@ public class btnManutencaoPreventiva implements AcaoRotinaJava {
 			NotaProdVO.setProperty("TEMPOGASTOSLA", null);
 			NotaProdVO.setProperty("AD_CODIGOLIBERACAO", null);
 			NotaProdVO.setProperty("AD_TELASAC", "S");
+			NotaProdVO.setProperty("CODCENCUS", getTCSCON(numcontrato).asBigDecimal("CODCENCUS"));
 			
 			if("5".equals(validador)) {
 				NotaProdVO.setProperty("DESCRICAO","** Manutenção Preventiva **\nPatrimônio: "+codbem);
