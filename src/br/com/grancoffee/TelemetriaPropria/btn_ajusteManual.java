@@ -51,7 +51,7 @@ public class btn_ajusteManual implements AcaoRotinaJava {
 			VO.setProperty("SOLICITANTE", arg0.getUsuarioLogado());
 			VO.setProperty("ROTA", Integer.toString(getRota(patrimonio)));
 			VO.setProperty("OBSABAST",motivo.toCharArray());
-			//VO.setProperty("AJUSTEMANUAL","S");
+			VO.setProperty("AJUSTEMANUAL","S");
 			
 			dwfFacade.createEntity("GCControleAbastecimento", (EntityVO) VO);
 			

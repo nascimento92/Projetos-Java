@@ -29,6 +29,7 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 		String campo = (String) linhas[0].getCampo("AJUSTADO");
 		BigDecimal idabast = (BigDecimal) linhas[0].getCampo("IDABASTECIMENTO");
 		String status = verificaStatusAbastecimento(idabast);
+		String ajusteManual = verificaSeEhUmAjusteManual(idabast);
 
 		if ("S".equals(campo)) {
 			arg0.mostraErro("<br/><b>Abastecimento já ajustado!</b><br/>");
@@ -36,6 +37,8 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 			arg0.mostraErro("<br/><b>Abastecimento Pendente, não pode ser realizado a validação!</b><br/>");
 		}else if("2".equals(status)) {
 			arg0.mostraErro("<br/><b>Contagem pendente, não pode ser realizado a validação!</b><br/>");
+		}else if("S".equals(ajusteManual)) {
+			arg0.mostraErro("<br/><b>Ajuste Manual, utilizar o botão na parte superior, Finalizar Ajuste!</b><br/>");
 		}else {
 			boolean confirmarSimNao = arg0.confirmarSimNao("Atenção!",
 					"Todas as informações digitadas pelo promotor serão <b>recusadas</b> e o inventário <b>não será ajustado</b>, continuar?",
@@ -64,6 +67,7 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 				
 				DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
 				DynamicVO.setProperty("AJUSTADO", "S");
+				DynamicVO.setProperty("OBSAJUSTE", "Abast. Recusado");
 				itemEntity.setValueObject((EntityVO) DynamicVO);
 			}
 			
@@ -86,6 +90,29 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 			
 		} catch (Exception e) {
 			System.out.println("## [btn_recusarAbastecimento] ## - Não foi possivel verificar o status");
+			e.getCause();
+			e.getMessage();
+			e.printStackTrace();
+		}
+		
+		return status;
+	}
+	
+	private String verificaSeEhUmAjusteManual(BigDecimal idabast) {
+		String status = "N";
+		try {
+			
+			JapeWrapper DAO = JapeFactory.dao("GCControleAbastecimento");
+			DynamicVO VO = DAO.findOne("ID=?",new Object[] { idabast });
+			String tipoajuste = VO.asString("AJUSTEMANUAL");
+			
+			if("S".equals(tipoajuste)) {
+				status = tipoajuste;
+			}
+			
+			
+		} catch (Exception e) {
+			System.out.println("## [btn_recusarAbastecimento] ## - Não foi possivel verificar se o ajuste é manual");
 			e.getCause();
 			e.getMessage();
 			e.printStackTrace();

@@ -50,7 +50,7 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 	}
 	
 	private void start(PersistenceEvent arg0) throws PersistenceException {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
+		DynamicVO VO = (DynamicVO) arg0.getOldVO();
 		String ajustado = VO.asString("AJUSTADO");
 		
 		if("S".equals(ajustado)) {
