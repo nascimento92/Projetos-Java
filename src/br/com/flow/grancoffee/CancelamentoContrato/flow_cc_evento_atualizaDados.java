@@ -69,22 +69,29 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 			validaRestricaoDeHoratio(VO);
 			validaDataRetirada(VO);
 			validaRetiradaAcessorios(VO);
-			validaTaxaDeRetirada(VO);
 			validaMulta(VO);
+			ValidaTaxa(VO);
 		}
 	}
 	
 	private void salvaDados(DynamicVO VO, BigDecimal contrato) throws Exception {
-		VO.setProperty("CODCENCUS", getTcsCon(contrato).asBigDecimal("CODCENCUS"));
-		VO.setProperty("DTCONTRATO", getTcsCon(contrato).asTimestamp("DTCONTRATO"));
-		VO.setProperty("CODPARC", getTcsCon(contrato).asBigDecimal("CODPARC"));
-		
-		String ie = getTgfPar(getTcsCon(contrato).asBigDecimal("CODPARC")).asString("IDENTINSCESTAD");
-		if(ie!=null) {
-			VO.setProperty("TEMIE", "S");
-		}else {
-			VO.setProperty("TEMIE", "N");
+		try {
+			
+			VO.setProperty("CODCENCUS", getTcsCon(contrato).asBigDecimal("CODCENCUS"));
+			VO.setProperty("DTCONTRATO", getTcsCon(contrato).asTimestamp("DTCONTRATO"));
+			VO.setProperty("CODPARC", getTcsCon(contrato).asBigDecimal("CODPARC"));
+			
+			String ie = getTgfPar(getTcsCon(contrato).asBigDecimal("CODPARC")).asString("IDENTINSCESTAD");
+			if(ie!=null) {
+				VO.setProperty("TEMIE", "S");
+			}else {
+				VO.setProperty("TEMIE", "N");
+			}
+			
+		} catch (Exception e) {
+			System.out.println("## [flow_cc_evento_atualizaDados] ## - Nao foi possivel salvar os dados!");
 		}
+		
 	}
 		
 	private void validaCancelamento(DynamicVO VO, BigDecimal contrato) {
@@ -123,39 +130,45 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 		}
 	}
 	
-	private void validaTaxaDeRetirada(DynamicVO VO) throws PersistenceException {
+	private void validaMulta(DynamicVO VO) throws PersistenceException {
 		String cobrarMulta = VO.asString("COBRARMULTA");
-		String multa = VO.asString("MULTA");
+		BigDecimal multa = VO.asBigDecimal("MULTA");
 		String justificativa = VO.asString("JUSTIFICATIVAMULTA");
 		
 		if("1".equals(cobrarMulta)) {
 			if(multa==null) {
 				throw new PersistenceException("<br/><br/><br/><b>Informar o valor da Multa!</b><br/><br/><br/>");
 			}
+			
+			VO.setProperty("JUSTIFICATIVAMULTA", null);
 		}
-		else
-		if("2".equals(cobrarMulta)) {
+		else if("2".equals(cobrarMulta)) {
 			if(justificativa==null) {
 				throw new PersistenceException("<br/><br/><br/><b>Informar a justificativa de não cobrar a Multa!</b><br/><br/><br/>");
 			}
+			
+			VO.setProperty("MULTA", null);
 		}
 	}
 	
-	private void validaMulta(DynamicVO VO) throws PersistenceException {
+	private void ValidaTaxa(DynamicVO VO) throws PersistenceException {
 		String cobrarTaxa = VO.asString("COBRATAXA");
-		String taxa = VO.asString("TAXA");
+		BigDecimal taxa = VO.asBigDecimal("TAXA");
 		String justificativa = VO.asString("JUSTIFICATIVATAXA");
 		
 		if("1".equals(cobrarTaxa)) {
 			if(taxa==null) {
 				throw new PersistenceException("<br/><br/><br/><b>Informar o valor da Taxa!</b><br/><br/><br/>");
 			}
-		}
-		else
-		if("2".equals(cobrarTaxa)) {
+			
+			VO.setProperty("JUSTIFICATIVATAXA", null);
+			
+		}else if("2".equals(cobrarTaxa)) {
 			if(justificativa==null) {
 				throw new PersistenceException("<br/><br/><br/><b>Informar a justificativa de não cobrar a taxa de retirada!</b><br/><br/><br/>");
 			}
+			
+			VO.setProperty("TAXA", null);
 		}
 	}
 	

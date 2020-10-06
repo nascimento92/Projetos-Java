@@ -29,8 +29,20 @@ public class btn_FinalizarAjuste implements AcaoRotinaJava {
 			arg0.mostraErro("Selecione apenas uma linha!");
 		}else {
 			BigDecimal id = (BigDecimal) linhas[0].getCampo("ID");
-			//inserir Validação para prosseguir apenas se for um ajuste de inventário manual, validar pelo campo
-			pegarTeclas(id,arg0);
+			String manual = (String) linhas[0].getCampo("AJUSTEMANUAL");
+			String status = (String) linhas[0].getCampo("STATUS");
+			
+			if("3".equals(status)) {
+				arg0.mostraErro("<br/><b>Erro, Ajuste já está Concluido!</b><br/>");
+			}
+			
+			if("S".equals(manual)) {
+				pegarTeclas(id,arg0);
+				linhas[0].setCampo("STATUS", "3");
+			}else {
+				arg0.mostraErro("<br/><b>Erro, este lançamento não é um ajuste manual!</b><br/>");
+			}
+			
 		}
 	}
 		
@@ -84,17 +96,19 @@ public class btn_FinalizarAjuste implements AcaoRotinaJava {
 						cont++;
 					}else {
 						DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
+						DynamicVO.setProperty("OBSAJUSTE", "Não Ajustado");
+						DynamicVO.setProperty("TIPOAJUSTE", "");
 					}
 					
 				}else {
 					DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
-					DynamicVO.setProperty("OBSAJUSTE", "");
+					DynamicVO.setProperty("OBSAJUSTE", "Não Ajustado");
 					DynamicVO.setProperty("TIPOAJUSTE", "");
 				}
 
 			} else {
 				DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
-				DynamicVO.setProperty("OBSAJUSTE", "");
+				DynamicVO.setProperty("OBSAJUSTE", "Não Ajustado");
 				DynamicVO.setProperty("TIPOAJUSTE", "");
 			}
 			
@@ -125,7 +139,7 @@ public class btn_FinalizarAjuste implements AcaoRotinaJava {
 			VO.setProperty("MANUAL", "S");
 			VO.setProperty("OBSERVACAO", obs);
 			VO.setProperty("SALDOFINAL", saldoAtual.add(valor));
-			//VO.setProperty("IDABASTECIMENTO", idabast);
+			VO.setProperty("IDABASTECIMENTO", idabast);
 
 			dwfFacade.createEntity("GCSolicitAjuste", (EntityVO) VO);
 
