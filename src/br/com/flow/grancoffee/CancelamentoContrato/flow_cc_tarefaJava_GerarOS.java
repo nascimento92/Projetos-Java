@@ -70,12 +70,8 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 		
 		BigDecimal numos = gerarCabecalhoOS(idflow,descricao);
 		if(numos.intValue()!=0) {
-			int primeiro = 59;
-			geraItemOS(numos,idflow,primeiro, 1);
-			
-			int segundo = 159;
-			geraItemOS(numos,idflow,segundo, 2);
-			
+			int primeiro = 159;
+			geraItemOS(numos,idflow,primeiro, 1);		
 			salvaOsGerada(idflow,numos);
 		}
 		//arg0.setCampo("SYS_OS", descricao);
@@ -94,7 +90,23 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			String codbem = (String) DynamicVO.getProperty("CODBEM");
 			BigDecimal codprod = (BigDecimal) DynamicVO.getProperty("CODPROD");
 			
-			patrimonios+=codbem+" - "+getTgfpro(codprod).asString("DESCRPROD")+"\n";
+			String escada = "";
+			String rampa = "";
+			String elevador = "";
+			
+			if("1".equals(DynamicVO.asString("ESCADA"))) {
+				escada="Escada: SIM,";
+			}else {escada="Escada: NAO,";}
+			
+			if("1".equals(DynamicVO.asString("RAMPA"))) {
+				rampa="Rampa: SIM,";
+			}else {rampa="Rampa: NAO,";}
+			
+			if("1".equals(DynamicVO.asString("ELEVADOR"))) {
+				elevador="Elevador: SIM.";
+			}else {elevador="Elevador: NAO.";}
+			
+			patrimonios+=codbem+" - "+getTgfpro(codprod).asString("DESCRPROD")+" - "+escada+rampa+elevador+"\n";
 			}
 			
 			
@@ -312,7 +324,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 		DynamicVO VO = DAO.findOne("IDINSTPRN=? and ROWNUM=1", new Object[] { idflow });
 		return VO;
 	}
-	
+		
 	private DynamicVO getTCIBEM(String codbem) throws Exception{
 		JapeWrapper DAO = JapeFactory.dao("Imobilizado");
 		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { codbem });
