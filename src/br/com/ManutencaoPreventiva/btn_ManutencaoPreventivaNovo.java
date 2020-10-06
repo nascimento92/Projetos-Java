@@ -24,7 +24,7 @@ import br.com.sankhya.ws.ServiceContext;
 public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 	
 	private int servicoDaOs = 100000;
-	private int usuarioDaSubOs = 2195;
+	private int usuarioDaSubOs = 2195;;
 	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
