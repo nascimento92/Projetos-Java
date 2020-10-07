@@ -4,9 +4,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
 import com.sankhya.util.TimeUtils;
-
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -24,7 +22,8 @@ import br.com.sankhya.ws.ServiceContext;
 public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 	
 	private int servicoDaOs = 100000;
-	private int usuarioDaSubOs = 2195;;
+	private int usuarioDaSubOs = 2195;
+	private int cont=0;
 	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -38,26 +37,28 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 			String patrimonio = (String) linhas[i].getCampo("CODBEM");
 			
 			validacoes(patrimonio, linhas[i]);
-			verificaSePrecisaGerarAhPrimeiraOuAhProximaOs(linhas[i],patrimonio);
+			gerarOS(patrimonio,linhas[i]);
+		}
+		
+		if(this.cont>0) {
+			contexto.setMensagemRetorno("Foram gerada(s) <b>"+cont+"</b> Preventiva(s)!");
 		}
 	}
-	
-	private void verificaSePrecisaGerarAhPrimeiraOuAhProximaOs(Registro linhas,String patrimonio) throws Exception {
 		
+	private void gerarOS(String patrimonio,Registro linhas) throws Exception {
 		Timestamp dtPrimeiraOs = (Timestamp) linhas.getCampo("DTPRIMEIRA");
-		Timestamp dtUltimaOs = (Timestamp) linhas.getCampo("DTULTMANUTENCAO");
+		//Timestamp dtUltimaOs = (Timestamp) linhas.getCampo("DTULTMANUTENCAO");
 		Timestamp dtProximaOs = (Timestamp) linhas.getCampo("DTPROXMANUTENCAO");
-				
-		if(dtPrimeiraOs==null) {
-			gerarPrimeiraOs(patrimonio,linhas);
-		}
-	}
-	
-	private void gerarPrimeiraOs(String patrimonio,Registro linhas) throws Exception {
-		linhas.setCampo("DTPRIMEIRA", TimeUtils.getNow());
-		linhas.setCampo("DTULTMANUTENCAO", TimeUtils.getNow());
-		linhas.setCampo("DTPROXMANUTENCAO", TimeUtils.dataAddDay(TimeUtils.getNow(), Integer.parseInt(linhas.getCampo("PRAZO").toString())));
 		
+		if(dtPrimeiraOs==null) {
+			linhas.setCampo("DTPRIMEIRA", TimeUtils.getNow());
+			linhas.setCampo("DTULTMANUTENCAO", TimeUtils.getNow());
+			linhas.setCampo("DTPROXMANUTENCAO", TimeUtils.dataAddDay(TimeUtils.getNow(), Integer.parseInt(linhas.getCampo("PRAZO").toString())));
+		}else {
+			linhas.setCampo("DTULTMANUTENCAO", TimeUtils.getNow());
+			linhas.setCampo("DTPROXMANUTENCAO", TimeUtils.dataAddDay(TimeUtils.getNow(), Integer.parseInt(linhas.getCampo("PRAZO").toString())));
+		}
+	
 		DynamicVO tciBem = getTciBem(linhas.getCampo("CODBEM").toString());
 		DynamicVO getTcsCon = getTcsCon(tciBem.asBigDecimal("NUMCONTRATO"));
 		
@@ -106,8 +107,11 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 		}
 		
 		if (numos.intValue() != 0) { //gera Item
+			linhas.setCampo("OBSERVACAOINTERNA", null);
+			linhas.setCampo("DTFIMOS", null);
 			linhas.setCampo("ULTIMAOS", numos);
-			salvaMANPREVOS(numos,TimeUtils.getNow(),tciBem.asString("CODBEM"),getTcsCon.asBigDecimal("NUMCONTRATO"),getTcsCon.asBigDecimal("CODPARC"));
+			salvaMANPREVOS(numos,tciBem.asString("CODBEM"),getTcsCon.asBigDecimal("NUMCONTRATO"),getTcsCon.asBigDecimal("CODPARC"),dtProximaOs,TimeUtils.dataAddDay(TimeUtils.getNow(), Integer.parseInt(linhas.getCampo("PRAZO").toString())));
+			this.cont++;
 			
 			try {
 				
@@ -141,9 +145,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 		}
 		 
 	}
-	
-	private void gerarOsEhSubOs();
-	
+		
 	private void validacoes(String patrimonio, Registro linhas) throws Exception {
 		DynamicVO tciBem = getTciBem(patrimonio);
 		BigDecimal contrato = tciBem.asBigDecimal("NUMCONTRATO");
@@ -174,7 +176,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 				"\n*A data da próxima manutenção pode sofrer alterações, verificar com o responsável";
 	}
 	
-	private void salvaMANPREVOS(BigDecimal numos, Timestamp dtAbertura, String codbem, BigDecimal contrato, BigDecimal parceiro) throws Exception{
+	private void salvaMANPREVOS(BigDecimal numos, String codbem, BigDecimal contrato, BigDecimal parceiro, Timestamp dtultimaOs, Timestamp dtproximaOs) throws Exception{
 		
 		try {
 			
@@ -185,15 +187,20 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 			DynamicVO prodservicoVO = (DynamicVO) padraoNPVO;
 			
 			prodservicoVO.setProperty("NUMOS", numos);
-			prodservicoVO.setProperty("DTABERTURA", dtAbertura);
+			prodservicoVO.setProperty("DTABERTURA", TimeUtils.getNow());
 			prodservicoVO.setProperty("CODUSU", codusu);
 			prodservicoVO.setProperty("CODBEM", codbem);
 			prodservicoVO.setProperty("NUMCONTRATO", contrato);
-			prodservicoVO.setProperty("DTPREVISTA", dtAbertura);		
+			prodservicoVO.setProperty("DTPREVISTA", dtproximaOs);		
 
 			prodservicoVO.setProperty("CODPARC", parceiro);
-
 			
+			if(dtultimaOs!=null) {
+				if(TimeUtils.getNow().after(dtultimaOs)) {
+					prodservicoVO.setProperty("ATRASADA", "S");
+				}
+			}
+
 			dwfFacade.createEntity("AD_MANUPREVOS", (EntityVO) prodservicoVO);
 			
 		} catch (Exception e) {
