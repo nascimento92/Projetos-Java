@@ -151,6 +151,10 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 		BigDecimal contrato = tciBem.asBigDecimal("NUMCONTRATO");
 		BigDecimal numos = (BigDecimal) linhas.getCampo("ULTIMAOS");
 		
+		if(contrato.intValue()==0) {
+			throw new PersistenceException("<br/>Patrimonio: <b>"+patrimonio+"</b>, está no contrato <b>"+contrato+"</b> (zero), não é possível gerar uma OS Preventiva!<br/><br/>");	
+		}
+		
 		if("N".equals(getTcsCon(contrato).asString("ATIVO"))) {
 			throw new PersistenceException("<br/>Patrimonio: <b>"+patrimonio+"</b>, Contrato <b>"+contrato+"</b> inativo, não é possível gerar uma OS Preventiva!<br/><br/>");	
 		}
