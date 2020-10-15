@@ -49,8 +49,10 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 					arg0.mostraErro("<b>Pedido de abastecimento ainda não foi gerado!</b>");
 				}
 
-			} else {
-				arg0.mostraErro("<b>Abastecimento já foi realizado não é possível cancela-lo!</b>" + status);
+			} else if ("4".equals(status)) {
+				arg0.mostraErro("<b>Abastecimento já foi cancelado!</b>");
+			}else {
+				arg0.mostraErro("<b>Abastecimento já foi realizado não é possível cancela-lo!</b>");
 			}
 		}
 	}
@@ -61,6 +63,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 
 		excluirNota(nunota);
 		cancelarOS(numos);
+		excluirRetornoAbastecimento(nunota);
 		linhas.setCampo("STATUS", "4");
 	}
 
@@ -108,6 +111,27 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			}
 		} catch (Exception e) {
 			System.out.println("## [btn_cancelarAbastecimento] ## - Não foi possível cancelar a OS!");
+			e.getMessage();
+			e.getCause();
+		}
+	}
+	
+	private void excluirRetornoAbastecimento(BigDecimal nunota) {
+		try {
+			
+			JapeWrapper DAO = JapeFactory.dao("AD_RETABAST");
+			DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
+			BigDecimal id = VO.asBigDecimal("ID");
+			
+			if(id!=null) {
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				dwfFacade.removeByCriteria(new FinderWrapper("AD_ITENSRETABAST", "this.ID=?",new Object[] {id}));
+				dwfFacade.removeByCriteria(new FinderWrapper("AD_RETABAST", "this.ID=?",new Object[] {id}));
+			}
+			
+			
+		} catch (Exception e) {
+			System.out.println("## [btn_cancelarAbastecimento] ## - Não foi possível excluir o retorno do abastecimento!");
 			e.getMessage();
 			e.getCause();
 		}

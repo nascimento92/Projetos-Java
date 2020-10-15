@@ -104,8 +104,14 @@ public class btnTeclasImportadas implements AcaoRotinaJava {
 			VO.setProperty("VLRPAR", teclasVO.asBigDecimal("VLRPARC"));
 			VO.setProperty("VLRFUN", teclasVO.asBigDecimal("VLRFUNC"));
 			VO.setProperty("AD_CAPACIDADE", teclasVO.asBigDecimal("CAPACIDADE"));
-			VO.setProperty("AD_NIVELPAR", teclasVO.asBigDecimal("NIVELPAR"));
-			VO.setProperty("AD_NIVELALERTA",teclasVO.asBigDecimal("NIVELALERTA"));
+			
+			if(teclasVO.asBigDecimal("NIVELPAR").intValue()>0) {
+				VO.setProperty("AD_NIVELPAR", teclasVO.asBigDecimal("NIVELPAR"));
+			}
+			
+			if(teclasVO.asBigDecimal("NIVELALERTA").intValue()>0) {
+				VO.setProperty("AD_NIVELALERTA",teclasVO.asBigDecimal("NIVELALERTA"));
+			}
 			
 			String teclaAlternativa = teclasVO.asString("TECLAALT");
 			if(teclaAlternativa!=null){

@@ -35,7 +35,7 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 
 			if (confirmarSimNao) {
 
-				Object idObjeto = linhas[0].getCampo("IDABASTECIMENTO");
+				Object idObjeto = linhas[0].getCampo("ID");
 				pegarTeclas(idObjeto, arg0);
 				salvarDadosResponsavelPeloAjuste(idObjeto);
 				arg0.setMensagemRetorno("Finalizado!");
@@ -47,16 +47,16 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("GCItensAbastecimento", "this.IDABASTECIMENTO = ? ", new Object[] { idObjeto }));
+					.findByDynamicFinder(new FinderWrapper("AD_ITENSRETABAST", "this.ID = ? ", new Object[] { idObjeto }));
 
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				
-				DynamicVO.setProperty("QTDAJUSTE", new BigDecimal(0));
+				DynamicVO.setProperty("CONTAGEM", DynamicVO.asBigDecimal("SALDOESPERADO"));
 				DynamicVO.setProperty("AJUSTADO", "S");
-				DynamicVO.setProperty("OBSAJUSTE", "Contagem Recusada");
+				
 				itemEntity.setValueObject((EntityVO) DynamicVO);
 			}
 			
@@ -72,13 +72,14 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 		try {
 			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			PersistentLocalEntity PersistentLocalEntity = dwfFacade.findEntityByPrimaryKey("GCControleAbastecimento", idObjeto);
+			PersistentLocalEntity PersistentLocalEntity = dwfFacade.findEntityByPrimaryKey("AD_RETABAST", idObjeto);
 			EntityVO NVO = PersistentLocalEntity.getValueObject();
 			DynamicVO appVO = (DynamicVO) NVO;
 
 			appVO.setProperty("STATUSVALIDACAO", "2");
 			appVO.setProperty("CODUSUVALIDACAO", getUsuLogado());
 			appVO.setProperty("DTVALIDACAO", TimeUtils.getNow());
+			appVO.setProperty("RECUSADO", "S");
 
 			PersistentLocalEntity.setValueObject(NVO);
 			

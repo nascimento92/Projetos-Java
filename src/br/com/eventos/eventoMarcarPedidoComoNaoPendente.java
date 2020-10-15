@@ -21,7 +21,7 @@ public class eventoMarcarPedidoComoNaoPendente implements EventoProgramavelJava 
 
 	/**
 	 * Objeto está funcionando atualmente na TGFCAB 20/08/2019 Ele serve para
-	 * marcar os pedidos de compra como não pendentes após serem confirmados.
+	 * marcar os pedidos de compra como não pendentes após serem confirmados. (Solicitação do Adler Diretor)
 	 * 
 	 * 20/08/2019 17:08 - Foi observado que se o pedido for faturado parcial e a
 	 * nota foi excluida os itens não voltam a ficar pendentes. AJUSTADO 21/08/2019 (método alteraPedidoDeletado)

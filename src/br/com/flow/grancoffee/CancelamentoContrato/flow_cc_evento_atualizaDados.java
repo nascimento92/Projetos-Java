@@ -1,14 +1,18 @@
 package br.com.flow.grancoffee.CancelamentoContrato;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.Iterator;
+
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.PersistenceException;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
+import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
@@ -26,7 +30,12 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");	
+		if(contrato!=null) {
+			salvaDados(VO,contrato);
+			carregarNotasInsert(arg0);
+		}
 		
 	}
 
@@ -50,7 +59,7 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		start(arg0);		
+		
 	}
 
 	@Override
@@ -71,6 +80,7 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 			validaRetiradaAcessorios(VO);
 			validaMulta(VO);
 			ValidaTaxa(VO);
+			carregaNotasEmAbertoUpdate(arg0);
 		}
 	}
 	
@@ -221,6 +231,103 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 			e.getMessage();
 			e.getCause();
 			e.printStackTrace();
+		}
+	}
+	
+	private void carregaNotasEmAbertoUpdate(PersistenceEvent arg0) {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
+		
+		BigDecimal idflow = VO.asBigDecimal("IDINSTPRN");
+		
+		BigDecimal oldContrato = oldVO.asBigDecimal("NUMCONTRATO");
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		
+		if(oldContrato!=contrato) {
+			
+			try {//Limpar Notas
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				dwfFacade.removeByCriteria(new FinderWrapper("AD_DEVNFCANCELAMENTO", "this.IDINSTPRN=?",new Object[] {idflow}));
+			} catch (Exception e) {
+				System.out.println("## [flow_cc_evento_atualizaDados] ## - Nao foi possivel excluir as notas de devolução!");
+				e.getMessage();
+			}
+			
+			try {//cadastrar
+				
+				JdbcWrapper jdbcWrapper = null;
+				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+				jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+				ResultSet contagem;
+				NativeSql nativeSql = new NativeSql(jdbcWrapper);
+				nativeSql.resetSqlBuf();
+				nativeSql.appendSql("SELECT NUNOTA FROM TGFFIN WHERE DHBAIXA IS NULL AND PROVISAO='N' AND RECDESP=1 AND NUMCONTRATO="+contrato);
+				contagem = nativeSql.executeQuery();
+				while (contagem.next()) {
+					BigDecimal nunota = contagem.getBigDecimal("NUNOTA");
+					inserirNota(idflow,nunota);
+				}
+				
+			} catch (Exception e) {
+				System.out.println("## [flow_cc_evento_atualizaDados] ## - Nao foi possivel carregar notas devolucao!");
+				e.getMessage();
+			}
+		}		
+	}
+	
+	private void carregarNotasInsert(PersistenceEvent arg0) {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal idflow = VO.asBigDecimal("IDINSTPRN");
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		
+		try {//Limpar Notas
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_DEVNFCANCELAMENTO", "this.NUMCONTRATO=?",new Object[] {contrato}));
+		} catch (Exception e) {
+			System.out.println("## [flow_cc_evento_atualizaDados] ## - Nao foi possivel excluir as notas de devolução!");
+			e.getMessage();
+		}
+		
+		try {//cadastrar
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT NUNOTA FROM TGFFIN WHERE DHBAIXA IS NULL AND PROVISAO='N' AND RECDESP=1 AND NUMCONTRATO="+contrato);
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				BigDecimal nunota = contagem.getBigDecimal("NUNOTA");
+				inserirNota(idflow,nunota);
+			}
+			
+		} catch (Exception e) {
+			System.out.println("## [flow_cc_evento_atualizaDados] ## - Nao foi possivel carregar notas devolucao!");
+			e.getMessage();
+		}
+	}
+	
+	private void inserirNota (BigDecimal idflow, BigDecimal nunota) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_DEVNFCANCELAMENTO");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("IDINSTPRN", idflow);
+			VO.setProperty("IDINSTTAR", new BigDecimal(0));
+			VO.setProperty("CODREGISTRO", new BigDecimal(1));
+			VO.setProperty("IDTAREFA", "UserTask_1rgod34");
+			VO.setProperty("NUNOTA", nunota);
+			VO.setProperty("SELECIONAR", "N");
+			
+			dwfFacade.createEntity("AD_DEVNFCANCELAMENTO", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			System.out.println("## [flow_cc_evento_atualizaDados] ## - Nao foi possivel inserir notas!");
+			e.getMessage();
 		}
 	}
 	
