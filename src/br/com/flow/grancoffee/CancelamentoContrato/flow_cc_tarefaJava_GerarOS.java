@@ -141,8 +141,11 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 				}
 				String nomeplanta = "Planta: "+ getAdPlanta(VO.asBigDecimal("NUMCONTRATO"),planta).asString("NOMEPLAN")+"\n";
 				String multa ="";
+				
 				if("1".equals(VO.asString("COBRARMULTA"))) {
-					multa = "Multa: SIM - "+VO.asBigDecimal("MULTA")+"\n";
+					BigDecimal multaFormatada = VO.asBigDecimal("MULTA");
+					multaFormatada=multaFormatada.setScale(2, BigDecimal.ROUND_HALF_EVEN);
+					multa = "Multa: SIM - R$"+multaFormatada+"\n";
 				}else {
 					multa = "Multa: NÃO - "+VO.asString("JUSTIFICATIVAMULTA")+"\n";
 				}
