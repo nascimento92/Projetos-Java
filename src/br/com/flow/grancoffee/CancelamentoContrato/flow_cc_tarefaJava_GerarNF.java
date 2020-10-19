@@ -20,35 +20,35 @@ import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
-	
+
 	@Override
 	public void executar(ContextoTarefa arg0) throws Exception {
-		start(arg0);		
+		start(arg0);
 	}
-	
+
 	private void start(ContextoTarefa arg0) {
 		Object idflow = arg0.getIdInstanceProcesso();
-		verificaPlantas(idflow,arg0);
+		verificaPlantas(idflow, arg0);
 	}
-	
-	private void verificaPlantas(Object idflow,ContextoTarefa arg0) {
+
+	private void verificaPlantas(Object idflow, ContextoTarefa arg0) {
 		try {
-			
+
 			JdbcWrapper jdbcWrapper = null;
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT DISTINCT idplanta FROM AD_PATCANCELAMENTO WHERE IDINSTPRN="+idflow);
+			nativeSql.appendSql("SELECT DISTINCT idplanta FROM AD_PATCANCELAMENTO WHERE IDINSTPRN=" + idflow);
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				BigDecimal planta = contagem.getBigDecimal("idplanta");
-				if (planta!=null) {
-					criarNfParaAhPlanta(idflow,planta,arg0);
+				if (planta != null) {
+					criarNfParaAhPlanta(idflow, planta, arg0);
 				}
 			}
-			
+
 		} catch (Exception e) {
 			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel determinar as plantas!");
 			e.getCause();
@@ -56,18 +56,18 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			e.printStackTrace();
 		}
 	}
-	
-	private void criarNfParaAhPlanta(Object idflow,BigDecimal planta,ContextoTarefa arg0) throws Exception {
-		//Object usuarioInclusao = arg0.getCampo("SYS_USUARIOINCLUSAO");
+
+	private void criarNfParaAhPlanta(Object idflow, BigDecimal planta, ContextoTarefa arg0) throws Exception {
+		// Object usuarioInclusao = arg0.getCampo("SYS_USUARIOINCLUSAO");
 		BigDecimal nunota = criaCabecalho(idflow);
-		if(nunota!=null) {
-			insereNotaRetorno(nunota,idflow);
-			getPatrimonios(idflow,planta,nunota);
+		if (nunota != null) {
+			insereNotaRetorno(nunota, idflow);
+			getPatrimonios(idflow, planta, nunota);
 		}
-		//insere cada um dos pt na tgfite da nota criada.
-		
+		// insere cada um dos pt na tgfite da nota criada.
+
 	}
-	
+
 	public BigDecimal criaCabecalho(Object idflow) throws Exception {
 
 		DynamicVO form = getForm(idflow);
@@ -75,20 +75,20 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 		BigDecimal topRetorno = getTopRetorno(centroResultado);
 		BigDecimal nuNotaModelo = BigDecimal.ZERO;
 		BigDecimal nunota = BigDecimal.ZERO;
-		String tipoRetirada="";
-		
-		if(topRetorno.intValue()==0) {
-			
-		}else {
+		String tipoRetirada = "";
+
+		if (topRetorno.intValue() == 0) {
+
+		} else {
 			nuNotaModelo = getNotaModelo(topRetorno);
 		}
-		
-		if("1".equals(form.asString("TIPOCANCEL"))) {
-			tipoRetirada="CANCELAMENTO PARCIAL \n";
-		}else {
-			tipoRetirada="CANCELAMENTO TOTAL \n";
+
+		if ("1".equals(form.asString("TIPOCANCEL"))) {
+			tipoRetirada = "CANCELAMENTO PARCIAL \n";
+		} else {
+			tipoRetirada = "CANCELAMENTO TOTAL \n";
 		}
-		
+
 		try {
 
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -131,77 +131,78 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 		}
 		return nunota;
 	}
-	
+
 	private DynamicVO getForm(Object idflow) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("AD_FORMCANCELAMENTO");
-		DynamicVO VO = DAO.findOne("IDINSTPRN=?",new Object[] { idflow });
+		DynamicVO VO = DAO.findOne("IDINSTPRN=?", new Object[] { idflow });
 		return VO;
 	}
-	
+
 	private BigDecimal getTopRetorno(BigDecimal centro) throws Exception {
 		BigDecimal top = BigDecimal.ZERO;
 		JapeWrapper DAO = JapeFactory.dao("CentroResultado");
-		DynamicVO VO = DAO.findOne("CODCENCUS=?",new Object[] { centro });
-		if(VO!=null) {
+		DynamicVO VO = DAO.findOne("CODCENCUS=?", new Object[] { centro });
+		if (VO != null) {
 			BigDecimal topRetorno = VO.asBigDecimal("AD_TOPCANCELAMENTO");
-			if(topRetorno!=null) {
-				top=topRetorno;
+			if (topRetorno != null) {
+				top = topRetorno;
 			}
 		}
-		
+
 		return top;
 	}
-	
+
 	private BigDecimal getNotaModelo(BigDecimal top) {
 		BigDecimal nunota = BigDecimal.ZERO;
 		try {
-			
+
 			JdbcWrapper jdbcWrapper = null;
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT MIN(NUNOTA) AS NUNOTA FROM TGFCAB WHERE CODTIPOPER="+top+" AND DTNEG>=SYSDATE-30 AND PENDENTE='N' AND STATUSNOTA = 'L'");
+			nativeSql.appendSql("SELECT MIN(NUNOTA) AS NUNOTA FROM TGFCAB WHERE CODTIPOPER=" + top
+					+ " AND DTNEG>=SYSDATE-30 AND PENDENTE='N' AND STATUSNOTA = 'L'");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				BigDecimal count = contagem.getBigDecimal("NUNOTA");
-				if(count!=null) {
-					nunota=count;
+				if (count != null) {
+					nunota = count;
 				}
 			}
-			
+
 		} catch (Exception e) {
 			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Nao foi possivel obter a nota modelo!");
 			e.getMessage();
 			e.getCause();
 			e.printStackTrace();
 		}
-		
+
 		return nunota;
 	}
-	
+
 	private DynamicVO getTCSCON(BigDecimal contrato) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("Contrato");
 		DynamicVO VO = DAO.findOne("NUMCONTRATO=?", new Object[] { contrato });
 		return VO;
 	}
-	
+
 	private void insereNotaRetorno(BigDecimal nunota, Object idflow) {
 		try {
-			
+
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_NFCANCELAMENTO");
 			DynamicVO VO = (DynamicVO) NPVO;
-			
+
 			VO.setProperty("CODREGISTRO", new BigDecimal(1));
 			VO.setProperty("IDINSTPRN", idflow);
 			VO.setProperty("IDINSTTAR", new BigDecimal(0));
 			VO.setProperty("IDTAREFA", "UserTask_13orzyu");
 			VO.setProperty("NUNOTA", nunota);
-			
+
 			dwfFacade.createEntity("AD_NFCANCELAMENTO", (EntityVO) VO);
-			
+
 		} catch (Exception e) {
 			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Nao foi possivel salvar as NF de retorno!");
 			e.getMessage();
@@ -209,64 +210,128 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			e.printStackTrace();
 		}
 	}
-	
-	private void getPatrimonios(Object idflow,BigDecimal planta, BigDecimal nunota) {
-			int cont = 1;
-		
-			try {
-			
+
+	private void getPatrimonios(Object idflow, BigDecimal planta, BigDecimal nunota) {
+		int cont = 1;
+
+		try {
+
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_PATCANCELAMENTO","this.IDINSTPRN = ? and this.IDPLANTA=? ", new Object[] { idflow,planta }));
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) 
-			{
-			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-			
-			inserePatrimonioNaNota(DynamicVO,nunota,cont);
-			cont++;
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_PATCANCELAMENTO",
+					"this.IDINSTPRN = ? and this.IDPLANTA=? ", new Object[] { idflow, planta }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				inserePatrimonioNaNota(DynamicVO, nunota, cont);
+				cont++;
 			}
-			
-			
+
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foi possivel obter os patrimonios!");
+			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel obter os patrimonios!");
 			e.getCause();
 			e.getMessage();
 			e.printStackTrace();
-		}	
+		}
 	}
-	
-	private void inserePatrimonioNaNota(DynamicVO DynamicVO,BigDecimal nunota, int sequencia) {
+
+	private void inserePatrimonioNaNota(DynamicVO DynamicVO, BigDecimal nunota, int sequencia) {
 		try {
-			
+
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
 			DynamicVO VO = (DynamicVO) NPVO;
-			
+
 			VO.setProperty("CONTROLE", DynamicVO.asString("CODBEM"));
 			VO.setProperty("CODPROD", DynamicVO.asBigDecimal("CODPROD"));
 			VO.setProperty("NUNOTA", nunota);
 			VO.setProperty("SEQUENCIA", new BigDecimal(sequencia));
 			VO.setProperty("CODEMP", getTgfCab(nunota).asBigDecimal("CODEMP"));
 			VO.setProperty("QTDNEG", new BigDecimal(1));
-			VO.setProperty("VLRUNIT", new BigDecimal(1));
+			
+			if(getPrecoMaquina(DynamicVO.asString("CODBEM")).intValue()>0) {
+				VO.setProperty("VLRUNIT", getPrecoMaquina(DynamicVO.asString("CODBEM")));
+			}else {
+				VO.setProperty("VLRUNIT", new BigDecimal(1));
+			}
+			
 			VO.setProperty("VLRTOT", new BigDecimal(1));
 			VO.setProperty("ATUALESTOQUE", new BigDecimal(1));
 			VO.setProperty("CODVOL", "UN");
-			
-			dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 
+			dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 			
+			atualizaNotaRetornoNaTciBem(DynamicVO.asString("CODBEM"),nunota);
+
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel salvar os patrimonios na nota!");
+			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foio possivel salvar os patrimonios na nota!");
 			e.getCause();
 			e.getMessage();
 			e.printStackTrace();
 		}
 	}
-	
+
 	private DynamicVO getTgfCab(BigDecimal nunota) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
-		DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
+		DynamicVO VO = DAO.findOne("NUNOTA=?", new Object[] { nunota });
 		return VO;
+	}
+
+	private BigDecimal getPrecoMaquina(String patrimonio) {
+		BigDecimal preco = BigDecimal.ZERO;
+
+		try {
+
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+			"SELECT VLRUNIT FROM tgfite WHERE "+
+			"nunota = (SELECT nunotasaida FROM tcibem WHERE codbem='"+patrimonio+"') AND"+
+			"codprod=(SELECT codprod FROM tcibem WHERE codbem='"+patrimonio+"')");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				BigDecimal count = contagem.getBigDecimal("VLRUNIT");
+				if(count!=null) {
+					preco=count;
+				}
+			}
+
+		} catch (Exception e) {
+			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel obter o preco da maquina!");
+			e.getCause();
+			e.getMessage();
+			e.printStackTrace();
+		}
+
+		return preco;
+	}
+	
+	private void atualizaNotaRetornoNaTciBem(String patrimonio, BigDecimal notaRetorno) {
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("Imobilizado",
+					"this.CODBEM=?", new Object[] { patrimonio }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("NUNOTADEV", notaRetorno);
+
+				itemEntity.setValueObject(NVO);
+			}
+
+		} catch (Exception e) {
+			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel salvar a nota de retorno na tcibem!");
+			e.getCause();
+			e.getMessage();
+			e.printStackTrace();
+		}
 	}
 }

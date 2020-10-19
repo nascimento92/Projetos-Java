@@ -147,10 +147,15 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 		String cobrarMulta = VO.asString("COBRARMULTA");
 		BigDecimal multa = VO.asBigDecimal("MULTA");
 		String justificativa = VO.asString("JUSTIFICATIVAMULTA");
+		String prazoMulta = VO.asString("PRAZOMULTA");
 		
 		if("1".equals(cobrarMulta)) {
 			if(multa==null) {
 				throw new PersistenceException("<br/><br/><br/><b>Informar o valor da Multa!</b><br/><br/><br/>");
+			}
+			
+			if(prazoMulta==null) {
+				throw new PersistenceException("<br/><br/><br/><b>Informar o Prazo de pagamento da Multa!</b><br/><br/><br/>");
 			}
 			
 			VO.setProperty("JUSTIFICATIVAMULTA", null);
