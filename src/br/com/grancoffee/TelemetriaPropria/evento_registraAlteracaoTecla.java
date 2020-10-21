@@ -48,14 +48,12 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		deletarTecla(arg0);		
 	}
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		inserirTecla(arg0);	
 	}
 
 	@Override
@@ -173,4 +171,65 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 	    codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
 	    return codUsuLogado;    	
 }
+	
+	//insert
+	private void inserirTecla(PersistenceEvent arg0) throws Exception {
+		DynamicVO teclas = (DynamicVO) arg0.getVo();
+		String patrimonio = teclas.asString("CODBEM");
+		String micromarketing = validaSeEhMicroMarketing(patrimonio);
+		
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCPlanograma");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("CODBEM", patrimonio);
+			VO.setProperty("CODPROD", teclas.asBigDecimal("CODPROD"));
+			VO.setProperty("NIVELPAR", teclas.asBigDecimal("AD_NIVELPAR"));
+			VO.setProperty("CAPACIDADE", teclas.asBigDecimal("AD_CAPACIDADE"));
+			VO.setProperty("NIVELALERTA", teclas.asBigDecimal("AD_NIVELALERTA"));
+			VO.setProperty("VLRPAR", teclas.asBigDecimal("VLRPAR"));
+			VO.setProperty("VLRFUN", teclas.asBigDecimal("VLRFUN"));
+			VO.setProperty("ESTOQUE", new BigDecimal(0));
+			VO.setProperty("AD_ABASTECER", "S");
+			
+			if("S".equals(micromarketing)) {
+				VO.setProperty("TECLA", new BigDecimal(0).toString());
+			}else {
+				VO.setProperty("TECLA", teclas.asBigDecimal("TECLA").toString());
+			}
+			
+			dwfFacade.createEntity("GCPlanograma", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			System.out.println("## [evento_registraAlteracaoTecla] ## - Nao foi possivel cadastrar a tecla!");
+			e.getMessage();
+			e.getCause();
+		}
+	}
+
+	//delete
+	private void deletarTecla(PersistenceEvent arg0) throws Exception {
+		DynamicVO teclas = (DynamicVO) arg0.getVo();
+		String patrimonio = teclas.asString("CODBEM");
+		String micromarketing = validaSeEhMicroMarketing(patrimonio);
+		
+		try {
+			
+			if("S".equals(micromarketing)) {
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				dwfFacade.removeByCriteria(new FinderWrapper("GCPlanograma", "this.CODBEM=? and this.CODPROD=?",new Object[] {patrimonio,teclas.asBigDecimal("CODPROD")}));
+			}else {
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				dwfFacade.removeByCriteria(new FinderWrapper("GCPlanograma", "this.CODBEM=? and this.TECLA=?",new Object[] {patrimonio,teclas.asBigDecimal("TECLA")}));
+			}
+			
+			
+		} catch (Exception e) {
+			System.out.println("## [evento_registraAlteracaoTecla] ## - Nao foi possivel excluir a tecla!");
+			e.getMessage();
+			e.getCause();
+		}
+	}
 }

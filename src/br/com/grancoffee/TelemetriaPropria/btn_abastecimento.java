@@ -150,7 +150,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
 			nativeSql.appendSql(
-					"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS IN ('1','2')");
+					"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS IN ('1','2') AND REABASTECIMENTO='S'");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				int count = contagem.getInt("COUNT(*)");
@@ -220,8 +220,8 @@ public class btn_abastecimento implements AcaoRotinaJava{
 
 				String tecla = DynamicVO.asString("TECLA");
 				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
+				//BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+				//BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
 				
 				try {
 					
@@ -233,8 +233,8 @@ public class btn_abastecimento implements AcaoRotinaJava{
 					VO.setProperty("CODBEM", patrimonio);
 					VO.setProperty("TECLA", tecla);
 					VO.setProperty("CODPROD", produto);
-					VO.setProperty("CAPACIDADE", capacidade);
-					VO.setProperty("NIVELPAR", nivelPar);
+					//VO.setProperty("CAPACIDADE", capacidade);
+					//VO.setProperty("NIVELPAR", nivelPar);
 					
 					dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
 					

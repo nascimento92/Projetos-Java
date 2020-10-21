@@ -196,9 +196,9 @@ public class btn_visita implements AcaoRotinaJava {
 
 			String tecla = DynamicVO.asString("TECLA");
 			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-			BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-			BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
-
+			//BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+			//BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
+			
 			try {
 
 				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -208,9 +208,7 @@ public class btn_visita implements AcaoRotinaJava {
 				VO.setProperty("ID", idAbastecimento);
 				VO.setProperty("CODBEM", patrimonio);
 				VO.setProperty("TECLA", tecla);
-				VO.setProperty("CODPROD", produto);
-				VO.setProperty("CAPACIDADE", capacidade);
-				VO.setProperty("NIVELPAR", nivelPar);
+				VO.setProperty("CODPROD", produto);		
 
 				dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
 
