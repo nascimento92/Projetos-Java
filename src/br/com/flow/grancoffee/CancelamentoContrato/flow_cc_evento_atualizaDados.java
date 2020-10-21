@@ -33,7 +33,6 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");	
 		if(contrato!=null) {
-			salvaDados(VO,contrato);
 			carregarNotasInsert(arg0);
 		}
 		
@@ -59,7 +58,11 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");	
+		if(contrato!=null) {
+			salvaDados(VO,contrato);
+		}
 	}
 
 	@Override
@@ -144,10 +147,15 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 		String cobrarMulta = VO.asString("COBRARMULTA");
 		BigDecimal multa = VO.asBigDecimal("MULTA");
 		String justificativa = VO.asString("JUSTIFICATIVAMULTA");
+		String prazoMulta = VO.asString("PRAZOMULTA");
 		
 		if("1".equals(cobrarMulta)) {
 			if(multa==null) {
 				throw new PersistenceException("<br/><br/><br/><b>Informar o valor da Multa!</b><br/><br/><br/>");
+			}
+			
+			if(prazoMulta==null) {
+				throw new PersistenceException("<br/><br/><br/><b>Informar o Prazo de pagamento da Multa!</b><br/><br/><br/>");
 			}
 			
 			VO.setProperty("JUSTIFICATIVAMULTA", null);
@@ -261,11 +269,13 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 				ResultSet contagem;
 				NativeSql nativeSql = new NativeSql(jdbcWrapper);
 				nativeSql.resetSqlBuf();
-				nativeSql.appendSql("SELECT NUNOTA FROM TGFFIN WHERE DHBAIXA IS NULL AND PROVISAO='N' AND RECDESP=1 AND NUMCONTRATO="+contrato);
+				nativeSql.appendSql(
+						"SELECT NUNOTA FROM TGFFIN WHERE DHBAIXA IS NULL AND PROVISAO='N' AND RECDESP=1 AND NUNOTA NOT IN (SELECT NUNOTA FROM TGFCAB WHERE CODTIPOPER=1108) AND NUMCONTRATO="
+								+ contrato);
 				contagem = nativeSql.executeQuery();
 				while (contagem.next()) {
 					BigDecimal nunota = contagem.getBigDecimal("NUNOTA");
-					inserirNota(idflow,nunota);
+					inserirNota(idflow, nunota);
 				}
 				
 			} catch (Exception e) {
@@ -296,7 +306,7 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT NUNOTA FROM TGFFIN WHERE DHBAIXA IS NULL AND PROVISAO='N' AND RECDESP=1 AND NUMCONTRATO="+contrato);
+			nativeSql.appendSql("SELECT NUNOTA FROM TGFFIN WHERE DHBAIXA IS NULL AND PROVISAO='N' AND RECDESP=1 AND NUNOTA NOT IN (SELECT NUNOTA FROM TGFCAB WHERE CODTIPOPER=1108) AND NUMCONTRATO="+contrato);
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				BigDecimal nunota = contagem.getBigDecimal("NUNOTA");

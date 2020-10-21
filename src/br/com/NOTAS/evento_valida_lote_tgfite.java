@@ -69,11 +69,13 @@ public class evento_valida_lote_tgfite implements EventoProgramavelJava {
 		String lote = "";
 		String tipoMovimento = "";
 		BigDecimal empresa = null;
+		String validaControlePatrimonial = "N";
 		
 		try {
 			
 			controle= getTGFPRO(VO.asBigDecimal("CODPROD")).asString("TIPCONTEST");	
 			grupoProduto = getTGFPRO(VO.asBigDecimal("CODPROD")).asBigDecimal("CODGRUPOPROD");
+			validaControlePatrimonial = getTGFGRU(grupoProduto).asString("AD_GESTAOPATRIMONIAL");
 			lote = VO.asString("CONTROLE");
 			tipoMovimento =  tipMov(VO.asBigDecimal("NUNOTA"));
 			empresa = getTGFCAB(VO.asBigDecimal("NUNOTA")).asBigDecimal("CODEMP");
@@ -85,7 +87,7 @@ public class evento_valida_lote_tgfite implements EventoProgramavelJava {
 		
 		//validacoes em comum
 		if("L".equals(controle)) {
-			if(grupoProduto.intValue()==500104) {
+			if("S".equals(validaControlePatrimonial)) {
 				if(lote!="99999") {
 					
 					if("P".equals(tipoMovimento)) {
@@ -129,6 +131,12 @@ public class evento_valida_lote_tgfite implements EventoProgramavelJava {
 			valida=true;
 		}
 		return valida;
+	}
+	
+	private DynamicVO getTGFGRU(BigDecimal grupo) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("GrupoProduto");
+		DynamicVO VO = DAO.findOne("CODGRUPOPROD=?", new Object[] { grupo });
+		return VO;
 	}
 
 }
