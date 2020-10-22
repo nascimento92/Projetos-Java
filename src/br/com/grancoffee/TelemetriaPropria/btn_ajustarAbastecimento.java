@@ -63,24 +63,25 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 
 			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-
-			BigDecimal diferenca = DynamicVO.asBigDecimal("DIFERENCA");
-
-			if (diferenca.intValue() != 0) {
-
+			
+			BigDecimal saldoApos = DynamicVO.asBigDecimal("SALDOAPOS");
+			BigDecimal saldoEsperado = DynamicVO.asBigDecimal("SALDOESPERADO"); 
+			
+			if(saldoApos.subtract(saldoEsperado).intValue()!=0) {
 				String codbem = DynamicVO.asString("CODBEM");
 				String tecla = DynamicVO.asString("TECLA");
 				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
 				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
 				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal saldoAtual = DynamicVO.asBigDecimal("SALDOESPERADO");
-
-				inserirSolicitacaoDeAjuste(codbem, tecla, produto, capacidade, nivelpar, saldoAtual, diferenca,
+				
+				BigDecimal valor = saldoApos.subtract(saldoEsperado);
+				
+				inserirSolicitacaoDeAjuste(codbem, tecla, produto, capacidade, nivelpar, saldoEsperado, valor,
 						idObjeto);
 			
 				cont++;
 			}
-			
+						
 			DynamicVO.setProperty("AJUSTADO", "S");
 			itemEntity.setValueObject((EntityVO) DynamicVO);
 		}
@@ -91,8 +92,8 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 
 	}
 
-	private void inserirSolicitacaoDeAjuste(String codbem, String tecla, BigDecimal produto, BigDecimal capacidade,
-			BigDecimal nivelpar, BigDecimal saldoAtual, BigDecimal diferenca, Object idObjeto) {
+	private void inserirSolicitacaoDeAjuste(String codbem, String tecla, BigDecimal produto, BigDecimal capacidade, BigDecimal nivelpar, 
+			BigDecimal saldoAnterior, BigDecimal valor, Object idObjeto) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCSolicitAjuste");
@@ -104,12 +105,13 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			VO.setProperty("CODPROD", produto);
 			VO.setProperty("CAPACIDADE", capacidade);
 			VO.setProperty("NIVELPAR", nivelpar);
-			VO.setProperty("SALDOANTERIOR", saldoAtual);
-			VO.setProperty("QTDAJUSTE", diferenca);
+			VO.setProperty("SALDOANTERIOR", saldoAnterior);
+			VO.setProperty("QTDAJUSTE", valor);
 			VO.setProperty("MANUAL", "N");
 			VO.setProperty("OBSERVACAO", "Botão Ajustar Abastecimento");
-			VO.setProperty("SALDOFINAL", saldoAtual.add(diferenca));
+			VO.setProperty("SALDOFINAL", saldoAnterior.add(valor));
 			VO.setProperty("IDABASTECIMENTO", idObjeto);
+			VO.setProperty("AD_DTSOLICIT", TimeUtils.getNow());
 
 			dwfFacade.createEntity("GCSolicitAjuste", (EntityVO) VO);
 

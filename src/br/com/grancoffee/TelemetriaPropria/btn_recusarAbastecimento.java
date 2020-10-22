@@ -30,7 +30,7 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 			arg0.mostraErro("Abastecimento já ajustado!");
 		} else {
 			boolean confirmarSimNao = arg0.confirmarSimNao("Atenção!",
-					"Todas as informações digitadas pelo promotor serão <b>recusadas</b> e o inventário <b>não será ajustado</b>, continuar?",
+					"Todas as informações digitadas pelo promotor serão <b>recusadas</b> (contagem e retornos) e o inventário <b>não será ajustado</b>, continuar?",
 					1);
 
 			if (confirmarSimNao) {
@@ -54,7 +54,10 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				
-				DynamicVO.setProperty("CONTAGEM", DynamicVO.asBigDecimal("SALDOESPERADO"));
+				DynamicVO.setProperty("SALDOAPOS", DynamicVO.asBigDecimal("SALDOESPERADO"));
+				//DynamicVO.setProperty("CONTAGEM", new BigDecimal(0));
+				//DynamicVO.setProperty("QTDRETORNO", new BigDecimal(0));
+				//DynamicVO.setProperty("DIFERENCA", new BigDecimal(0));
 				DynamicVO.setProperty("AJUSTADO", "S");
 				
 				itemEntity.setValueObject((EntityVO) DynamicVO);
@@ -96,6 +99,5 @@ public class btn_recusarAbastecimento implements AcaoRotinaJava {
 	    codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
 	    return codUsuLogado;    	
 	}
-
 
 }
