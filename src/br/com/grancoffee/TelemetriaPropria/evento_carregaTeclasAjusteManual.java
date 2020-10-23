@@ -79,6 +79,8 @@ public class evento_carregaTeclasAjusteManual implements EventoProgramavelJava {
 			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
 			BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
 			BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
+			BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
+			BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
 
 			try {
 
@@ -94,6 +96,7 @@ public class evento_carregaTeclasAjusteManual implements EventoProgramavelJava {
 				VO.setProperty("NIVELPAR", nivelPar);
 				VO.setProperty("AJUSTADO", "N");
 				VO.setProperty("SALDOANTES", DynamicVO.asBigDecimal("ESTOQUE"));
+				VO.setProperty("VALOR", vlrpar.add(vlrfun));
 
 				dwfFacade.createEntity("AD_ITENSAJUSTESMANUAIS", (EntityVO) VO);
 

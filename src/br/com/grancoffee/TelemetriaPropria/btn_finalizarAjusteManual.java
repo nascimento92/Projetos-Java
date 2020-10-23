@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
 
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -104,6 +106,7 @@ public class btn_finalizarAjusteManual implements AcaoRotinaJava {
 			VO.setProperty("MANUAL", "S");
 			VO.setProperty("SALDOFINAL", saldoAtual.add(diferenca));
 			VO.setProperty("IDABASTECIMENTO", idObjeto);
+			VO.setProperty("AD_DTSOLICIT", TimeUtils.getNow());
 			
 			if(motivo!=null) {
 				VO.setProperty("OBSERVACAO", motivo);
