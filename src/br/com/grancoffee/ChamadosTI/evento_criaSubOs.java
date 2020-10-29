@@ -32,6 +32,9 @@ import br.com.sankhya.ws.ServiceContext;
 
 public class evento_criaSubOs implements EventoProgramavelJava {
 	// ID da tratativa n pode ser somado automaticamente
+	/**
+	 * 28/10/20 14:11 - Inserido no método beforeupdate para considerar se o chamado não está sendo reaberto.
+	 */
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -115,7 +118,7 @@ public class evento_criaSubOs implements EventoProgramavelJava {
 		}
 		
 		DynamicVO chamado = getChamado(VO.asBigDecimal("ID"));
-		
+				
 		if(chamado.asTimestamp("DTFECHAMENTO")!=null) {
 			throw new PersistenceException(
 					"<p align=\"center\"><img src=\"http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-325x100.png\" height=\"100\" width=\"325\"></img></p><br/>"+

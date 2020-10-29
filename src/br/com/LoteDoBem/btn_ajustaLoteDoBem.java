@@ -17,7 +17,10 @@ import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
-
+	
+	int cont=0;
+	String retorno="";
+	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		start(arg0);
@@ -30,7 +33,13 @@ public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
 		if (validaNotaNoSistema(nunota)) {
 
 			validaBensDaNota(nunota);
-			arg0.setMensagemRetorno("BENS DA NOTA CORRIGIDOS");
+			
+			if(cont>0) {
+				arg0.setMensagemRetorno("BENS DA NOTA CORRIGIDOS");
+			}else {
+				arg0.setMensagemRetorno("Erro:! "+retorno );
+			}
+			
 
 		} else {
 			arg0.setMensagemRetorno("NOTA INVALIDA!");
@@ -97,10 +106,13 @@ public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
 				VO.setProperty("CONTROLE", patrimonio);
 
 				itemEntity.setValueObject(NVO);
+				
+				cont++;
 			}
 		} catch (Exception e) {
 			System.out.println("** NÃO FOI POSSIVEL SETAR PATRIMONIO NO PRODUTO **"+ e.getMessage());
 			e.printStackTrace();
+			retorno += e.getMessage();
 		}
 	}
 	
@@ -116,7 +128,7 @@ public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
 				DynamicVO VO = (DynamicVO) NPVO;
 
 				VO.setProperty("CODEMP", TGFCAB.asBigDecimal("CODEMP"));
-				VO.setProperty("CODLOCAL", new BigDecimal(1110));
+				VO.setProperty("CODLOCAL", new BigDecimal(1500));
 				VO.setProperty("CODPROD", produto);
 				VO.setProperty("CONTROLE", patrimonio);
 				VO.setProperty("RESERVADO", new BigDecimal(0));
@@ -134,6 +146,9 @@ public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
 					
 				} catch (Exception e) {
 					System.out.println("** NÃO FOI POSSIVEL INSERIR NA TGFEST **");
+					e.getCause();
+					e.getMessage();
+					retorno += e.getMessage();
 				}
 		}
 		
