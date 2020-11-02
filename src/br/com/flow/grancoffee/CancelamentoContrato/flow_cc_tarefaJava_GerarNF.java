@@ -253,7 +253,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			if(getPrecoMaquina(DynamicVO.asString("CODBEM")).intValue()>0) {
 				VO.setProperty("VLRUNIT", getPrecoMaquina(DynamicVO.asString("CODBEM")));
 			}else {
-				VO.setProperty("VLRUNIT", new BigDecimal(1));
+				VO.setProperty("VLRUNIT", new BigDecimal(0));
 			}
 			
 			VO.setProperty("VLRTOT", new BigDecimal(1));
@@ -290,12 +290,10 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
 			nativeSql.appendSql(
-			"SELECT VLRUNIT FROM tgfite WHERE "+
-			"nunota = (SELECT nunotasaida FROM tcibem WHERE codbem='"+patrimonio+"') AND"+
-			"codprod=(SELECT codprod FROM tcibem WHERE codbem='"+patrimonio+"')");
+			"SELECT VLR FROM FLOW_CANCELAMENTO_VLRMAQUINAS WHERE CODBEM='"+patrimonio+"'");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
-				BigDecimal count = contagem.getBigDecimal("VLRUNIT");
+				BigDecimal count = contagem.getBigDecimal("VLR");
 				if(count!=null) {
 					preco=count;
 				}

@@ -8,6 +8,8 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
@@ -159,7 +161,9 @@ public class eventoDtFechamentoOS implements EventoProgramavelJava {
 		String manPrev = VO.asString("AD_MANPREVENTIVA");
 		
 		if(manPrev!=null && "S".equals(manPrev)){
-			VO.setProperty("DTPREVISTA", addDias(dataChamada, new BigDecimal(7)));
+			VO.setProperty("DTPREVISTA", new Timestamp(TimeUtils.addWorkingDays(dataChamada.getTime(), 7)));
+			
+			
 		}
 	}
 	
