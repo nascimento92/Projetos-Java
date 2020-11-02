@@ -25,6 +25,10 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 	private int usuarioDaSubOs = 2195;
 	private int cont=0;
 	
+	/**
+	 * 29/10/20 08:07 inserido a lógica para a data prevista da OS preventiva considerar 7 dias uteis.
+	 */
+	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		start(arg0);
@@ -70,9 +74,9 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("OrdemServico",new BigDecimal(381744));
 			DynamicVO NotaProdVO = ModeloNPVO.buildClone();
-					
+			
 			NotaProdVO.setProperty("DHCHAMADA", TimeUtils.getNow());
-			NotaProdVO.setProperty("DTPREVISTA",TimeUtils.dataAddDay(TimeUtils.getNow(),7));
+			NotaProdVO.setProperty("DTPREVISTA",new Timestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 7)));
 			NotaProdVO.setProperty("DTFECHAMENTO", null);
 			NotaProdVO.setProperty("MODELOVISIVELAPPOS",null);
 			NotaProdVO.setProperty("NOMEMODELO",null);
@@ -89,7 +93,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 			NotaProdVO.setProperty("CODCONTATO",new BigDecimal(1));
 			NotaProdVO.setProperty("AD_MANPREVENTIVA", "S");
 			NotaProdVO.setProperty("CODATEND", getUsuLogado());
-			NotaProdVO.setProperty("AD_DTPREVISTAPREV", TimeUtils.getNow());
+			NotaProdVO.setProperty("AD_DTPREVISTAPREV", new Timestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 7)));
 			NotaProdVO.setProperty("CODUSUFECH", null);
 			NotaProdVO.setProperty("DHFECHAMENTOSLA", null);
 			NotaProdVO.setProperty("TEMPOSLA", new BigDecimal(7000));
@@ -122,8 +126,8 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 				NotaProdVO.setProperty("NUMOS",numos);			
 				NotaProdVO.setProperty("HRINICIAL", null);
 				NotaProdVO.setProperty("HRFINAL", null);
-				NotaProdVO.setProperty("DHPREVISTA", TimeUtils.dataAddDay(TimeUtils.getNow(),7));
-				NotaProdVO.setProperty("DHLIMITESLA", TimeUtils.dataAddDay(TimeUtils.getNow(),7));
+				NotaProdVO.setProperty("DHPREVISTA", new Timestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 7)));
+				NotaProdVO.setProperty("DHLIMITESLA", new Timestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 7)));
 				NotaProdVO.setProperty("INICEXEC", null);
 				NotaProdVO.setProperty("TERMEXEC", null);
 				NotaProdVO.setProperty("SERIE", tciBem.asString("CODBEM"));
