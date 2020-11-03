@@ -252,11 +252,12 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			
 			if(getPrecoMaquina(DynamicVO.asString("CODBEM")).intValue()>0) {
 				VO.setProperty("VLRUNIT", getPrecoMaquina(DynamicVO.asString("CODBEM")));
+				VO.setProperty("VLRTOT", getPrecoMaquina(DynamicVO.asString("CODBEM")));
 			}else {
 				VO.setProperty("VLRUNIT", new BigDecimal(0));
+				VO.setProperty("VLRTOT", new BigDecimal(0));
 			}
-			
-			VO.setProperty("VLRTOT", new BigDecimal(1));
+
 			VO.setProperty("ATUALESTOQUE", new BigDecimal(1));
 			VO.setProperty("CODVOL", "UN");
 
@@ -265,7 +266,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			atualizaNotaRetornoNaTciBem(DynamicVO.asString("CODBEM"),nunota);
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foio possivel salvar os patrimonios na nota!");
+			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel salvar os patrimonios na nota!");
 			e.getCause();
 			e.getMessage();
 			e.printStackTrace();
