@@ -106,7 +106,16 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 				elevador="Elevador: SIM.";
 			}else {elevador="Elevador: NAO.";}
 			
-			patrimonios+=codbem+" - "+getTgfpro(codprod).asString("DESCRPROD")+" - "+escada+rampa+elevador+"\n";
+			String contatoRetirada = "";
+			
+			if(DynamicVO.asString("CONTATO")!=null) {
+				contatoRetirada = "Contato Retirada: "+DynamicVO.asString("CONTATO");
+				patrimonios+=codbem+" - "+getTgfpro(codprod).asString("DESCRPROD")+" - "+escada+rampa+elevador+", "+contatoRetirada+"\n";
+			}else {
+				patrimonios+=codbem+" - "+getTgfpro(codprod).asString("DESCRPROD")+" - "+escada+rampa+elevador+"\n";
+			}
+					
+
 			}
 			
 			

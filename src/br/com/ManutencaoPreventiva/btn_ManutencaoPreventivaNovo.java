@@ -1,15 +1,20 @@
 package br.com.ManutencaoPreventiva;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
 import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.PersistenceException;
+import br.com.sankhya.jape.dao.JdbcWrapper;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
@@ -27,6 +32,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 	
 	/**
 	 * 29/10/20 08:07 inserido a lógica para a data prevista da OS preventiva considerar 7 dias uteis.
+	 * 06/11/20 09:33 implementado a função de direcionar para a operação atrelada a empresa, método getAtendente, utiliza (AD_ATENDENTEPREVENTIVA da TSIEMP).
 	 */
 	
 	@Override
@@ -65,6 +71,9 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 	
 		DynamicVO tciBem = getTciBem(linhas.getCampo("CODBEM").toString());
 		DynamicVO getTcsCon = getTcsCon(tciBem.asBigDecimal("NUMCONTRATO"));
+		
+		BigDecimal atendente = getAtendente(linhas.getCampo("CODBEM").toString());
+		if(atendente==null) {atendente=new BigDecimal(2195);}
 		
 		BigDecimal numos = BigDecimal.ZERO;
 		
@@ -135,7 +144,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 				NotaProdVO.setProperty("CODSIT", new BigDecimal(1));
 				NotaProdVO.setProperty("CODOCOROS", new BigDecimal(14));
 				NotaProdVO.setProperty("SOLUCAO", " ");
-				NotaProdVO.setProperty("CODUSU", new BigDecimal(2195));
+				NotaProdVO.setProperty("CODUSU", atendente);
 				NotaProdVO.setProperty("CORSLA", null);
 				
 				dwfFacade.createEntity(DynamicEntityNames.ITEM_ORDEM_SERVICO,(EntityVO) NotaProdVO);
@@ -233,6 +242,31 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 		} catch (Exception e) {
 			e.getStackTrace();
 		}
+	}
+	
+	private BigDecimal getAtendente(String patrimonio) {
+		BigDecimal usu = null;
+		try {
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT NVL(AD_ATENDENTEPREVENTIVA,2195) AS CODUSU FROM TSIEMP WHERE CODEMP IN (SELECT CODEMP FROM TCSCON WHERE NUMCONTRATO IN (SELECT NUMCONTRATO FROM TCIBEM WHERE CODBEM='"+patrimonio+"'))");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				usu = contagem.getBigDecimal("CODUSU");
+			}
+			
+		} catch (Exception e) {
+			System.out.println("## [btn_ManutencaoPreventivaNovo] ## - Nao foi possivel obter o usuário atendente.");
+			e.getCause();
+			e.getMessage();
+		}
+		
+		return usu;
 	}
 	
 	private DynamicVO getTciBem(String patrimonio) throws Exception {

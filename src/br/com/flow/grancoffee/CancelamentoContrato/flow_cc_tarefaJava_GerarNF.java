@@ -20,7 +20,9 @@ import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
-
+	
+	String patrimonios="";
+	
 	@Override
 	public void executar(ContextoTarefa arg0) throws Exception {
 		start(arg0);
@@ -59,7 +61,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 
 	private void criarNfParaAhPlanta(Object idflow, BigDecimal planta, ContextoTarefa arg0) throws Exception {
 		// Object usuarioInclusao = arg0.getCampo("SYS_USUARIOINCLUSAO");
-		BigDecimal nunota = criaCabecalho(idflow);
+		BigDecimal nunota = criaCabecalho(idflow,planta);
 		if (nunota != null) {
 			insereNotaRetorno(nunota, idflow);
 			getPatrimonios(idflow, planta, nunota);
@@ -68,7 +70,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 
 	}
 
-	public BigDecimal criaCabecalho(Object idflow) throws Exception {
+	public BigDecimal criaCabecalho(Object idflow,BigDecimal planta) throws Exception {
 
 		DynamicVO form = getForm(idflow);
 		BigDecimal centroResultado = form.asBigDecimal("CODCENCUS");
@@ -82,11 +84,14 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 		} else {
 			nuNotaModelo = getNotaModelo(topRetorno);
 		}
+		
+		String patrimonios = "PATRIMÔNIOS: \n";
+		geraDescricaoDosPatrimonios(idflow,planta);
 
 		if ("1".equals(form.asString("TIPOCANCEL"))) {
-			tipoRetirada = "CANCELAMENTO PARCIAL \n";
+			tipoRetirada = "CANCELAMENTO PARCIAL \n"+patrimonios+this.patrimonios;
 		} else {
-			tipoRetirada = "CANCELAMENTO TOTAL \n";
+			tipoRetirada = "CANCELAMENTO TOTAL \n"+patrimonios+this.patrimonios;
 		}
 
 		try {
@@ -260,6 +265,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 
 			VO.setProperty("ATUALESTOQUE", new BigDecimal(1));
 			VO.setProperty("CODVOL", "UN");
+			VO.setProperty("CODLOCALORIG", new BigDecimal(1500));
 
 			dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 			
@@ -328,6 +334,28 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 
 		} catch (Exception e) {
 			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel salvar a nota de retorno na tcibem!");
+			e.getCause();
+			e.getMessage();
+			e.printStackTrace();
+		}
+	}
+	
+	private void geraDescricaoDosPatrimonios(Object idflow, BigDecimal planta) {
+		try {
+
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_PATCANCELAMENTO",
+					"this.IDINSTPRN = ? and this.IDPLANTA=? ", new Object[] { idflow, planta }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+				
+				this.patrimonios+=DynamicVO.asString("CODBEM")+", ";
+			}
+
+		} catch (Exception e) {
+			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel obter a descrição dos patrimonios!");
 			e.getCause();
 			e.getMessage();
 			e.printStackTrace();
