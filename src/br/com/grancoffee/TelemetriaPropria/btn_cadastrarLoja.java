@@ -9,5 +9,13 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 	public void doAction(ContextoAcao arg0) throws Exception {
 		arg0.setMensagemRetorno("OI");
 	}
+	
+	private void start(ContextoAcao arg0) {
+		String nome = (String) arg0.getParam("NOME");
+		Object param = arg0.getParam("ENDERECO");
+	}
+	
+	//montagem do nome do corner tem que ser feita aqui no JAVA, pega o ultimo corner, substrai os ultimos 4 valores
+	//soma mais um, formata com 4 caracteres, concatena a palavra corner, faz o insert 
 
 }
