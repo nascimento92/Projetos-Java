@@ -1,11 +1,13 @@
 package br.com.grancoffee.TelemetriaPropria;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.text.DecimalFormat;
-
+import javax.swing.Timer;
 import com.sankhya.util.StringUtils;
-
+import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.jape.EntityFacade;
@@ -26,14 +28,24 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		start(arg0);
 	}
 
-	private void start(ContextoAcao arg0) {
+	private void start(ContextoAcao arg0) throws InterruptedException {
 		String nome = (String) arg0.getParam("NOME");
 		String endereco = (String) arg0.getParam("ENDERECO");
 		String contrato =  (String) arg0.getParam("CONTRATO");
 
 		String totem = totem();
-		cadastrarAdPatrimonio(totem,nome,new BigDecimal(contrato));
-		cadastrarTelaInstalacoes(totem,new BigDecimal(contrato),endereco);
+		cadastrarAdPatrimonio(totem,nome,contrato);
+		cadastrarTelaInstalacoes(totem,contrato,endereco);
+		
+		Timer timer = new Timer(10000, new ActionListener() {	
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				chamaPentaho();				
+			}
+		});
+		timer.setRepeats(false);
+		timer.start();
+		
 
 		if (erro != "") {
 			arg0.setMensagemRetorno("Erro \n" + erro);
@@ -71,7 +83,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		return bem;
 	}
 
-	private void cadastrarAdPatrimonio(String totem, String descricao,BigDecimal contrato) {
+	private void cadastrarAdPatrimonio(String totem, String descricao,String contrato) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("PATRIMONIO");
@@ -84,8 +96,8 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			VO.setProperty("CODPROD", new BigDecimal(514410));
 			
 			if(contrato!=null) {
-				VO.setProperty("NUMCONTRATO", contrato);
-				VO.setProperty("CODPARC", getNumcontrato(contrato).asBigDecimal("CODPARC"));
+				VO.setProperty("NUMCONTRATO", new BigDecimal(contrato));
+				VO.setProperty("CODPARC", getParceiro(new BigDecimal(contrato)));
 			}
 
 			dwfFacade.createEntity("PATRIMONIO", (EntityVO) VO);
@@ -94,7 +106,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		}
 	}
 	
-	private void cadastrarTelaInstalacoes(String totem,BigDecimal contrato,String endereco) {
+	private void cadastrarTelaInstalacoes(String totem,String contrato,String endereco) {
 		try {
 			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -104,7 +116,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			VO.setProperty("ABASTECIMENTO", "S");
 			VO.setProperty("AD_CORNER", "S");
 			VO.setProperty("AD_IDPLANTA", new BigDecimal(endereco));
-			VO.setProperty("AD_NUMCONTRATO", contrato);
+			VO.setProperty("AD_NUMCONTRATO", new BigDecimal(contrato));
 			VO.setProperty("CODBEM", totem);
 			VO.setProperty("PLANOGRAMAPENDENTE", "N");
 			VO.setProperty("TOTEM", "S");
@@ -115,19 +127,38 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			erro = "Não foi possível cadastrar na tela Instalações!" + e.getMessage();
 		}
 	}
-	
-	private DynamicVO getNumcontrato(BigDecimal contrato) throws Exception {
-		DynamicVO VO = null;
+
+	private BigDecimal getParceiro(BigDecimal contrato) throws Exception {
+		BigDecimal codparc = BigDecimal.ZERO;
 		
 		try {
 			JapeWrapper DAO = JapeFactory.dao("Contrato");
-			VO = DAO.findOne("NUMCONTRATO=?",new Object[] { contrato });
+			DynamicVO VO = DAO.findOne("NUMCONTRATO=?",new Object[] { contrato });
+			if(VO!=null) {
+				codparc = VO.asBigDecimal("CODPARC");
+			}
 		} catch (Exception e) {
 			erro = "Não foi possível determinar qual o contrato!" + e.getMessage();
 		}
 		
-		return VO;
+		return codparc;
 	}
 	
-	
+	private void chamaPentaho() {
+		
+		try {
+			
+			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+		    String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+		    WSPentaho si = new WSPentaho(site, Key);
+		    		    
+		    String path = "home/GC/Projetos/GCW/Transformations/";
+		    String objName = "TF - GSN009 - Criar Loja Corner";
+		    si.runTrans(path, objName);
+			
+		} catch (Exception e) {
+			erro = "Não foi possível chamar a Rotina Pentaho!" + e.getMessage();
+		}
+				
+	}
 }
