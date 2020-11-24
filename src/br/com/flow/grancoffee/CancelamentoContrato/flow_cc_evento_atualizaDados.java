@@ -112,7 +112,7 @@ public class flow_cc_evento_atualizaDados implements EventoProgramavelJava {
 		BigDecimal idflow = VO.asBigDecimal("IDINSTPRN");
 		
 		if("2".equals(tipo)) {
-			limpaPatrimonios(idflow);
+			//limpaPatrimonios(idflow);
 			cadastrarTodosOsPatrimonios(contrato,idflow);
 		}
 	}
