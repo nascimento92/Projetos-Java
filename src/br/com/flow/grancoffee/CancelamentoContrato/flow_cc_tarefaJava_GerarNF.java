@@ -16,6 +16,7 @@ import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.comercial.ComercialUtils;
+import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
@@ -63,6 +64,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 		if (nunota != null) {
 			insereNotaRetorno(nunota, idflow);
 			getPatrimonios(idflow, planta, nunota);
+			totalizaImpostos(nunota);
 		}
 		// insere cada um dos pt na tgfite da nota criada.
 
@@ -90,7 +92,6 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 		}
 
 		try {
-
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO padraoNPVO = dwfFacade.getDefaultValueObjectInstance(DynamicEntityNames.CABECALHO_NOTA);
 			DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("CabecalhoNota", nuNotaModelo);
@@ -331,5 +332,17 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			e.getMessage();
 			e.printStackTrace();
 		}
+	}
+	
+	public void totalizaImpostos(BigDecimal nunota) throws Exception{
+        ImpostosHelpper impostos = new ImpostosHelpper();
+        impostos.carregarNota(nunota);
+        impostos.setForcarRecalculo(true);
+        impostos.calcularImpostos(nunota);
+        impostos.calcularTotalItens(nunota, true);
+        impostos.calculaICMS(true);
+        impostos.totalizarNota(nunota);
+        impostos.salvarNota();
+        
 	}
 }
