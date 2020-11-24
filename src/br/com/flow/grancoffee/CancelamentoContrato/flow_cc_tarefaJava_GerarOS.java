@@ -20,8 +20,16 @@ import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
+	
+	/**
+	 * @author Gabriel
+	 * 
+	 * 19/11/2020 11:15 implementado método para cadastrar o serviço/produto para o executante.
+	 */
+	
 	//int contador = 0;
 	String tipoRetirada="";
+	private int servicoDaOs = 100000;
 	
 	@Override
 	public void executar(ContextoTarefa arg0) throws Exception {
@@ -306,6 +314,9 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 	private void geraItemOS(BigDecimal numos,Object idflow, int usuario, int numitem) throws Exception{
 		
 		DynamicVO patrimonio = getUmPatrimonioDeExemplo(idflow);
+		BigDecimal produto = getTCIBEM(patrimonio.asString("CODBEM")).asBigDecimal("CODPROD");
+		
+		cadastraServicoParaOhExecutante(produto,usuario);
 		
 		try {
 			
@@ -321,7 +332,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			NotaProdVO.setProperty("INICEXEC", null);
 			NotaProdVO.setProperty("TERMEXEC", null);
 			NotaProdVO.setProperty("SERIE", patrimonio.asString("CODBEM"));
-			NotaProdVO.setProperty("CODPROD", getTCIBEM(patrimonio.asString("CODBEM")).asBigDecimal("CODPROD"));
+			NotaProdVO.setProperty("CODPROD", produto);
 			NotaProdVO.setProperty("CODSIT", new BigDecimal(1));
 			NotaProdVO.setProperty("CODOCOROS", new BigDecimal(2));
 			NotaProdVO.setProperty("SOLUCAO", " ");
@@ -382,6 +393,22 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			e.getCause();
 			e.getMessage();
 			e.printStackTrace();
+		}
+	}
+	
+	private void cadastraServicoParaOhExecutante(BigDecimal produto, int usuario) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ServicoProdutoExecutante");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("CODSERV", new BigDecimal(this.servicoDaOs));
+			VO.setProperty("CODUSU", new BigDecimal(usuario));
+			VO.setProperty("CODPROD", produto);
+			
+			dwfFacade.createEntity("ServicoProdutoExecutante", (EntityVO) VO);
+		} catch (Exception e) {
+			e.getStackTrace();
 		}
 	}
 }

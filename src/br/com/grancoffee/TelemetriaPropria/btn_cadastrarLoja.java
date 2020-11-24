@@ -7,6 +7,8 @@ import java.sql.ResultSet;
 import java.text.DecimalFormat;
 import javax.swing.Timer;
 import com.sankhya.util.StringUtils;
+import com.sankhya.util.TimeUtils;
+
 import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
@@ -17,7 +19,9 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class btn_cadastrarLoja implements AcaoRotinaJava {
 
@@ -45,7 +49,6 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		});
 		timer.setRepeats(false);
 		timer.start();
-		
 
 		if (erro != "") {
 			arg0.setMensagemRetorno("Erro \n" + erro);
@@ -77,7 +80,8 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 				bem = contagem.getString("BEM");
 			}
 		} catch (Exception e) {
-			erro = "Não foi possível determinar o último Corner!" + e.getMessage();
+			erro = "Não foi possível determinar o último Corner!" + e.getMessage()+"\n"+e.getCause();
+			salvarException(erro);
 		}
 
 		return bem;
@@ -102,7 +106,8 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 
 			dwfFacade.createEntity("PATRIMONIO", (EntityVO) VO);
 		} catch (Exception e) {
-			erro = "Não foi possível cadastrar a loja!" + e.getMessage();
+			erro = "Não foi possível cadastrar a loja!" + e.getMessage()+"\n"+e.getCause();
+			salvarException(erro);
 		}
 	}
 	
@@ -116,15 +121,19 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			VO.setProperty("ABASTECIMENTO", "S");
 			VO.setProperty("AD_CORNER", "S");
 			VO.setProperty("AD_IDPLANTA", new BigDecimal(endereco));
-			VO.setProperty("AD_NUMCONTRATO", new BigDecimal(contrato));
 			VO.setProperty("CODBEM", totem);
 			VO.setProperty("PLANOGRAMAPENDENTE", "N");
 			VO.setProperty("TOTEM", "S");
 			
+			if(contrato!=null) {
+				VO.setProperty("AD_NUMCONTRATO", new BigDecimal(contrato));
+			}
+			
 			dwfFacade.createEntity("GCInstalacao", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			erro = "Não foi possível cadastrar na tela Instalações!" + e.getMessage();
+			erro = "Não foi possível cadastrar na tela Instalações!" + e.getMessage()+"\n"+e.getCause();
+			salvarException(erro);
 		}
 	}
 
@@ -138,7 +147,8 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 				codparc = VO.asBigDecimal("CODPARC");
 			}
 		} catch (Exception e) {
-			erro = "Não foi possível determinar qual o contrato!" + e.getMessage();
+			erro = "Não foi possível determinar qual o contrato!" + e.getMessage()+"\n"+e.getCause();
+			salvarException(erro);
 		}
 		
 		return codparc;
@@ -157,8 +167,29 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		    si.runTrans(path, objName);
 			
 		} catch (Exception e) {
-			erro = "Não foi possível chamar a Rotina Pentaho!" + e.getMessage();
+			erro = "Não foi possível chamar a Rotina Pentaho!" + e.getMessage()+"\n"+e.getCause();
+			salvarException(erro);
+		}		
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_cadastrarLoja");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
 		}
-				
 	}
 }
