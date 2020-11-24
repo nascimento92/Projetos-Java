@@ -341,7 +341,6 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 		}
 	}
 	
-<<<<<<< HEAD
 	public void totalizaImpostos(BigDecimal nunota) throws Exception{
         ImpostosHelpper impostos = new ImpostosHelpper();
         impostos.carregarNota(nunota);
@@ -351,8 +350,8 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
         impostos.calculaICMS(true);
         impostos.totalizarNota(nunota);
         impostos.salvarNota();
-        
-=======
+	}
+	
 	private void geraDescricaoDosPatrimonios(Object idflow, BigDecimal planta) {
 		try {
 
@@ -373,6 +372,5 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			e.getMessage();
 			e.printStackTrace();
 		}
->>>>>>> 1d10961ba1f9e1378d27962c5ac656cd84618bb8
 	}
 }
