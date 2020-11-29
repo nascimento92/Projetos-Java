@@ -36,8 +36,9 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		String nome = (String) arg0.getParam("NOME");
 		String endereco = (String) arg0.getParam("ENDERECO");
 		String contrato =  (String) arg0.getParam("CONTRATO");
+		String tipo = (String) arg0.getParam("TIPO");
 
-		String totem = totem();
+		String totem = totem(tipo);
 		cadastrarAdPatrimonio(totem,nome,contrato);
 		cadastrarTelaInstalacoes(totem,contrato,endereco);
 		
@@ -57,16 +58,39 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		}
 	}
 
-	private String totem() {
+	private String totem(String tipo) {
 		DecimalFormat df = new DecimalFormat("0000");
-		String ultimoTotem = getUltimoTotem();
-		String novoTotem = "CORNER" + df.format(Integer.decode(StringUtils.substr(ultimoTotem, 7, 4)) + 1);
+		String ultimoTotem = "";
+		String novoTotem="";
+		
+		if("1".equals(tipo)) { //tipo = Corner
+			ultimoTotem = getUltimo(tipo);
+			novoTotem = "CORNER" + df.format(Integer.decode(StringUtils.substr(ultimoTotem, 7, 4)) + 1);
+		}
+		
+		if("2".equals(tipo)) { //tipo = Corner
+			ultimoTotem = getUltimo(tipo);
+			novoTotem = "LOJA" + df.format(Integer.decode(StringUtils.substr(ultimoTotem, 7, 4)) + 1);
+		}
+		
 		return novoTotem;
 	}
 
-	private String getUltimoTotem() {
-		String bem = "CORNER0001";
-
+	private String getUltimo(String tipo) {
+		
+		String txt = "";
+		String bem = "";
+		
+		if("1".equals(tipo)) { //tipo = Corner
+			bem = "CORNER0001";
+			txt = "CORNER";
+		}
+		
+		if("2".equals(tipo)) { //tipo = Corner
+			bem = "LOJA0001";
+			txt = "LOJA";
+		}
+		
 		try {
 			JdbcWrapper jdbcWrapper = null;
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -74,7 +98,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT MAX(CODBEM) AS BEM FROM AD_PATRIMONIO WHERE CODBEM LIKE '%CORNER%'");
+			nativeSql.appendSql("SELECT MAX(CODBEM) AS BEM FROM AD_PATRIMONIO WHERE CODBEM LIKE '%"+txt+"%'");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				bem = contagem.getString("BEM");

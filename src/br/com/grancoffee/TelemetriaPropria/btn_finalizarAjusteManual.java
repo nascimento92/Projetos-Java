@@ -28,9 +28,9 @@ import br.com.sankhya.ws.ServiceContext;
 
 public class btn_finalizarAjusteManual implements AcaoRotinaJava {
 
-	private int qtd = 0;
-	private int zerados = 0;
-	private int preenchidos = 0;
+	int qtd = 0;
+	int zerados = 0;
+	int preenchidos = 0;
 
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -52,12 +52,14 @@ public class btn_finalizarAjusteManual implements AcaoRotinaJava {
 			arg0.mostraErro("<b>Erro! Teclas já ajustadas</b>");
 		} else {
 			salvarTeclas(id, patrimonio);
-			gravaValor(id);
-			
-			Timer timer = new Timer(10000, new ActionListener() {	
+			verificaCalculos(id);
+			salvaValor(id);
+
+			Timer timer = new Timer(5000, new ActionListener() {
+
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					chamaPentaho();				
+					chamaPentaho();
 				}
 			});
 			timer.setRepeats(false);
@@ -134,31 +136,37 @@ public class btn_finalizarAjusteManual implements AcaoRotinaJava {
 					+ "\n" + e.getCause());
 		}
 	}
-	
-	private void gravaValor(Object id) {
+
+	private void salvaValor(Object id) {
 		try {
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			PersistentLocalEntity PersistentLocalEntity = dwfFacade.findEntityByPrimaryKey("AD_AJUSTESMANUAIS", id);
-			EntityVO NVO = PersistentLocalEntity.getValueObject();
-			DynamicVO appVO = (DynamicVO) NVO;
-			
-			verificaCalculos(id);
-			
-			if(this.zerados==this.qtd) {
-				appVO.setProperty("MAQUINAZERADA","S");
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade
+					.findByDynamicFinder(new FinderWrapper("AD_AJUSTESMANUAIS", "this.ID=?", new Object[] { id }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				if (this.qtd == this.zerados) {
+					VO.setProperty("MAQUINAZERADA", "S");
+				}
+
+				if (this.qtd == this.preenchidos) {
+					VO.setProperty("MAQUINAPREENCHIDA", "S");
+				}
+
+				itemEntity.setValueObject(NVO);
 			}
-			
-			if(this.preenchidos==this.qtd) {
-				appVO.setProperty("MAQUINAPREENCHIDA","S");
-			}
-			
-			PersistentLocalEntity.setValueObject(NVO);
+
 		} catch (Exception e) {
-			salvarException("Não foi possivel salvar os valores na tela Ajuste Manual!" + e.getMessage() + "\n" + e.getCause());
+			salvarException(
+					"Não foi possivel salvar os valores na tela Ajuste Manual!" + e.getMessage() + "\n" + e.getCause());
 		}
+
 	}
-	
-	private void verificaCalculos(Object id) {
+
+	private void verificaCalculos(Object id) throws Exception {
+
 		try {
 
 			JdbcWrapper jdbcWrapper = null;
@@ -168,45 +176,40 @@ public class btn_finalizarAjusteManual implements AcaoRotinaJava {
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
 			nativeSql.appendSql(
-					"select distinct\r\n" + 
-					"t.id,\r\n" + 
-					"(select count(*) from AD_ITENSAJUSTESMANUAIS where id=t.id) as qtd,\r\n" + 
-					"(select count(*) from AD_ITENSAJUSTESMANUAIS where saldoapos=0 and id=t.id) as zerados,\r\n" + 
-					"(select count(*) from AD_ITENSAJUSTESMANUAIS where saldoapos=nivelpar and id=t.id) as preenchidos\r\n" + 
-					"from AD_ITENSAJUSTESMANUAIS t\r\n" + 
-					"where id="+id);
+					"SELECT DISTINCT T.ID,(SELECT COUNT(*) FROM AD_ITENSAJUSTESMANUAIS WHERE ID=T.ID) AS QTD,(SELECT COUNT(*) FROM AD_ITENSAJUSTESMANUAIS WHERE SALDOAPOS=0 AND ID=T.ID) AS ZERADOS,(SELECT COUNT(*) FROM AD_ITENSAJUSTESMANUAIS WHERE SALDOAPOS=NIVELPAR AND ID=T.ID) AS PREENCHIDOS FROM AD_ITENSAJUSTESMANUAIS T WHERE T.ID="
+							+ id);
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
-				this.qtd = contagem.getInt("qtd");
-				this.zerados = contagem.getInt("zerados");
-				this.preenchidos = contagem.getInt("preenchidos");
+				this.qtd = contagem.getInt("QTD");
+				this.zerados = contagem.getInt("ZERADOS");
+				this.preenchidos = contagem.getInt("PREENCHIDOS");
 			}
 
 		} catch (Exception e) {
 			salvarException("Não foi possivel validar os calculos!" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
-	
+
 	private void chamaPentaho() {
-		
+
 		try {
-			
+
 			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
-		    String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
-		    WSPentaho si = new WSPentaho(site, Key);
-		    		    
-		    String path = "home/GC/Projetos/GCW/Transformations/";
-		    String objName = "TF - GSN007 - Verifica Solicitacoes de ajuste";
-		    String objName2 = "TF - GSN002 - Salva Estoque MID-SKW";
-		    
-		    si.runTrans(path, objName);
-		    si.runTrans(path, objName2);
-			
+			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+			WSPentaho si = new WSPentaho(site, Key);
+
+			String path = "home/GC/Projetos/GCW/Transformations/";
+			String objName = "TF - GSN007 - Verifica Solicitacoes de ajuste";
+			String objName2 = "TF - GSN002 - Salva Estoque MID-SKW";
+
+			si.runTrans(path, objName);
+			si.runTrans(path, objName2);
+
 		} catch (Exception e) {
-			salvarException("Não foi possível chamar a Rotina Pentaho!" + e.getMessage()+"\n"+e.getCause());
-		}		
+			salvarException("Não foi possível chamar a Rotina Pentaho!" + e.getMessage() + "\n" + e.getCause());
+		}
 	}
-	
+
 	private BigDecimal getUsuLogado() {
 		BigDecimal codUsuLogado = BigDecimal.ZERO;
 		codUsuLogado = ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID();
