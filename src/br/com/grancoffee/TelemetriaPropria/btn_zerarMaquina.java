@@ -3,6 +3,8 @@ package br.com.grancoffee.TelemetriaPropria;
 import java.util.Collection;
 import java.util.Iterator;
 
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -11,10 +13,16 @@ import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class btn_zerarMaquina implements AcaoRotinaJava {
-
+	
+	/**
+	 * 27/11/20 14:38 vs 1.1 - inserido método para registrar o Throw na tela Exceptions do skw.
+	 */
+	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 
@@ -56,7 +64,30 @@ public class btn_zerarMaquina implements AcaoRotinaJava {
 			}
 
 		} catch (Exception e) {
-			// TODO: handle exception
+			String msg = "Nao foi possivel zerar a máquina! "+e.getMessage()+"\n"+e.getCause();
+			salvarException(msg);
 		}
 	}
+		
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_zerarMaquina");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
+		}
+	}
+
 }
