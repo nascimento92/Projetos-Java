@@ -118,7 +118,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			DynamicVO VO = (DynamicVO) NPVO;
 
 			VO.setProperty("CODBEM", totem);
-			VO.setProperty("DESCBEM", descricao.trim().toUpperCase().replaceAll("\s+", " "));
+			VO.setProperty("DESCBEM", descricao.trim().toUpperCase().replaceAll("\\s+", " "));
 			VO.setProperty("AD_INTENVIA", "S");
 			VO.setProperty("ENVIADO_GCW", "N");
 			VO.setProperty("CODPROD", new BigDecimal(514410));
