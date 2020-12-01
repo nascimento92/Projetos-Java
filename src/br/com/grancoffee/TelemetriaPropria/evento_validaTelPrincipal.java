@@ -1,5 +1,6 @@
 package br.com.grancoffee.TelemetriaPropria;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
@@ -46,17 +47,19 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		start(arg0);
+		insert(arg0);
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		start(arg0);
+		update(arg0);
 	}
 
-	private void start(PersistenceEvent arg0) throws Exception {
+	private void insert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		String patrimonio = VO.asString("CODBEM");
+		
+		validacoes(arg0);
 		
 		if("S".equals(VO.asString("PRINCIPAL"))) {
 
@@ -65,8 +68,40 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 			if(qtd>0) {
 				throw new PersistenceException("<br/><br/><br/><b>Erro - Já existe uma telemetria como principal!</b><br/><br/><br/>");
 			}
+		}	
+	}
+	
+	private void update(PersistenceEvent arg0) throws Exception {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();	
+		String patrimonio = VO.asString("CODBEM");
+		
+		validacoes(arg0);
+		
+		if("S".equals(VO.asString("PRINCIPAL")) && "N".equals(oldVO.asString("PRINCIPAL"))) {
+
+			int qtd = verificaSeJaExisteUmaTelemetriaPrincipal(patrimonio);
+			
+			if(qtd>0) {
+				throw new PersistenceException("<br/><br/><br/><b>Erro - Já existe uma telemetria como principal!</b><br/><br/><br/>");
+			}
+		}
+	}
+	
+	private void validacoes(PersistenceEvent arg0) {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		//String patrimonio = VO.asString("CODBEM");
+		BigDecimal idtel = VO.asBigDecimal("IDTEL");
+		String pinpadDigital = VO.asString("AD_PINPADDIG");
+		BigDecimal boxVerti = VO.asBigDecimal("AD_BOXVERTI");
+		
+		if(idtel.intValue()==1 && pinpadDigital!=null) {
+			throw new Error("<br/><br/><br/><b> Pinpad Digital não pode ser vinculado a Verti! <br/><br/><br/><b>");
 		}
 		
+		if(idtel.intValue()==2 && boxVerti!=null) {
+			throw new Error("<br/><br/><br/><b> Box não pode ser vinculada a Uppay! <br/><br/><br/><b>");
+		}
 	}
 
 	private int verificaSeJaExisteUmaTelemetriaPrincipal(String patrimonio) throws Exception {

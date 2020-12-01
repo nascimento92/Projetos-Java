@@ -42,7 +42,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		cadastrarAdPatrimonio(totem,nome,contrato);
 		cadastrarTelaInstalacoes(totem,contrato,endereco);
 		
-		Timer timer = new Timer(10000, new ActionListener() {	
+		Timer timer = new Timer(5000, new ActionListener() {	
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				chamaPentaho();				
@@ -187,9 +187,12 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		    WSPentaho si = new WSPentaho(site, Key);
 		    		    
 		    String path = "home/GC/Projetos/GCW/Transformations/";
-		    String objName = "TF - GSN009 - Criar Loja Corner";
+		    String objName = "TF - GSN005 - Cadastra patrimonios no MID";
+		    String objName2 = "TF - GSN009 - Criar Loja uppay";
+		    
 		    si.runTrans(path, objName);
-			
+		    si.runTrans(path, objName2);
+		    		
 		} catch (Exception e) {
 			erro = "Não foi possível chamar a Rotina Pentaho!" + e.getMessage()+"\n"+e.getCause();
 			salvarException(erro);
