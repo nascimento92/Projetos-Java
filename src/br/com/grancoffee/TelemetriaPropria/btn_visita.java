@@ -8,6 +8,7 @@ import java.util.Iterator;
 
 import com.sankhya.util.TimeUtils;
 
+import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -61,6 +62,7 @@ public class btn_visita implements AcaoRotinaJava {
 					carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idretorno);
 					agendarVisita(linhas[i].getCampo("CODBEM").toString(), dtVisita, motivo,idretorno);
 					cont++;
+					chamaPentaho();
 				}
 			}
 		}
@@ -111,9 +113,7 @@ public class btn_visita implements AcaoRotinaJava {
 			dwfFacade.createEntity("GCSolicitacoesAbastecimento", (EntityVO) VO);
 
 		} catch (Exception e) {
-			System.out.println("## [btn_visita] ## - Não foi possivel agendar a visita!");
-			e.getMessage();
-			e.getCause();
+			salvarException("[agendarVisita] Não foi possivel agendar a visita! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -141,8 +141,7 @@ public class btn_visita implements AcaoRotinaJava {
 			}
 
 		} catch (Exception e) {
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[getRota] Não foi possivel obter a rota! "+e.getMessage()+"\n"+e.getCause());
 		}
 
 		return count;
@@ -174,9 +173,7 @@ public class btn_visita implements AcaoRotinaJava {
 			idAbastecimento = VO.asBigDecimal("ID");
 
 		} catch (Exception e) {
-			System.out.println("## [btn_visita] ## - Não foi possivel registrar o retorno!");
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[cadastrarNovaVisita] Não foi possivel registrar o retorno! "+e.getMessage()+"\n"+e.getCause());
 		}
 
 		return idAbastecimento;
@@ -208,17 +205,55 @@ public class btn_visita implements AcaoRotinaJava {
 				VO.setProperty("ID", idAbastecimento);
 				VO.setProperty("CODBEM", patrimonio);
 				VO.setProperty("TECLA", tecla);
-				VO.setProperty("CODPROD", produto);		
+				VO.setProperty("CODPROD", produto);
+				//VO.setProperty("CAPACIDADE", capacidade);
+				//VO.setProperty("NIVELPAR", nivelPar);
 
 				dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
 
 			} catch (Exception e) {
-				System.out.println(
-						"## [btn_visita] ## - Nao foi possivel salvar as teclas na tela Retornos!");
-				e.getMessage();
-				e.printStackTrace();
+				salvarException("[carregaTeclasNosItensDeAbast] Nao foi possivel salvar as teclas na tela Retornos! "+e.getMessage()+"\n"+e.getCause());
 			}
 
+		}
+	}
+	
+	private void chamaPentaho() {
+
+		try {
+
+			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+			WSPentaho si = new WSPentaho(site, Key);
+
+			String path = "home/GC/Projetos/GCW/Jobs/";
+			String objName = "JOB - GSN008 - Verificar Visitas";
+
+			si.runJob(path, objName);
+
+		} catch (Exception e) {
+			e.getMessage();
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_visita");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
 		}
 	}
 

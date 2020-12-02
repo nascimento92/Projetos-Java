@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.Iterator;
+
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.flow.ContextoTarefa;
 import br.com.sankhya.extensions.flow.TarefaJava;
 import br.com.sankhya.jape.EntityFacade;
@@ -15,10 +18,12 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.comercial.ComercialUtils;
 import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 	
@@ -52,11 +57,8 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 				}
 			}
 
-		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel determinar as plantas!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+		} catch (Exception e) {			
+			salvarException("[verificaPlantas] Não foio possivel determinar as plantas! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -130,10 +132,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			return nunota;
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Nao foi possivel gerar cabecalho!");
-			e.getMessage();
-			e.getCause();
-			e.printStackTrace();
+			salvarException("[criaCabecalho] Nao foi possivel gerar cabecalho! "+e.getMessage()+"\n"+e.getCause());
 		}
 		return nunota;
 	}
@@ -179,10 +178,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			}
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Nao foi possivel obter a nota modelo!");
-			e.getMessage();
-			e.getCause();
-			e.printStackTrace();
+			salvarException("[getNotaModelo] Nao foi possivel obter a nota modelo! "+e.getMessage()+"\n"+e.getCause());
 		}
 
 		return nunota;
@@ -210,10 +206,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			dwfFacade.createEntity("AD_NFCANCELAMENTO", (EntityVO) VO);
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Nao foi possivel salvar as NF de retorno!");
-			e.getMessage();
-			e.getCause();
-			e.printStackTrace();
+			salvarException("[insereNotaRetorno] Nao foi possivel salvar as NF de retorno! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -235,10 +228,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			}
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel obter os patrimonios!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[getPatrimonios] Não foi possivel obter os patrimonios! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -272,11 +262,8 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			
 			atualizaNotaRetornoNaTciBem(DynamicVO.asString("CODBEM"),nunota);
 
-		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel salvar os patrimonios na nota!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+		} catch (Exception e) {			
+			salvarException("[inserePatrimonioNaNota] Não foi possivel salvar os patrimonios na nota! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -308,10 +295,8 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			}
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel obter o preco da maquina!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[getPrecoMaquina] Não foi possivel obter o preco da maquina! "+e.getMessage()+"\n"+e.getCause());
+			
 		}
 
 		return preco;
@@ -334,10 +319,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			}
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel salvar a nota de retorno na tcibem!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[atualizaNotaRetornoNaTciBem] Não foi possivel salvar a nota de retorno na tcibem! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -367,10 +349,25 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			}
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarNF] ## - Não foi possivel obter a descrição dos patrimonios!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[geraDescricaoDosPatrimonios] Nao foi possivel obter a descricao dos patrimonios! "+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "flow_cc_tarefaJava_GerarNF");
+			VO.setProperty("PACOTE", "br.com.flow.grancoffee.CancelamentoContrato");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+		} catch (Exception e) {
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
 }

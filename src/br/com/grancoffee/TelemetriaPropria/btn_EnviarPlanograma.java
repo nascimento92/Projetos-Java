@@ -2,9 +2,9 @@ package br.com.grancoffee.TelemetriaPropria;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
-
 import com.sankhya.util.TimeUtils;
 
+import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -49,7 +49,12 @@ public class btn_EnviarPlanograma implements AcaoRotinaJava {
 			totem="N";
 		}
 		
-
+		if(this.planogramaAtual.intValue()==0) { //enviar planograma
+			marcarEnviarPlanogramaNaTelaInstalacao(patrimonio,"S");
+			chamaPentaho();
+			marcarEnviarPlanogramaNaTelaInstalacao(patrimonio,"N");
+		}
+		
 		if (this.novos.intValue() > 0 && this.planogramaAtual.intValue() > 0) {
 			throw new Error("<br/><br/><b>Existem produtos novos neste planograma, gerar um reabastecimento!</b><br/><br/>");
 		}
@@ -127,7 +132,42 @@ public class btn_EnviarPlanograma implements AcaoRotinaJava {
 		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
 		return VO;
 	}
+	
+	private void marcarEnviarPlanogramaNaTelaInstalacao(String patrimonio, String tipo) {
+		try {
+			JapeWrapper parceiroDAO = JapeFactory.dao("GCInstalacao");
+			parceiroDAO.prepareToUpdateByPK(patrimonio)
+				.set("AD_ENVIARPLANOGRAMA",tipo)
+				.update();
 
+		} catch (Exception e) {
+			String erro = "[marcarEnviarPlanogramaNaTelaInstalacao] Nao foi possivel gravar o campo enviar planograma! \n" + e.getMessage() + "\n"+ e.getCause();
+			salvarException(erro);
+		}
+	}
+	
+	private void chamaPentaho() {
+
+		try {
+
+			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+			WSPentaho si = new WSPentaho(site, Key);
+
+			String path = "home/GC/Projetos/GCW/Transformations/";
+			String objName = "TF - GSN009 - Enviar Planograma";
+			String objName2 = "TF - GSN009 - Enviar Planograma Loja Uppay";
+
+			si.runTrans(path, objName);
+			si.runTrans(path, objName2);
+
+		} catch (Exception e) {
+			erro = "Não foi possível chamar a Rotina Pentaho!" + e.getMessage() + "\n" + e.getCause();
+			salvarException(erro);
+		}
+	}
+
+	
 	private void salvarException(String mensagem) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -145,4 +185,5 @@ public class btn_EnviarPlanograma implements AcaoRotinaJava {
 			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
+
 }

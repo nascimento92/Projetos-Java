@@ -9,6 +9,7 @@ import java.util.Iterator;
 
 import com.sankhya.util.TimeUtils;
 
+import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -59,6 +60,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 					//gerarCabecalhoPedidoAbastecimento(linhas[i].getCampo("CODBEM").toString(), idAbastecimento,idPedidoAgendado);
 				}
 				cont++;
+				chamaPentaho();
 			}else {
 				arg0.setMensagemRetorno(retornoNegativo);
 			}
@@ -131,8 +133,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			
 		} catch (Exception e) {
 			retornoNegativo = retornoNegativo+e.getMessage();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[cadastrarNovoAbastecimento] Nao foi possivel cadastrar um novo abastecimento! " + e.getMessage() + "\n" + e.getCause());
 		}
 		
 		return idAbastecimento;
@@ -160,8 +161,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			}
 			
 		} catch (Exception e) {
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[validaPedido] Nao foi possivel validar o pedido! " + e.getMessage() + "\n" + e.getCause());
 		}
 		
 		return valida;
@@ -190,9 +190,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			idSolicitAbast = VO.asBigDecimal("ID");
 			
 		} catch (Exception e) {
-			e.getMessage();
-			e.getCause();
-			e.printStackTrace();
+			salvarException("[agendarAbastecimento] Nao foi possivel agendar o Abastecimento! " + e.getMessage() + "\n" + e.getCause());
 		}
 		
 		return idSolicitAbast;
@@ -206,46 +204,41 @@ public class btn_abastecimento implements AcaoRotinaJava{
 	}
 	
 	private void carregaTeclasNosItensDeAbast(String patrimonio, BigDecimal idAbastecimento) throws Exception {
-		
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
-			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("GCPlanograma", "this.CODBEM = ? ", new Object[] { patrimonio }));
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+		Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
+				new FinderWrapper("GCPlanograma", "this.CODBEM = ? ", new Object[] { patrimonio }));
 
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
-						.wrapInterface(DynamicVO.class);
+		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
-				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				//BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				//BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
-				
-				try {
-					
-					EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-					EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_ITENSRETABAST");
-					DynamicVO VO = (DynamicVO) NPVO;
-					
-					VO.setProperty("ID", idAbastecimento);
-					VO.setProperty("CODBEM", patrimonio);
-					VO.setProperty("TECLA", tecla);
-					VO.setProperty("CODPROD", produto);
-					//VO.setProperty("CAPACIDADE", capacidade);
-					//VO.setProperty("NIVELPAR", nivelPar);
-					
-					dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
-					
-				} catch (Exception e) {
-					System.out.println("## [btn_abastecimento] ## - Nao foi possivel salvar as teclas na tela Retornos Abastecimento!");
-					e.getMessage();
-					e.printStackTrace();
-				}
-				
-			
+			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+
+			String tecla = DynamicVO.asString("TECLA");
+			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+			// BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+			// BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
+
+			try {
+
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_ITENSRETABAST");
+				DynamicVO VO = (DynamicVO) NPVO;
+
+				VO.setProperty("ID", idAbastecimento);
+				VO.setProperty("CODBEM", patrimonio);
+				VO.setProperty("TECLA", tecla);
+				VO.setProperty("CODPROD", produto);
+				// VO.setProperty("CAPACIDADE", capacidade);
+				// VO.setProperty("NIVELPAR", nivelPar);
+
+				dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
+
+			} catch (Exception e) {
+				salvarException("[carregaTeclasNosItensDeAbast] Nao foi possivel salvar as teclas na tela Retornos Abastecimento! " + e.getMessage() + "\n" + e.getCause());
 			}
+		}
 	}
 			
 	private BigDecimal getUsuLogado() {
@@ -271,10 +264,48 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			}
 
 		} catch (Exception e) {
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[getRota] Nao foi possibel obter a Rota! "+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		return count;
+	}
+	
+	private void chamaPentaho() {
+
+		try {
+
+			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+			WSPentaho si = new WSPentaho(site, Key);
+
+			String path = "home/GC/Projetos/GCW/Jobs/";
+			String objName = "JOB - GSN003 - Gerar Pedido-OS abastecimento";
+
+			si.runJob(path, objName);
+
+		} catch (Exception e) {
+			e.getMessage();
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_visita");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
+		}
 	}
 }
