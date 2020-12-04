@@ -1,8 +1,13 @@
 package br.com.grancoffee.TelemetriaPropria;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 
+import javax.swing.Timer;
+
+import Helpers.WSPentaho;
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.PersistenceException;
@@ -67,6 +72,15 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 			
 			if(qtd>0) {
 				throw new PersistenceException("<br/><br/><br/><b>Erro - Já existe uma telemetria como principal!</b><br/><br/><br/>");
+			}else {
+				Timer timer = new Timer(10000, new ActionListener() {	
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						chamaPentaho();				
+					}
+				});
+				timer.setRepeats(false);
+				timer.start();
 			}
 		}	
 	}
@@ -120,5 +134,23 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 		}
 		
 		return qtd;
+	}
+	
+	private void chamaPentaho() {
+
+		try {
+
+			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+			WSPentaho si = new WSPentaho(site, Key);
+
+			String path = "home/GC/Projetos/GCW/Jobs/";
+			String objName = "JOB - GSN005 - Cadastra patrimonio no MID";
+
+			si.runJob(path, objName);
+
+		} catch (Exception e) {
+			e.getMessage();
+		}
 	}
 }
