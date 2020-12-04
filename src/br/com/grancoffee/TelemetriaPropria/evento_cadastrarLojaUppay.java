@@ -1,7 +1,11 @@
 package br.com.grancoffee.TelemetriaPropria;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+
+import javax.swing.Timer;
 
 import com.sankhya.util.TimeUtils;
 
@@ -30,14 +34,12 @@ public class evento_cadastrarLojaUppay implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		insert(arg0);		
 	}
 
 	@Override
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		insert(arg0);	
 	}
 
 	@Override
@@ -54,33 +56,100 @@ public class evento_cadastrarLojaUppay implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		insert(arg0);		
+				
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		update(arg0);		
+				
 	}
 	
 	private void insert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal idTel = VO.asBigDecimal("IDTEL");
 		String principal = VO.asString("PRINCIPAL");
+		
 		String patrimonio = VO.asString("CODBEM");
 		DynamicVO gcInstalacao = getGcInstalacao(patrimonio);
 		String micromarketing = gcInstalacao.asString("TOTEM");
 		
-		if(validacoes(patrimonio) && "S".equals(principal)) {
-			throw new Error("<br/><br/><b>Não é possível cadastrar uma nova telemetria como principal com um pedido de abastecimento pendente!</b><br/><br/>");
+		if("S".equals(principal)) {
+			Timer timer = new Timer(5000, new ActionListener() {	
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					cadastrarLoja();				
+				}
+			});
+			timer.setRepeats(false);
+			timer.start();
 		}
 		
-		if("S".equals(micromarketing) && idTel.intValue()==2 && "S".equals(principal)) {
-			chamaPentahoCadastro();
-			marcarEnviarPlanogramaNaTelaInstalacao(patrimonio,"S");
-			chamaPentahoPlanograma();
-			marcarEnviarPlanogramaNaTelaInstalacao(patrimonio,"N");
+		if(idTel.intValue()==2 && "S".equals(principal) && "S".equals(micromarketing)) {
+			Timer timer = new Timer(5000, new ActionListener() {	
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					cadastrarLojaUppay();				
+				}
+			});
+			timer.setRepeats(false);
+			timer.start();
 		}
 	}
+	
+	private void cadastrarLoja() {
+		
+		try {
+			
+			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+		    String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+		    WSPentaho si = new WSPentaho(site, Key);
+		    		    
+		    String path = "home/GC/Projetos/GCW/Transformations/";
+		    String objName = "TF - GSN005 - Cadastra patrimonios no MID";
+		  
+		    si.runTrans(path, objName);
+		    		
+		} catch (Exception e) {
+			salvarException("[cadastrarLoja] Não foi possível chamar a Rotina Pentaho de Cadastro!" + e.getMessage()+"\n"+e.getCause());
+		}		
+	}
+	
+	private void cadastrarLojaUppay() {
+		
+		try {
+			
+			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+		    String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+		    WSPentaho si = new WSPentaho(site, Key);
+		    		    
+		    String path = "home/GC/Projetos/GCW/Transformations/";
+		    String objName = "TF - GSN009 - Criar Loja uppay";
+		    
+		    si.runTrans(path, objName);
+		    		
+		} catch (Exception e) {
+			salvarException("[cadastrarLojaUppay] Não foi possível chamar a Rotina Pentaho de Cadastro!" + e.getMessage()+"\n"+e.getCause());
+		}		
+	}
+	
+	private DynamicVO getGcInstalacao(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("GCInstalacao");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		return VO;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	private void update(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
@@ -140,11 +209,6 @@ public class evento_cadastrarLojaUppay implements EventoProgramavelJava {
 		return valida;
 	}
 	
-	private DynamicVO getGcInstalacao(String patrimonio) throws Exception {
-		JapeWrapper DAO = JapeFactory.dao("GCInstalacao");
-		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
-		return VO;
-	}
 	
 	private void chamaPentahoCadastro() {
 		
