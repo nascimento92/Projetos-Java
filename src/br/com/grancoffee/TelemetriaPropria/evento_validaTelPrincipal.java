@@ -7,6 +7,8 @@ import java.sql.ResultSet;
 
 import javax.swing.Timer;
 
+import com.sankhya.util.TimeUtils;
+
 import Helpers.WSPentaho;
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
@@ -16,7 +18,10 @@ import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
+import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class evento_validaTelPrincipal implements EventoProgramavelJava {
 
@@ -28,14 +33,12 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		afterInsertUpdate(arg0);
 	}
 
 	@Override
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		afterInsertUpdate(arg0);
 	}
 
 	@Override
@@ -85,6 +88,39 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 		}	
 	}
 	
+	private void afterInsertUpdate(PersistenceEvent arg0) {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		String principal = VO.asString("PRINCIPAL");
+		if("S".equals(principal)) {
+			Timer timer = new Timer(5000, new ActionListener() {	
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					cadastrarLoja();				
+				}
+			});
+			timer.setRepeats(false);
+			timer.start();
+		}
+	}
+	
+	private void cadastrarLoja() {
+		
+		try {
+			
+			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+		    String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+		    WSPentaho si = new WSPentaho(site, Key);
+		    		    
+		    String path = "home/GC/Projetos/GCW/Transformations/";
+		    String objName = "TF - GSN005 - Cadastra patrimonios no MID";
+		  
+		    si.runTrans(path, objName);
+		    		
+		} catch (Exception e) {
+			salvarException("[cadastrarLoja] Não foi possível chamar a Rotina Pentaho de Cadastro!" + e.getMessage()+"\n"+e.getCause());
+		}		
+	}
+	
 	private void update(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();	
@@ -92,14 +128,16 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 		
 		validacoes(arg0);
 		
-		if("S".equals(VO.asString("PRINCIPAL")) && "N".equals(oldVO.asString("PRINCIPAL"))) {
+		if("N".equals(oldVO.asString("PRINCIPAL")) || oldVO.asString("PRINCIPAL")==null) {
+			if("S".equals(VO.asString("PRINCIPAL"))) {
 
-			int qtd = verificaSeJaExisteUmaTelemetriaPrincipal(patrimonio);
-			
-			if(qtd>0) {
-				throw new PersistenceException("<br/><br/><br/><b>Erro - Já existe uma telemetria como principal!</b><br/><br/><br/>");
+				int qtd = verificaSeJaExisteUmaTelemetriaPrincipal(patrimonio);
+				
+				if(qtd>0) {
+					throw new PersistenceException("<br/><br/><br/><b>Erro - Já existe uma telemetria como principal!</b><br/><br/><br/>");
+				}
 			}
-		}
+		}	
 	}
 	
 	private void validacoes(PersistenceEvent arg0) {
@@ -150,7 +188,28 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 			si.runJob(path, objName);
 
 		} catch (Exception e) {
-			e.getMessage();
+			salvarException("[chamaPentaho] Nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "evento_validaTelPrincipal");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
 		}
 	}
 }

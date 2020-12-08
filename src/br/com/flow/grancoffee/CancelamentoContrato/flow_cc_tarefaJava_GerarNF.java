@@ -255,7 +255,7 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 			}
 
 			VO.setProperty("ATUALESTOQUE", new BigDecimal(1));
-			VO.setProperty("CODVOL", "UN");
+			VO.setProperty("CODVOL", getTgfPro(DynamicVO.asBigDecimal("CODPROD")).asString("CODVOL"));
 			VO.setProperty("CODLOCALORIG", new BigDecimal(1500));
 
 			dwfFacade.createEntity("ItemNota", (EntityVO) VO);
@@ -265,6 +265,12 @@ public class flow_cc_tarefaJava_GerarNF implements TarefaJava {
 		} catch (Exception e) {			
 			salvarException("[inserePatrimonioNaNota] Não foi possivel salvar os patrimonios na nota! "+e.getMessage()+"\n"+e.getCause());
 		}
+	}
+	
+	private DynamicVO getTgfPro(BigDecimal codprod) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("Produto");
+		DynamicVO VO = DAO.findOne("CODPROD=?", new Object[] { codprod });
+		return VO;
 	}
 
 	private DynamicVO getTgfCab(BigDecimal nunota) throws Exception {
