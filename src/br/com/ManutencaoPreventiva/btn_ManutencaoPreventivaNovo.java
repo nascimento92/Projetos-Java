@@ -27,12 +27,13 @@ import br.com.sankhya.ws.ServiceContext;
 public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 	
 	private int servicoDaOs = 100000;
-	private int usuarioDaSubOs = 2195;
+	//private int usuarioDaSubOs = 2195;
 	private int cont=0;
 	
 	/**
 	 * 29/10/20 08:07 inserido a lógica para a data prevista da OS preventiva considerar 7 dias uteis.
 	 * 06/11/20 09:33 implementado a função de direcionar para a operação atrelada a empresa, método getAtendente, utiliza (AD_ATENDENTEPREVENTIVA da TSIEMP).
+	 * 09/12/20 09:23 Inserido método para salvar as Exceptions
 	 */
 	
 	@Override
@@ -77,7 +78,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 		
 		BigDecimal numos = BigDecimal.ZERO;
 		
-		cadastraServicoParaOhExecutante(tciBem.asBigDecimal("CODPROD"));
+		cadastraServicoParaOhExecutante(tciBem.asBigDecimal("CODPROD"),atendente);
 		
 		try { //gera cabeçalho
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -114,9 +115,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 			numos = NotaProdVO.asBigDecimal("NUMOS");
 			
 		} catch (Exception e) {
-			System.out.println("## [btn_ManutencaoPreventivaNovo] ## - Nao foi possivel criar o cabecalho da OS!");
-			e.getCause();
-			e.getMessage();
+			salvarException("[gerarOS] - Nao foi possivel criar o cabecalho da OS!"+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		if (numos.intValue() != 0) { //gera Item
@@ -151,9 +150,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 
 
 			} catch (Exception e) {
-				System.out.println("## [btn_ManutencaoPreventivaNovo] ## - Nao foi possivel criar a sub-os!");
-				e.getCause();
-				e.getMessage();
+				salvarException("[gerarOS - subos] - Nao foi possivel criar a sub-os!"+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 		 
@@ -221,26 +218,24 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 			dwfFacade.createEntity("AD_MANUPREVOS", (EntityVO) prodservicoVO);
 			
 		} catch (Exception e) {
-			System.out.println("## [btn_ManutencaoPreventivaNovo] ## - Nao foi possivel salvar no Historico, patrimonio: "+codbem);
-			e.getCause();
-			e.getMessage();
+			salvarException("[salvaMANPREVOS] - Nao foi possivel salvar no Historico, patrimonio:"+codbem+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 		
 	}
 	
-	private void cadastraServicoParaOhExecutante(BigDecimal produto) {
+	private void cadastraServicoParaOhExecutante(BigDecimal produto, BigDecimal atendente) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ServicoProdutoExecutante");
 			DynamicVO VO = (DynamicVO) NPVO;
 			
 			VO.setProperty("CODSERV", new BigDecimal(this.servicoDaOs));
-			VO.setProperty("CODUSU", new BigDecimal(this.usuarioDaSubOs));
+			VO.setProperty("CODUSU", atendente);
 			VO.setProperty("CODPROD", produto);
 			
 			dwfFacade.createEntity("ServicoProdutoExecutante", (EntityVO) VO);
 		} catch (Exception e) {
-			e.getStackTrace();
+			salvarException("[cadastraServicoParaOhExecutante] - Nao foi possivel cadastrar o serviço para o executante. "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -254,16 +249,14 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT NVL(AD_ATENDENTEPREVENTIVA,2195) AS CODUSU FROM TSIEMP WHERE CODEMP IN (SELECT CODEMP FROM TCSCON WHERE NUMCONTRATO IN (SELECT NUMCONTRATO FROM TCIBEM WHERE CODBEM='"+patrimonio+"'))");
+			nativeSql.appendSql("SELECT CASE WHEN Y.EXEC1=0 THEN (SELECT NVL(AD_ATENDENTEPREVENTIVA,2195) FROM TSIEMP WHERE CODEMP IN (SELECT NVL(CODEMP,(SELECT CODEMP FROM TCSCON C WHERE C.NUMCONTRATO=(SELECT NUMCONTRATO FROM AD_PATRIMONIO WHERE CODBEM=Y.CODBEM))) FROM AD_MANUPREV WHERE CODBEM=Y.CODBEM)) ELSE Y.EXEC1 END AS EXECUTANTE FROM(SELECT NVL(CODUSU,0) AS EXEC1,CODBEM FROM AD_MANUPREV WHERE CODBEM='"+patrimonio+"') Y");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
-				usu = contagem.getBigDecimal("CODUSU");
+				usu = contagem.getBigDecimal("EXECUTANTE");
 			}
 			
 		} catch (Exception e) {
-			System.out.println("## [btn_ManutencaoPreventivaNovo] ## - Nao foi possivel obter o usuário atendente.");
-			e.getCause();
-			e.getMessage();
+			salvarException("[getAtendente] - Nao foi possivel obter o usuário atendente. "+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		return usu;
@@ -291,6 +284,27 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 		BigDecimal codUsuLogado = BigDecimal.ZERO;
 	    codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
 	    return codUsuLogado;    	
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_ManutencaoPreventivaNovo");
+			VO.setProperty("PACOTE", "br.com.ManutencaoPreventiva");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
+		}
 	}
 
 }
