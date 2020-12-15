@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import com.sankhya.util.StringUtils;
+import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
@@ -108,8 +109,7 @@ public class btn_statusOS implements AcaoRotinaJava {
 			}
 			
 		} catch (Exception e) {
-			System.out.println("## [ChamadosTI.btn_statusOS] NAO FOI POSSIVEL ALTERAR O STATUS DA OS!"+e.getMessage());
-			e.printStackTrace();
+			salvarException("[alteraStatusOs] - NAO FOI POSSIVEL ALTERAR O STATUS DA OS! "+e.getMessage()+"\n"+e.getMessage());
 		}
 
 	}
@@ -187,7 +187,7 @@ public class btn_statusOS implements AcaoRotinaJava {
 			}
 			
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[finalizaChamadoNaTcsOse] - NAO FOI POSSIVEL FINALIZAR O CHAMADO! "+e.getMessage()+"\n"+e.getMessage());
 		}
 	}
 	
@@ -236,8 +236,7 @@ public class btn_statusOS implements AcaoRotinaJava {
 			}
 
 		} catch (Exception e) {
-			System.out.println("## [ChamadosTI.btn_statusOS] NAO FOI POSSIVEL ALTERAR A COR DO SLA!"+e.getMessage());
-			e.printStackTrace();
+			salvarException("[alteraCorSubOS] - NAO FOI POSSIVEL ALTERAR A COR DO SLA! "+e.getMessage()+"\n"+e.getMessage());
 		}
 	}
 	
@@ -313,8 +312,7 @@ public class btn_statusOS implements AcaoRotinaJava {
 			
 			dwfFacade.createEntity("MSDFilaMensagem", (EntityVO) VO);
 		} catch (Exception e) {
-			System.out.println("## [ChamadosTI.evento_criaOS] ## - NAO FOI POSSIVEL ENVIAR E-MAIL INFORMANDO O STATUS"+e.getMessage());
-			e.printStackTrace();
+			salvarException("[enviaEmailAvisandoAlteracaoDeStatus] - NAO FOI POSSIVEL ENVIAR E-MAIL INFORMANDO O STATUS! "+e.getMessage()+"\n"+e.getMessage());
 		}	
 	}
 	
@@ -338,5 +336,26 @@ public class btn_statusOS implements AcaoRotinaJava {
 		BigDecimal ultimoCodigo = new BigDecimal(count);
 		
 		return ultimoCodigo;
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_statusOS");
+			VO.setProperty("PACOTE", "br.com.grancoffee.ChamadosTI");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
+		}
 	}
 }

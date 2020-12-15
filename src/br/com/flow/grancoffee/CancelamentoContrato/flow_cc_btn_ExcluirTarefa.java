@@ -32,6 +32,11 @@ public class flow_cc_btn_ExcluirTarefa implements AcaoRotinaJava {
 		excluirAD_DEVNFCANCELAMENTO(idflow);
 		excluirAD_PATCANCELAMENTO(idflow);
 		excluirAD_FORMCANCELAMENTO(idflow);
+		excluirAD_EMAILSFLOW(idflow);
+		excluirAD_GERENCIAINSTPEDIDO(idflow);
+		excluirAD_GERENCIAINSTPAT(idflow);
+		excluirAD_GERENCIAINST(idflow);
+		excluirAD_MAQUINASFLOW(idflow);
 
 		if (this.cont > 3) {
 			arg0.setMensagemRetorno("<br/><b>Flow Excluido!</b><br/>");
@@ -143,6 +148,71 @@ public class flow_cc_btn_ExcluirTarefa implements AcaoRotinaJava {
 					"[excluirAD_FORMCANCELAMENTO] Nao foi possivel excluir os dados do flow! " + e.getMessage() + "\n" + e.getCause());
 		}
 	}
+	
+	private void excluirAD_EMAILSFLOW(Integer idflow) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_EMAILSFLOW", "this.IDINSTPRN=?",new Object[] {idflow}));
+			cont++;
+
+		} catch (Exception e) {
+			salvarException(
+					"[excluirAD_EMAILSFLOW] Nao foi possivel excluir os dados do flow! " + e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void excluirAD_GERENCIAINSTPEDIDO(Integer idflow) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_GERENCIAINSTPEDIDO", "this.IDFLOW=?",new Object[] {idflow}));
+			cont++;
+
+		} catch (Exception e) {
+			salvarException(
+					"[excluirAD_GERENCIAINSTPEDIDO] Nao foi possivel excluir os dados do flow! " + e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void excluirAD_GERENCIAINSTPAT(Integer idflow) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_GERENCIAINSTPAT", "this.IDFLOW=?",new Object[] {idflow}));
+			cont++;
+
+		} catch (Exception e) {
+			salvarException(
+					"[excluirAD_GERENCIAINSTPAT] Nao foi possivel excluir os dados do flow! " + e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void excluirAD_GERENCIAINST(Integer idflow) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_GERENCIAINST", "this.IDFLOW=?",new Object[] {idflow}));
+			cont++;
+
+		} catch (Exception e) {
+			salvarException(
+					"[excluirAD_GERENCIAINST] Nao foi possivel excluir os dados do flow! " + e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void excluirAD_MAQUINASFLOW(Integer idflow) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_MAQUINASFLOW", "this.IDINSTPRN=?",new Object[] {idflow}));
+			cont++;
+
+		} catch (Exception e) {
+			salvarException(
+					"[excluirAD_MAQUINASFLOW] Nao foi possivel excluir os dados do flow! " + e.getMessage() + "\n" + e.getCause());
+		}
+	}
 
 	private void salvarException(String mensagem) {
 		try {
@@ -151,8 +221,8 @@ public class flow_cc_btn_ExcluirTarefa implements AcaoRotinaJava {
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
 			DynamicVO VO = (DynamicVO) NPVO;
 
-			VO.setProperty("OBJETO", "evento_cadastrarLojaUppay");
-			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("OBJETO", "flow_cc_btn_ExcluirTarefa");
+			VO.setProperty("PACOTE", "br.com.flow.grancoffee.CancelamentoContrato");
 			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
 			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
 			VO.setProperty("ERRO", mensagem);
