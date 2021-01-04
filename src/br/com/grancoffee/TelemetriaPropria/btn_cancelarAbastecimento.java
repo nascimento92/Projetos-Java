@@ -30,8 +30,8 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			arg0.mostraErro("<b>Selecione apenas uma linha!</b>");
 		} else {
 			Registro[] linhas = arg0.getLinhas();
-			Object nunota = linhas[0].getCampo("NUNOTA");
-			Object numos = linhas[0].getCampo("NUMOS");
+			BigDecimal nunota = (BigDecimal) linhas[0].getCampo("NUNOTA");
+			BigDecimal numos = (BigDecimal) linhas[0].getCampo("NUMOS");
 			String status = (String) linhas[0].getCampo("STATUS");
 
 			if ("1".equals(status)) {
@@ -43,9 +43,22 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 							1);
 
 					if (confirmarSimNao) {
-						start(linhas[0]);
+						excluirNota(nunota);
+						cancelarOS(numos);
+						excluirRetornoAbastecimento(nunota);
+						linhas[0].setCampo("STATUS", "4");
+						//start(linhas[0]);
 					}
-				} else {
+				}else if (nunota != null && numos==null) {
+					excluirNota(nunota);
+					excluirRetornoAbastecimento(nunota);
+					linhas[0].setCampo("STATUS", "4");
+				}else if (nunota == null && numos!=null) {
+					cancelarOS(numos);
+					excluirRetornoAbastecimento(nunota);
+					linhas[0].setCampo("STATUS", "4");
+				}
+				else {
 					arg0.mostraErro("<b>Pedido de abastecimento ainda não foi gerado!</b>");
 				}
 
@@ -56,17 +69,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			}
 		}
 	}
-
-	private void start(Registro linhas) throws Exception {
-		BigDecimal nunota = (BigDecimal) linhas.getCampo("NUNOTA");
-		BigDecimal numos = (BigDecimal) linhas.getCampo("NUMOS");
-
-		excluirNota(nunota);
-		cancelarOS(numos);
-		excluirRetornoAbastecimento(nunota);
-		linhas.setCampo("STATUS", "4");
-	}
-
+	
 	private void excluirNota(BigDecimal nunota) throws Exception {
 
 		DynamicVO tgfVar = getTgfVar(nunota);
@@ -82,10 +85,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			dwfFacade.removeEntity("CabecalhoNota", new Object[] { nunota });
 
 		} catch (Exception e) {
-			System.out
-					.println("## [btn_cancelarAbastecimento] ## - Não foi possível excluir o pedido de abastecimento!");
-			e.getMessage();
-			e.getCause();
+			salvarException("[excluirNota] Nao foi possivel excluir a nota! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -105,14 +105,13 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 				VO.setProperty("CODUSUFECH", getUsuLogado());
 				VO.setProperty("DHFECHAMENTOSLA", TimeUtils.getNow());
 				VO.setProperty("CODCOS", new BigDecimal(5));
+				VO.setProperty("DESCRICAO", "OS Cancelada através do botão \"Cancelar Abastecimento\" localizado na tela instalações!");
 
 				itemEntity.setValueObject(NVO);
 
 			}
 		} catch (Exception e) {
-			System.out.println("## [btn_cancelarAbastecimento] ## - Não foi possível cancelar a OS!");
-			e.getMessage();
-			e.getCause();
+			salvarException("[cancelarOS] Nao foi possivel cancelar a OS! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -131,9 +130,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			
 			
 		} catch (Exception e) {
-			System.out.println("## [btn_cancelarAbastecimento] ## - Não foi possível excluir o retorno do abastecimento!");
-			e.getMessage();
-			e.getCause();
+			salvarException("[excluirRetornoAbastecimento] Nao foi possivel excluir o retorno de abastecimento! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -147,5 +144,26 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		BigDecimal codUsuLogado = BigDecimal.ZERO;
 		codUsuLogado = ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID();
 		return codUsuLogado;
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_cancelarAbastecimento");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
+		}
 	}
 }

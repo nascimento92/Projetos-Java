@@ -5,6 +5,9 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.jape.EntityFacade;
@@ -14,7 +17,9 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
 	
@@ -104,15 +109,14 @@ public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
 				DynamicVO VO = (DynamicVO) NVO;
 
 				VO.setProperty("CONTROLE", patrimonio);
+				VO.setProperty("CODLOCALORIG", new BigDecimal(1500));
 
 				itemEntity.setValueObject(NVO);
 				
 				cont++;
 			}
 		} catch (Exception e) {
-			System.out.println("** NÃO FOI POSSIVEL SETAR PATRIMONIO NO PRODUTO **"+ e.getMessage());
-			e.printStackTrace();
-			retorno += e.getMessage();
+			salvarException("[setaLoteIgualPatrimonio] nao foi possivel inserir o lote no produto! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -145,10 +149,7 @@ public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
 				dwfFacade.createEntity("Estoque", (EntityVO) VO);
 					
 				} catch (Exception e) {
-					System.out.println("** NÃO FOI POSSIVEL INSERIR NA TGFEST **");
-					e.getCause();
-					e.getMessage();
-					retorno += e.getMessage();
+					salvarException("[insereNaTGFEST] nao foi possivel inserir na TGFEST! "+e.getMessage()+"\n"+e.getCause());
 				}
 		}
 		
@@ -158,6 +159,27 @@ public class btn_ajustaLoteDoBem implements AcaoRotinaJava {
 		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
 		DynamicVO VO = DAO.findOne("NUNOTA=?", new Object[] { nunota });
 		return VO;
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_cadastrarLoja");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
+		}
 	}
 
 }

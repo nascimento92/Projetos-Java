@@ -36,21 +36,26 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		String nome = (String) arg0.getParam("NOME");
 		String endereco = (String) arg0.getParam("ENDERECO");
 		String contrato =  (String) arg0.getParam("CONTRATO");
-		String tipo = (String) arg0.getParam("TIPO");
+		String telemetria = (String) arg0.getParam("TELEMETRIA");
 
-		String totem = totem(tipo);
+		String totem = totem();
+		
+		arg0.setMensagemRetorno(totem);
+		
 		cadastrarAdPatrimonio(totem,nome,contrato);
 		cadastrarTelaInstalacoes(totem,contrato,endereco);
+		cadastrarTelemetria(totem,telemetria);
 		
-		Timer timer = new Timer(5000, new ActionListener() {	
+		Timer timer = new Timer(10000, new ActionListener() {	
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				chamaPentaho();				
+				PentahoGSN005();
+				
 			}
 		});
 		timer.setRepeats(false);
 		timer.start();
-
+				 
 		if (erro != "") {
 			arg0.setMensagemRetorno("Erro \n" + erro);
 		} else {
@@ -58,39 +63,23 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		}
 	}
 
-	private String totem(String tipo) {
+	private String totem() {
 		DecimalFormat df = new DecimalFormat("0000");
 		String ultimoTotem = "";
 		String novoTotem="";
 		
-		if("1".equals(tipo)) { //tipo = Corner
-			ultimoTotem = getUltimo(tipo);
-			novoTotem = "CORNER" + df.format(Integer.decode(StringUtils.substr(ultimoTotem, 7, 4)) + 1);
-		}
-		
-		if("2".equals(tipo)) { //tipo = Corner
-			ultimoTotem = getUltimo(tipo);
-			novoTotem = "LOJA" + df.format(Integer.decode(StringUtils.substr(ultimoTotem, 7, 4)) + 1);
-		}
+		ultimoTotem = getUltimo();
+		novoTotem = "GCE" + df.format(Integer.decode(StringUtils.substr(ultimoTotem, 4, 4)) + 1);
 		
 		return novoTotem;
+		
 	}
 
-	private String getUltimo(String tipo) {
+	private String getUltimo() {
 		
-		String txt = "";
-		String bem = "";
-		
-		if("1".equals(tipo)) { //tipo = Corner
-			bem = "CORNER0001";
-			txt = "CORNER";
-		}
-		
-		if("2".equals(tipo)) { //tipo = Corner
-			bem = "LOJA0001";
-			txt = "LOJA";
-		}
-		
+		String txt = "GCE";
+		String bem = "GCE0000";
+				
 		try {
 			JdbcWrapper jdbcWrapper = null;
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -101,7 +90,12 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			nativeSql.appendSql("SELECT MAX(CODBEM) AS BEM FROM AD_PATRIMONIO WHERE CODBEM LIKE '%"+txt+"%'");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
-				bem = contagem.getString("BEM");
+				String result = contagem.getString("BEM");
+				
+				if(result!=null) {
+					bem = result;
+				}
+				
 			}
 		} catch (Exception e) {
 			erro = "Não foi possível determinar o último Corner!" + e.getMessage()+"\n"+e.getCause();
@@ -160,7 +154,27 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			salvarException(erro);
 		}
 	}
+	
+	private void cadastrarTelemetria(String totem, String telemetria) {
+		try {
 
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCTelemInstalacao");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("ID", new BigDecimal(1));
+			VO.setProperty("IDTEL", new BigDecimal(telemetria));
+			VO.setProperty("CODBEM", totem);
+			VO.setProperty("PRINCIPAL", "S");
+
+			dwfFacade.createEntity("GCTelemInstalacao", (EntityVO) VO);
+
+		} catch (Exception e) {
+			erro = "Não foi possível cadastrar a telemtria!" + e.getMessage() + "\n" + e.getCause();
+			salvarException(erro);
+		}
+	}
+	
 	private BigDecimal getParceiro(BigDecimal contrato) throws Exception {
 		BigDecimal codparc = BigDecimal.ZERO;
 		
@@ -178,7 +192,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		return codparc;
 	}
 	
-	private void chamaPentaho() {
+	private void PentahoGSN005() {
 		
 		try {
 			
@@ -192,13 +206,14 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		    
 		    si.runTrans(path, objName);
 		    si.runTrans(path, objName2);
+		    
 		    		
 		} catch (Exception e) {
 			erro = "Não foi possível chamar a Rotina Pentaho!" + e.getMessage()+"\n"+e.getCause();
 			salvarException(erro);
 		}		
 	}
-	
+		
 	private void salvarException(String mensagem) {
 		try {
 			

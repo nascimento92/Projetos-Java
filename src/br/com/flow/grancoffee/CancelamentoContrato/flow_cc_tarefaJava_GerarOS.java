@@ -16,15 +16,19 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 	
 	/**
 	 * @author Gabriel
 	 * 
-	 * 19/11/2020 11:15 implementado método para cadastrar o serviço/produto para o executante.
+	 * 19/11/2020 11:15 vs1.6 implementado método [cadastraServicoParaOhExecutante] para cadastrar o serviço/produto para o executante.
+	 * 16/12/2020 16:35 vs1.7 implementado método [salvarException] para registrar as Exceptions, criado método [registraOsCriada] para salvar na AD_PATCANCELAMENTO qual o número da OS gerada.
+	 * 
 	 */
 	
 	//int contador = 0;
@@ -60,10 +64,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			}
 			
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel determinar as plantas!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[verificaPlantas] Nao foi possivel verificar as plantas! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -81,6 +82,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			int primeiro = 159;
 			geraItemOS(numos,idflow,primeiro, 1);		
 			salvaOsGerada(idflow,numos);
+			registraOsCriada(idflow,planta,numos);
 		}
 		//arg0.setCampo("SYS_OS", descricao);
 	}
@@ -122,16 +124,11 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			}else {
 				patrimonios+=codbem+" - "+getTgfpro(codprod).asString("DESCRPROD")+" - "+escada+rampa+elevador+"\n";
 			}
-					
-
+				
 			}
-			
-			
+				
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel obter os patrimonios!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[getPatrimonios] Nao foi possivel obter os patrimonios! "+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		return patrimonios;
@@ -202,10 +199,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			}
 			
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel obter as demais descricoes!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[getOutrosCampos] Nao foi possivel obter os campos da descricao da OS! "+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		return descricao;
@@ -228,10 +222,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			}
 			
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel determinar as plantas!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[contagemQuantidadeDeMaquinas] Nao foi possivel contar a qtd de máquinas! "+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		return qtd;
@@ -303,10 +294,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			return numos;
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel gerar o cabeçalho da OS!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[gerarCabecalhoOS] Nao foi possivel gerar a tcsose! "+e.getMessage()+"\n"+e.getCause());
 		}
 		return numos;
 	}
@@ -342,10 +330,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			dwfFacade.createEntity(DynamicEntityNames.ITEM_ORDEM_SERVICO,(EntityVO) NotaProdVO);
 
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel gerar os itens da OS!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[geraItemOS] Nao foi possivel gerar a tcsite! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -368,7 +353,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			JapeWrapper DAO = JapeFactory.dao("Contrato");
 			VO = DAO.findOne("NUMCONTRATO=?", new Object[] { contrato });
 		} catch (Exception e) {
-			e.getMessage();e.printStackTrace();
+			salvarException("[getTCSCON] Nao foi possivel obter o contrato! "+e.getMessage()+"\n"+e.getCause());
 		}
 		return VO;
 	}
@@ -389,10 +374,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			dwfFacade.createEntity("AD_OSCANCELAMENTO", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			System.out.println("## [flow_cc_tarefaJava_GerarOS] ## - Não foio possivel Salvar a OS gerada!");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[salvaOsGerada] Nao foi possivel registrar a OS Gerada! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -408,7 +390,47 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			
 			dwfFacade.createEntity("ServicoProdutoExecutante", (EntityVO) VO);
 		} catch (Exception e) {
-			e.getStackTrace();
+			e.getCause();
+			e.getMessage();
+			e.printStackTrace();
+		}
+	}
+	
+	private void registraOsCriada(Object idflow,BigDecimal planta, BigDecimal numos) {
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_PATCANCELAMENTO","this.IDINSTPRN = ? and this.IDPLANTA=? ", new Object[] { idflow,planta }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+			EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+			DynamicVO VO = (DynamicVO) NVO;
+
+			VO.setProperty("NUMOS", numos);
+
+			itemEntity.setValueObject(NVO);
+			}
+			
+		} catch (Exception e) {
+			salvarException("[registraOsCriada] Nao foi possivel registrar a OS Gerada na tabela dos patrimonios! "+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "flow_cc_tarefaJava_GerarOS");
+			VO.setProperty("PACOTE", "br.com.flow.grancoffee.CancelamentoContrato");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+		} catch (Exception e) {
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
 }
