@@ -37,8 +37,9 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		String endereco = (String) arg0.getParam("ENDERECO");
 		String contrato =  (String) arg0.getParam("CONTRATO");
 		String telemetria = (String) arg0.getParam("TELEMETRIA");
+		String tipo = (String) arg0.getParam("TIPO");
 
-		String totem = totem();
+		String totem = totem(tipo);
 		
 		arg0.setMensagemRetorno(totem);
 		
@@ -49,8 +50,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		Timer timer = new Timer(10000, new ActionListener() {	
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				PentahoGSN005();
-				
+				chamaPentahoCadastrarLoja();		
 			}
 		});
 		timer.setRepeats(false);
@@ -63,22 +63,21 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		}
 	}
 
-	private String totem() {
+	private String totem(String tipo) {
 		DecimalFormat df = new DecimalFormat("0000");
 		String ultimoTotem = "";
 		String novoTotem="";
 		
-		ultimoTotem = getUltimo();
-		novoTotem = "GCE" + df.format(Integer.decode(StringUtils.substr(ultimoTotem, 4, 4)) + 1);
+		ultimoTotem = getUltimo(tipo);
+		novoTotem = tipo + df.format(Integer.parseInt(StringUtils.substr(ultimoTotem, 4, 4)) + 1);
 		
 		return novoTotem;
 		
 	}
 
-	private String getUltimo() {
+	private String getUltimo(String tipo) {
 		
-		String txt = "GCE";
-		String bem = "GCE0000";
+		String bem = tipo+"0000";
 				
 		try {
 			JdbcWrapper jdbcWrapper = null;
@@ -87,7 +86,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT MAX(CODBEM) AS BEM FROM AD_PATRIMONIO WHERE CODBEM LIKE '%"+txt+"%'");
+			nativeSql.appendSql("SELECT MAX(CODBEM) AS BEM FROM AD_PATRIMONIO WHERE CODBEM LIKE '%"+tipo+"%'");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				String result = contagem.getString("BEM");
@@ -141,6 +140,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			VO.setProperty("AD_IDPLANTA", new BigDecimal(endereco));
 			VO.setProperty("CODBEM", totem);
 			VO.setProperty("PLANOGRAMAPENDENTE", "N");
+			VO.setProperty("AD_ENVIARPLANOGRAMA", "S");
 			VO.setProperty("TOTEM", "S");
 			
 			if(contrato!=null) {
@@ -192,26 +192,23 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		return codparc;
 	}
 	
-	private void PentahoGSN005() {
-		
+	private void chamaPentahoCadastrarLoja() {
+
 		try {
-			
+
 			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
-		    String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
-		    WSPentaho si = new WSPentaho(site, Key);
-		    		    
-		    String path = "home/GC/Projetos/GCW/Transformations/";
-		    String objName = "TF - GSN005 - Cadastra patrimonios no MID";
-		    String objName2 = "TF - GSN009 - Criar Loja uppay";
-		    
-		    si.runTrans(path, objName);
-		    si.runTrans(path, objName2);
-		    
-		    		
+			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+			WSPentaho si = new WSPentaho(site, Key);
+
+			String path = "home/GC/Projetos/GCW/Jobs/";
+			String objName = "JOB - GSN009 - CRIAR LOJA";
+
+			si.runJob(path, objName);
+
 		} catch (Exception e) {
-			erro = "Não foi possível chamar a Rotina Pentaho!" + e.getMessage()+"\n"+e.getCause();
+			erro = "Não foi possível chamar a Rotina Pentaho!" + e.getMessage() + "\n" + e.getCause();
 			salvarException(erro);
-		}		
+		}
 	}
 		
 	private void salvarException(String mensagem) {
