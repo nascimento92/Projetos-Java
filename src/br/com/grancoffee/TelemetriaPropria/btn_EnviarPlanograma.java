@@ -61,11 +61,11 @@ public class btn_EnviarPlanograma implements AcaoRotinaJava {
 			chamaPentahoCriarLoja();
 		}
 		
-		if (this.novos.intValue() > 0 && this.planogramaAtual.intValue() > 0) {
+		if ("N".equals(gcInstalacao.asString("TOTEM")) && this.novos.intValue() > 0 && this.planogramaAtual.intValue() > 0) {
 			throw new Error("<br/><br/><b>Existem produtos novos neste planograma, gerar um reabastecimento!</b><br/><br/>");
 		}
 		
-		if (this.aumentopar.intValue() > 0 && this.planogramaAtual.intValue() > 0) {
+		if ("N".equals(gcInstalacao.asString("TOTEM")) && this.aumentopar.intValue() > 0 && this.planogramaAtual.intValue() > 0) {
 			throw new Error("<br/><br/><b>Existem aumentos de nivel par, gerar um reabastecimento!</b><br/><br/>");
 		}
 		

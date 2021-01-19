@@ -52,6 +52,10 @@ public class testeChamadaHTTP implements AcaoRotinaJava {
 					
 					if(sub.getNodeType()==Node.ELEMENT_NODE) {
 						Element name = (Element) sub;
+						
+						if(name.getTagName().contains("NOMEPARC")) {
+							arg0.setMensagemRetorno("Nome parceiro: "+name.getTextContent());
+						}
 						System.out.println("********* Elemento: "+ name.getTagName()+" - Valor: "+name.getTextContent());
 					}
 					
