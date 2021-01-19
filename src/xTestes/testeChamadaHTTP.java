@@ -32,6 +32,8 @@ public class testeChamadaHTTP implements AcaoRotinaJava {
 				+ "<criterio nome='CODPARC' valor='1'/>"
 				+ "<fields>"
 				+ "<field name='NOMEPARC'/>"
+				+ "<field name='ATIVO'/>"
+				+ "<field name='CLIENTE'/>"
 				+ "</fields>"
 				+ "</entity>";
 		
