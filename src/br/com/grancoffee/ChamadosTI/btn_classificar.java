@@ -36,11 +36,12 @@ public class btn_classificar implements AcaoRotinaJava {
 		String classificacao = validaClassificacao((String) arg0.getParam("CLASSIFICACAO"));
 		Timestamp dataFinal = (Timestamp) linhas[0].getCampo("DTFECHAMENTO");
 		String descricaoAbreviada = StringUtils.substr(linhas[0].getCampo("DESCRICAO").toString(), 0, 100);
+		String area = validaArea((String) arg0.getParam("AREA"));
 		
 		if(dataFinal!=null) {
 			arg0.mostraErro("Chamado encerrado, não pode ser classificado!");
 		}else {
-			enviarEmail(numos,email,tipo,classificacao,prioridade,nivel,descricaoAbreviada);
+			enviarEmail(numos,email,tipo,classificacao,prioridade,nivel,descricaoAbreviada,area);
 			setDados(linhas,arg0);
 		}
 	}
@@ -52,9 +53,10 @@ public class btn_classificar implements AcaoRotinaJava {
 		linhas[0].setCampo("NIVEL", arg0.getParam("NIVEL"));
 		linhas[0].setCampo("ATENDENTE", null);
 		linhas[0].setCampo("DTPREVISTA", null);
+		linhas[0].setCampo("AREA", arg0.getParam("AREA"));
 	}
 	
-	private void enviarEmail(BigDecimal numos, String email, String tipo, String classificacao, String prioridade, String nivel, String descricao) throws Exception {
+	private void enviarEmail(BigDecimal numos, String email, String tipo, String classificacao, String prioridade, String nivel, String descricao, String area) throws Exception {
 		
 		try {
 			String mensagem = new String();
@@ -66,6 +68,7 @@ public class btn_classificar implements AcaoRotinaJava {
 					+ "<br/><br/><b>Tipo:</b> "+tipo
 					+ "<br/><br/><b>Prioridade:</b> "+prioridade
 					+ "<br/><br/><b>Nivel Atendimento:</b> "+nivel
+					+ "<br/><br/><b>Área de atuação:</b> "+area
 					+ "<br/><br/><b>Esta é uma mensagem automática, por gentileza não respondê-la</b>"
 					+ "<br/><br/>Atencionamente,"
 					+ "<br/>Departamento TI"
@@ -110,6 +113,24 @@ public class btn_classificar implements AcaoRotinaJava {
 
 		default:
 			tipoClassificado="Analise";
+			break;
+		}
+		
+		return tipoClassificado;
+	}
+	
+	public String validaArea(String area) {
+		String tipoClassificado="";
+		
+		switch (area) {
+		case "1":tipoClassificado="Infraestrutura";
+		break;
+		
+		case "2":tipoClassificado="Sistemas";
+		break;
+
+		default:
+			tipoClassificado="T.I";
 			break;
 		}
 		
