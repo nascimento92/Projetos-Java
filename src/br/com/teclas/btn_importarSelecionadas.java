@@ -14,11 +14,14 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class btn_importarSelecionadas implements AcaoRotinaJava {
 	/**
 	 * 22/10/20 09:10 - Criado para importar apenas as teclas selecionadas, AD_TECLASIMPORTADAS (Teclas Importadas).
+	 * 26/01/21 16:23 - Inserido método para registrar log das Exceptions.
 	 */
 	private EntityFacade dwfEntityFacade = null;
 	int cont=0;
@@ -48,8 +51,9 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 		String patrimonio = (String) linhas.getCampo("CODBEM");
 		BigDecimal contrato = (BigDecimal) linhas.getCampo("NUMCONTRATO");
 		BigDecimal tecla = (BigDecimal) linhas.getCampo("TECLA");
+		BigDecimal codprod = (BigDecimal) linhas.getCampo("CODPROD");
 		
-		if(verificaSeExisteAhTecla(contrato,patrimonio,tecla)) { //alterar
+		if(verificaSeExisteAhTecla(contrato,patrimonio,tecla,codprod)) { //alterar
 			
 			alterarTecla(linhas, contrato,tecla,patrimonio);
 			
@@ -65,10 +69,10 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 		}
 	}
 	
-	private boolean verificaSeExisteAhTecla(BigDecimal contrato, String codbem, BigDecimal tecla) throws Exception{
+	private boolean verificaSeExisteAhTecla(BigDecimal contrato, String codbem, BigDecimal tecla, BigDecimal codprod) throws Exception{
 		boolean existe = false;
 		JapeWrapper DAO = JapeFactory.dao("teclas");
-		DynamicVO VO = DAO.findOne("NUMCONTRATO=? AND CODBEM=? AND TECLA=?", new Object[] { contrato, codbem, tecla });
+		DynamicVO VO = DAO.findOne("NUMCONTRATO=? AND CODBEM=? AND TECLA=? AND CODPROD=?", new Object[] { contrato, codbem, tecla, codprod });
 		if (VO != null) {
 			return existe = true;
 		}
@@ -119,9 +123,7 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 			}
 			
 		} catch (Exception e) {
-			System.out.println("## [btn_importarSelecionadas] ## - Nao foi possivel alterar a tecla!");
-			e.getMessage();
-			e.getCause();
+			salvarException("[alterarTecla] Nao foi possivel alterar a tecla!"+ e.getMessage()+"\n"+e.getCause());
 			this.causa = e.getMessage();
 		}
 	}
@@ -168,10 +170,26 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 			cont ++;
 			
 		} catch (Exception e) {
-			System.out.println("## [btn_importarSelecionadas] ## - Nao foi possivel cadastrar a tecla!");
-			e.getMessage();
-			e.getCause();
+			salvarException("[cadastrarTecla] Nao foi possivel cadastrar a tecla! "+ e.getMessage()+"\n"+e.getCause());
 			this.causa = e.getMessage();
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "btn_importarSelecionadas");
+			VO.setProperty("PACOTE", "br.com.teclas");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+		} catch (Exception e) {
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
 }
