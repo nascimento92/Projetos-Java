@@ -42,7 +42,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 	
 	private void start(Registro[] linhas,ContextoAcao arg0) throws Exception {
 		
-		String tipoAbastecimento = (String) arg0.getParam("TIPABAST");
+		String tipoAbastecimento = (String) arg0.getParam("TIPABAST");//1=Agora	2=Agendado
 	
 		for(int i=0; i<linhas.length; i++) {
 			
