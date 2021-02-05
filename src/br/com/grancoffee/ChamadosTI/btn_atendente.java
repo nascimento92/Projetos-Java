@@ -46,7 +46,7 @@ public class btn_atendente implements AcaoRotinaJava {
 			if(dataFinal!=null) {
 				arg0.mostraErro("Chamado encerrado, não pode ser alterado o Atendente/Data!");
 			}else {
-				enviarEmail(numos,email,atendente,formatTimestamp,descricaoAbreviada);
+				//enviarEmail(numos,email,atendente,formatTimestamp,descricaoAbreviada);
 				setDados(linhas,arg0);
 			}
 			
