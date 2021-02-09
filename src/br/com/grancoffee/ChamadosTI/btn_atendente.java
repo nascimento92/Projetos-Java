@@ -34,12 +34,13 @@ public class btn_atendente implements AcaoRotinaJava {
 		BigDecimal numos = (BigDecimal) linhas[0].getCampo("NUMOS");
 		String atendente = getTSIUSU(new BigDecimal(usuario)).asString("NOMEUSUCPLT");
 		String email = (String) linhas[0].getCampo("EMAIL");
-		Timestamp data = (Timestamp) arg0.getParam("DTPREVISTA");
-		String formatTimestamp = StringUtils.formatTimestamp(data, "dd/MM/YYYY");
+		//Timestamp data = (Timestamp) arg0.getParam("DTPREVISTA");
+		//String formatTimestamp = StringUtils.formatTimestamp(data, "dd/MM/YYYY");
 		Timestamp dataFinal = (Timestamp) linhas[0].getCampo("DTFECHAMENTO");
 		Timestamp dtAtual = new Timestamp(System.currentTimeMillis());
 		String descricaoAbreviada = StringUtils.substr(linhas[0].getCampo("DESCRICAO").toString(), 0, 100);
 		
+		/* comentário temporário
 		if(data.before(reduzUmDia(dtAtual))) {
 			arg0.mostraErro("Quer atender um chamado no passado rapá? da não!");
 		}else {
@@ -51,7 +52,8 @@ public class btn_atendente implements AcaoRotinaJava {
 			}
 			
 		}
-		
+		*/
+		setDados(linhas,arg0);
 	}
 	
 	private Timestamp reduzUmDia(Timestamp data) {
@@ -63,7 +65,13 @@ public class btn_atendente implements AcaoRotinaJava {
 	
 	private void setDados(Registro[] linhas,ContextoAcao arg0) throws Exception {
 		linhas[0].setCampo("ATENDENTE", arg0.getParam("ATENDENTE"));
-		linhas[0].setCampo("DTPREVISTA", arg0.getParam("DTPREVISTA"));
+		
+		
+		Timestamp data = (Timestamp) arg0.getParam("DTPREVISTA");
+		if(data!=null) {
+			linhas[0].setCampo("DTPREVISTA", arg0.getParam("DTPREVISTA"));
+		}
+		
 	}
 	
 	private DynamicVO getTSIUSU(BigDecimal usuario) throws Exception {
