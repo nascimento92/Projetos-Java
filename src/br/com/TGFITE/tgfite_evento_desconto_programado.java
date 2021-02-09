@@ -91,15 +91,7 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 					
 					if(valorDesconto!=null) {
 						VO.setProperty("VLRDESC", valorDesconto);
-						totalizaImpostos(numeroUnico);
-						System.out.println(" ## DESCONTO PROGRAMADO ## \n NUNOTA: "+numeroUnico+
-								"\nTOP: "+top+
-								"\nTOP DE LOCACAO: "+verificaSeEhUmaTopDeLocacao+
-								"\nCONTRATO: "+contrato+
-								"\nDATA ENTRADA: "+dataEntrada+
-								"\nMES: "+mes+
-								"\nANO: "+ano+
-								"\nVLR DESCONTO: "+valorDesconto);
+						//totalizaImpostos(numeroUnico);
 				}
 
 			}

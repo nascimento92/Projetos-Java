@@ -22,6 +22,7 @@ import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_EnviarPlanograma implements AcaoRotinaJava {
@@ -183,10 +184,10 @@ public class btn_EnviarPlanograma implements AcaoRotinaJava {
 	}
 	
 	private void chamaPentahoCriarLoja() {
-
+		
 		try {
-
-			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+			final String parameter = (String) MGECoreParameter.getParameter("PENTAHOIP");
+			String site = parameter;
 			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
