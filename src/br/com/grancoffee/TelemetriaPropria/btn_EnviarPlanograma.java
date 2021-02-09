@@ -79,6 +79,12 @@ public class btn_EnviarPlanograma implements AcaoRotinaJava {
 			chamaPentahoEnviarPlanograma();
 			getPrecos(patrimonio);
 		}
+		
+		if("S".equals(gcInstalacao.asString("TOTEM"))) { //temp
+			marcarEnviarPlanogramaNaTelaInstalacao(patrimonio,"S");
+			chamaPentahoEnviarPlanograma();
+			getPrecos(patrimonio);
+		}
 
 		if (this.erro != "") {
 			arg0.setMensagemRetorno(this.erro);
@@ -161,7 +167,7 @@ public class btn_EnviarPlanograma implements AcaoRotinaJava {
 
 		try {
 
-			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+			String site = "http://10.100.41.4:8080/pentaho/kettle/";
 			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 

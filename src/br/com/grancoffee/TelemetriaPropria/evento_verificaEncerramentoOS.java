@@ -4,11 +4,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
-
 import javax.swing.Timer;
-
 import com.sankhya.util.TimeUtils;
-
 import Helpers.WSPentaho;
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
@@ -20,10 +17,11 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
-
+		
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -64,7 +62,9 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		start(arg0);
 	}
 
-	private void start(PersistenceEvent arg0) {
+	private void start(PersistenceEvent arg0) throws Exception {
+		final String parameter = (String) MGECoreParameter.getParameter("PENTAHOIP");
+		
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
 		
@@ -78,7 +78,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 				Timer timer = new Timer(10000, new ActionListener() {	
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						chamaPentaho();				
+						chamaPentaho(parameter);				
 					}
 				});
 				timer.setRepeats(false);
@@ -90,7 +90,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 
 	private boolean validaSeEhDaTelemetriaPropria(BigDecimal numos) {
 		boolean valida = false;
-
+		
 		try {
 
 			JdbcWrapper jdbcWrapper = null;
@@ -117,11 +117,11 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		return valida;
 	}
 	
-	private void chamaPentaho() {
+	private void chamaPentaho(String url) {
 
 		try {
 
-			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+			String site = url;
 			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
