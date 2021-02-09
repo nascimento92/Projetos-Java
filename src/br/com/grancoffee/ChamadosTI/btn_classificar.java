@@ -41,7 +41,7 @@ public class btn_classificar implements AcaoRotinaJava {
 		if(dataFinal!=null) {
 			arg0.mostraErro("Chamado encerrado, não pode ser classificado!");
 		}else {
-			enviarEmail(numos,email,tipo,classificacao,prioridade,nivel,descricaoAbreviada,area);
+			//enviarEmail(numos,email,tipo,classificacao,prioridade,nivel,descricaoAbreviada,area);
 			setDados(linhas,arg0);
 		}
 	}
