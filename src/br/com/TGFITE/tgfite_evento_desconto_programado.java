@@ -19,6 +19,7 @@ import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class tgfite_evento_desconto_programado implements EventoProgramavelJava {
@@ -69,6 +70,7 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal numeroUnico = VO.asBigDecimal("NUNOTA");
 		BigDecimal produto = VO.asBigDecimal("CODPROD");
+		
 		Format formatMes = new SimpleDateFormat("MM");
 		Format formatAno = new SimpleDateFormat("YYYY");
 		
@@ -89,6 +91,7 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 					
 					if(valorDesconto!=null) {
 						VO.setProperty("VLRDESC", valorDesconto);
+						totalizaImpostos(numeroUnico);
 						System.out.println(" ## DESCONTO PROGRAMADO ## \n NUNOTA: "+numeroUnico+
 								"\nTOP: "+top+
 								"\nTOP DE LOCACAO: "+verificaSeEhUmaTopDeLocacao+
@@ -158,5 +161,16 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 		
 		return valorDesconto;
 
+	}
+	
+	public void totalizaImpostos(BigDecimal nunota) throws Exception{
+        ImpostosHelpper impostos = new ImpostosHelpper();
+        impostos.carregarNota(nunota);
+        impostos.setForcarRecalculo(true);
+        impostos.calcularImpostos(nunota);
+        impostos.calcularTotalItens(nunota, true);
+        impostos.calculaICMS(true);
+        impostos.totalizarNota(nunota);
+        impostos.salvarNota();
 	}
 }

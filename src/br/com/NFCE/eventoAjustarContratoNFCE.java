@@ -13,6 +13,8 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 	
 	/**
 	 * Objeto para inserir o contrato na nota NFCE quando o patrimonio está preenchido e o contrato está vazio
+	 * 
+	 * 09/02/2021 13:09 inserir funcionalidade para ajustar o CR do contrato.
 	 */
 	
 	BigDecimal nota;
@@ -68,7 +70,9 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 					
 					if(contrato!=null){
 						VO.setProperty("NUMCONTRATO", contrato);
-						System.out.println("-------->Contrato alterado da nota!");
+						BigDecimal cr = getCR(contrato);
+						VO.setProperty("CODCENCUS", cr);
+						//System.out.println("-------->Contrato alterado da nota!");
 					}
 
 			}
@@ -79,14 +83,22 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 		
 	}
 	
-	private BigDecimal getNumeroDoContrato(String codbem) throws Exception{
-		
+	private BigDecimal getNumeroDoContrato(String codbem) throws Exception{		
 		JapeWrapper DAO = JapeFactory.dao("Imobilizado");
 		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { codbem });
 		
 		BigDecimal numcontrato = VO.asBigDecimal("NUMCONTRATO");
 		
 		return numcontrato;
+	}
+	
+	private BigDecimal getCR(BigDecimal contrato) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("Contrato");
+		DynamicVO VO = DAO.findOne("NUMCONTRATO=?",new Object[] { contrato });
+		
+		BigDecimal cr = VO.asBigDecimal("CODCENCUS");
+		
+		return cr;
 	}
 
 }
