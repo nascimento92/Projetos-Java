@@ -7,7 +7,6 @@ import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Iterator;
-
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
@@ -23,7 +22,10 @@ import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class tgfite_evento_desconto_programado implements EventoProgramavelJava {
-
+	
+	BigDecimal nunota = null;
+	int cont = 0;
+	
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -38,8 +40,9 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 
 	@Override
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		if(cont==1 && nunota!=null) {
+			totalizaImpostos(nunota);
+		}
 	}
 
 	@Override
@@ -91,7 +94,8 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 					
 					if(valorDesconto!=null) {
 						VO.setProperty("VLRDESC", valorDesconto);
-						//totalizaImpostos(numeroUnico);
+						nunota = numeroUnico;
+						cont++;
 				}
 
 			}
