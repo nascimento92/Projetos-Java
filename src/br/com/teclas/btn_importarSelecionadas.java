@@ -22,6 +22,7 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 	/**
 	 * 22/10/20 09:10 - Criado para importar apenas as teclas selecionadas, AD_TECLASIMPORTADAS (Teclas Importadas).
 	 * 26/01/21 16:23 - Inserido método para registrar log das Exceptions.
+	 * 15/02/21 09:06 - Inserido método para excluir teclas, resolvendo o problema de duplicidade.
 	 */
 	private EntityFacade dwfEntityFacade = null;
 	int cont=0;
@@ -53,14 +54,17 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 		BigDecimal tecla = (BigDecimal) linhas.getCampo("TECLA");
 		BigDecimal codprod = (BigDecimal) linhas.getCampo("CODPROD");
 		
-		if(verificaSeExisteAhTecla(contrato,patrimonio,tecla,codprod)) { //alterar
-			
-			alterarTecla(linhas, contrato,tecla,patrimonio);
-			
-		}else { //cadastrar
-			
+		if(verificaSeExisteAhTecla(contrato,patrimonio,tecla)) {
+			if(verificaSeExisteAhTeclaComOhProduto(contrato,patrimonio,tecla,codprod)) {
+				alterarTecla(linhas, contrato,tecla,patrimonio); //alterar
+			}else {
+				excluirTecla(contrato,patrimonio,tecla);
+				cadastrarTecla(linhas, contrato,tecla,patrimonio);
+			}
+		}else {
 			cadastrarTecla(linhas, contrato,tecla,patrimonio);
 		}
+		
 		
 		if(cont>0) {
 			linhas.setCampo("INSERIDA", "S");
@@ -69,7 +73,17 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 		}
 	}
 	
-	private boolean verificaSeExisteAhTecla(BigDecimal contrato, String codbem, BigDecimal tecla, BigDecimal codprod) throws Exception{
+	private boolean verificaSeExisteAhTecla(BigDecimal contrato, String codbem, BigDecimal tecla) throws Exception{
+		boolean existe = false;
+		JapeWrapper DAO = JapeFactory.dao("teclas");
+		DynamicVO VO = DAO.findOne("NUMCONTRATO=? AND CODBEM=? AND TECLA=?", new Object[] { contrato, codbem, tecla});
+		if (VO != null) {
+			return existe = true;
+		}
+		return existe;
+	}
+	
+	private boolean verificaSeExisteAhTeclaComOhProduto(BigDecimal contrato, String codbem, BigDecimal tecla, BigDecimal codprod) throws Exception{
 		boolean existe = false;
 		JapeWrapper DAO = JapeFactory.dao("teclas");
 		DynamicVO VO = DAO.findOne("NUMCONTRATO=? AND CODBEM=? AND TECLA=? AND CODPROD=?", new Object[] { contrato, codbem, tecla, codprod });
@@ -77,6 +91,16 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 			return existe = true;
 		}
 		return existe;
+	}
+	
+	private void excluirTecla(BigDecimal contrato, String codbem, BigDecimal tecla) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("teclas", "NUMCONTRATO=? AND CODBEM=? AND TECLA=?",new Object[] {contrato, codbem, tecla}));
+		} catch (Exception e) {
+			salvarException("[excluirTecla] Nao foi possivel excluir a tecla!"+ e.getMessage()+"\n"+e.getCause());
+			this.causa = e.getMessage();
+		}
 	}
 	
 	private void alterarTecla(Registro linhas, BigDecimal contrato, BigDecimal tecla, String patrimonio) throws Exception{
