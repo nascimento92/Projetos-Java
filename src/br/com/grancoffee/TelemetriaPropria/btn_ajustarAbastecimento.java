@@ -76,6 +76,10 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 				
 				BigDecimal valor = saldoApos.subtract(saldoEsperado);
 				
+				if(codbem==null) {
+					codbem = getCodbem(idObjeto);
+				}
+				
 				inserirSolicitacaoDeAjuste(codbem, tecla, produto, capacidade, nivelpar, saldoEsperado, valor,
 						idObjeto);
 			
@@ -116,11 +120,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			dwfFacade.createEntity("GCSolicitAjuste", (EntityVO) VO);
 
 		} catch (Exception e) {
-			System.out
-					.println("## [btn_ajustarAbastecimento] ## - Não foi possivel cadastrar a solicitação de ajuste!");
-			e.getMessage();
-			e.getCause();
-			e.printStackTrace();
+			salvarException("[inserirSolicitacaoDeAjuste] Não foi possivel cadastrar a solicitação de ajuste!"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -139,10 +139,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			status = VO.asString("STATUS");
 
 		} catch (Exception e) {
-			System.out.println("## [btn_recusarAbastecimento] ## - Não foi possivel verificar o status");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[verificaStatusAbastecimento] Não foi possivel verificar o status!"+e.getMessage()+"\n"+e.getCause());
 		}
 
 		return status;
@@ -167,10 +164,35 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			}
 
 		} catch (Exception e) {
-			System.out.println("## [btn_aceitarAbastecimento] ## - Não foi possivel salvar o responsavel pelo ajuste.");
-			e.getCause();
-			e.getMessage();
-			e.printStackTrace();
+			salvarException("[salvaResonsavelPeloAjuste] Não foi possivel salvar o responsavel pelo ajuste!"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private String getCodbem(Object idabast) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("AD_RETABAST");
+		DynamicVO VO = DAO.findOne("ID=?", new Object[] { idabast });
+		String codbem = VO.asString("CODBEM");
+		return codbem;
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "btn_ajustarAbastecimento");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
 		}
 	}
 }
