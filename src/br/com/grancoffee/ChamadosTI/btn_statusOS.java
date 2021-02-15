@@ -236,7 +236,7 @@ public class btn_statusOS implements AcaoRotinaJava {
 			}
 
 		} catch (Exception e) {
-			salvarException("[alteraCorSubOS] - NAO FOI POSSIVEL ALTERAR A COR DO SLA! "+e.getMessage()+"\n"+e.getMessage());
+			//salvarException("[alteraCorSubOS] - NAO FOI POSSIVEL ALTERAR A COR DO SLA! "+e.getMessage()+"\n"+e.getMessage());
 		}
 	}
 	

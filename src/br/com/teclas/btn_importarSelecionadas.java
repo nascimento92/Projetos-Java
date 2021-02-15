@@ -61,10 +61,10 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 				excluirTecla(contrato,patrimonio,tecla);
 				cadastrarTecla(linhas, contrato,tecla,patrimonio);
 			}
+			
 		}else {
 			cadastrarTecla(linhas, contrato,tecla,patrimonio);
 		}
-		
 		
 		if(cont>0) {
 			linhas.setCampo("INSERIDA", "S");
@@ -95,8 +95,13 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 	
 	private void excluirTecla(BigDecimal contrato, String codbem, BigDecimal tecla) {
 		try {
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			dwfFacade.removeByCriteria(new FinderWrapper("teclas", "NUMCONTRATO=? AND CODBEM=? AND TECLA=?",new Object[] {contrato, codbem, tecla}));
+			
+			String micromarketing = validaSeEhMicroMarketing(codbem);
+			
+			if("N".equals(micromarketing)) {
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				dwfFacade.removeByCriteria(new FinderWrapper("teclas", "NUMCONTRATO=? AND CODBEM=? AND TECLA=?",new Object[] {contrato, codbem, tecla}));
+			}		
 		} catch (Exception e) {
 			salvarException("[excluirTecla] Nao foi possivel excluir a tecla!"+ e.getMessage()+"\n"+e.getCause());
 			this.causa = e.getMessage();
@@ -117,7 +122,7 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 			
 			dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
-			Collection<?> colecao = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("teclas","this.NUMCONTRATO=? AND this.TECLA=? AND this.CODBEM=? ", new Object[] { contrato,tecla,patrimonio }));
+			Collection<?> colecao = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("teclas","this.NUMCONTRATO=? AND this.CODBEM=? AND this.CODPROD=? ", new Object[] { contrato,patrimonio,produto }));
 
 			for (Iterator<?> Iterator = colecao.iterator(); Iterator.hasNext();) {
 
@@ -197,6 +202,16 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 			salvarException("[cadastrarTecla] Nao foi possivel cadastrar a tecla! "+ e.getMessage()+"\n"+e.getCause());
 			this.causa = e.getMessage();
 		}
+	}
+	
+	private String validaSeEhMicroMarketing(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("GCInstalacao");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		 String micromarketing = VO.asString("TOTEM");
+		 if(micromarketing==null) {
+			 micromarketing="N";
+		 }
+		 return micromarketing;
 	}
 	
 	private void salvarException(String mensagem) {

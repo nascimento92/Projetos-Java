@@ -65,10 +65,20 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 		DynamicVO newVO = (DynamicVO) arg0.getVo();
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
 		
-		salvaDadosNaTelainstalacaoAbaPlanograma(oldVO,newVO);
+		String patrimonio = newVO.asString("CODBEM");
+		BigDecimal tecla = newVO.asBigDecimal("TECLA");
+		BigDecimal produto = newVO.asBigDecimal("CODPROD");
+		
+		if(verificaSeExisteNaAbaInstalacoes(patrimonio,tecla,produto)) {
+			salvaDadosNaTelainstalacaoAbaPlanograma(oldVO,newVO);
+		}else {
+			inserirTecla(arg0);
+		}
+		
 		insereNaTelaLogDasTeclas(oldVO,newVO);
 	}
 	
+	//atualizar
 	private void salvaDadosNaTelainstalacaoAbaPlanograma(DynamicVO oldVO,DynamicVO newVO) throws Exception {
 		String patrimonio = oldVO.asString("CODBEM");
 		String tecla = oldVO.asBigDecimal("TECLA").toString();
@@ -78,8 +88,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 			String microMarketing = validaSeEhMicroMarketing(patrimonio);
 			
 			try {
-		
-		
+
 				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 				Collection<?> query = null;
 				
@@ -117,10 +126,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				}
 
 			} catch (Exception e) {
-				System.out.println("##[evento_registraAlteracaoTecla]## - Nao foi possivel registrar a alteracao na tela planograma!");
-				e.getMessage();
-				e.getCause();
-				e.printStackTrace();
+				salvarException("[deletarTecla] Nao foi possivel alterar a tecla! "+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 	}
@@ -226,9 +232,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				dwfFacade.createEntity("GCPlanograma", (EntityVO) VO);
 				
 			} catch (Exception e) {
-				System.out.println("## [evento_registraAlteracaoTecla] ## - Nao foi possivel cadastrar a tecla!");
-				e.getMessage();
-				e.getCause();
+				salvarException("[inserirTecla] Nao foi possivel cadastrar a tecla! "+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 	}
@@ -252,10 +256,39 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				
 				
 			} catch (Exception e) {
-				System.out.println("## [evento_registraAlteracaoTecla] ## - Nao foi possivel excluir a tecla!");
-				e.getMessage();
-				e.getCause();
+				salvarException("[deletarTecla] Nao foi possivel excluir a tecla! "+e.getMessage()+"\n"+e.getCause());
 			}
+		}
+	}
+	
+	private boolean verificaSeExisteNaAbaInstalacoes(String codbem, BigDecimal tecla, BigDecimal codprod) throws Exception{
+		boolean existe = false;
+		JapeWrapper DAO = JapeFactory.dao("GCPlanograma");
+		DynamicVO VO = DAO.findOne("CODBEM=? AND TECLA=? AND CODPROD=?", new Object[] { codbem, tecla, codprod });
+		if (VO != null) {
+			return existe = true;
+		}
+		return existe;
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "evento_registraAlteracaoTecla");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+
+		} catch (Exception e) {
+			// aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
 }

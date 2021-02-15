@@ -168,7 +168,15 @@ public class eventoGeraLog implements EventoProgramavelJava {
 			
 			String stringPK = pk.toString();
 			String novaPK = stringPK.substring(stringPK.indexOf("[")+1,stringPK.lastIndexOf("]"));
-				
+			
+			if(vlrnew==null) {
+				vlrnew="Vazio";
+			}
+			
+			if(vlrold==null) {
+				vlrold="Vazio";
+			}
+			
 			VO.setProperty("TABELA", tabela);
 			VO.setProperty("CAMPO", campo.toString());
 			VO.setProperty("VLROLD", vlrold.toString());
