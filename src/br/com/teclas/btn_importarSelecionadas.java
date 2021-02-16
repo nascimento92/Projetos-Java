@@ -55,11 +55,24 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 		BigDecimal codprod = (BigDecimal) linhas.getCampo("CODPROD");
 		
 		if(verificaSeExisteAhTecla(contrato,patrimonio,tecla)) {
+			System.out.println("**************************** 1 *************************");
 			if(verificaSeExisteAhTeclaComOhProduto(contrato,patrimonio,tecla,codprod)) {
+				System.out.println("**************************** 2 *************************");
 				alterarTecla(linhas, contrato,tecla,patrimonio); //alterar
 			}else {
-				excluirTecla(contrato,patrimonio,tecla);
-				cadastrarTecla(linhas, contrato,tecla,patrimonio);
+				System.out.println("**************************** 3 *************************");
+				String micromarketing = validaSeEhMicroMarketing(patrimonio);
+				
+				if("N".equals(micromarketing)) {
+					System.out.println("**************************** 4 *************************");
+					alterarTeclaMaquinas(linhas,contrato,tecla,patrimonio);
+				}
+				//excluirTecla(contrato,patrimonio,tecla);
+				
+				if("S".equals(micromarketing)) {
+					System.out.println("**************************** 5 *************************");
+					cadastrarTecla(linhas, contrato,tecla,patrimonio);
+				}		
 			}
 			
 		}else {
@@ -98,6 +111,12 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 			
 			String micromarketing = validaSeEhMicroMarketing(codbem);
 			
+			if(micromarketing==null) {
+				micromarketing="N";
+			}
+			
+			System.out.println("************** CONTRATO: "+contrato+" CODBEM: "+codbem+ "TECLA: "+tecla+" ***************************");
+			
 			if("N".equals(micromarketing)) {
 				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 				dwfFacade.removeByCriteria(new FinderWrapper("teclas", "NUMCONTRATO=? AND CODBEM=? AND TECLA=?",new Object[] {contrato, codbem, tecla}));
@@ -123,6 +142,55 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 			dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
 			Collection<?> colecao = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("teclas","this.NUMCONTRATO=? AND this.CODBEM=? AND this.CODPROD=? ", new Object[] { contrato,patrimonio,produto }));
+
+			for (Iterator<?> Iterator = colecao.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("CODPROD", produto);
+				VO.setProperty("VLRPAR", vlrpar);
+				VO.setProperty("VLRFUN", vlrfun);
+				VO.setProperty("AD_CAPACIDADE", capacidade);
+				
+				if(nivelpar.intValue()>0) {
+					VO.setProperty("AD_NIVELPAR", nivelpar);
+				}
+				
+				if(nivelalerta.intValue()>0) {
+					VO.setProperty("AD_NIVELALERTA",nivelalerta);
+				}
+				
+				if(teclaAlternativa!=null){
+					VO.setProperty("TECLAALT", teclaAlternativa);
+				}
+				
+				itemEntity.setValueObject((EntityVO) VO);
+				cont++;
+			}
+			
+		} catch (Exception e) {
+			salvarException("[alterarTecla] Nao foi possivel alterar a tecla!"+ e.getMessage()+"\n"+e.getCause());
+			this.causa = e.getMessage();
+		}
+	}
+	
+	private void alterarTeclaMaquinas(Registro linhas, BigDecimal contrato, BigDecimal tecla, String patrimonio) throws Exception{
+		
+		BigDecimal produto = (BigDecimal) linhas.getCampo("CODPROD");
+		BigDecimal vlrpar = (BigDecimal) linhas.getCampo("VLRPARC");
+		BigDecimal vlrfun = (BigDecimal) linhas.getCampo("VLRFUNC");
+		BigDecimal capacidade = (BigDecimal) linhas.getCampo("CAPACIDADE");
+		BigDecimal nivelpar = (BigDecimal) linhas.getCampo("NIVELPAR");
+		BigDecimal nivelalerta = (BigDecimal) linhas.getCampo("NIVELALERTA");
+		String teclaAlternativa = (String) linhas.getCampo("TECLAALT");
+		
+		try {
+			
+			dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> colecao = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("teclas","this.NUMCONTRATO=? AND this.CODBEM=? AND this.TECLA=? ", new Object[] { contrato,patrimonio,tecla }));
 
 			for (Iterator<?> Iterator = colecao.iterator(); Iterator.hasNext();) {
 
@@ -205,12 +273,19 @@ public class btn_importarSelecionadas implements AcaoRotinaJava {
 	}
 	
 	private String validaSeEhMicroMarketing(String patrimonio) throws Exception {
+		String micromarketing = "N";
+		
 		JapeWrapper DAO = JapeFactory.dao("GCInstalacao");
 		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
-		 String micromarketing = VO.asString("TOTEM");
+		
+		if(VO!=null) {
+			 micromarketing = VO.asString("TOTEM");
+		}
+		
 		 if(micromarketing==null) {
 			 micromarketing="N";
 		 }
+		 
 		 return micromarketing;
 	}
 	
