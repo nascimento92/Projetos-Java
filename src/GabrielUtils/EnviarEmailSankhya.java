@@ -26,7 +26,7 @@ public class EnviarEmailSankhya {
 			String mensagem = new String();
 			
 			mensagem = "Prezado,<br/><br/> "
-					+ "O seu chamado de número <b>"+numos+"</b>."
+					+ "O seu chamado de número <b>"+numos+"</b>.."
 					+ "<br/><br/><i>\""+descricao+" ...\"</i>"
 					+ "<br/><br/>teve o seu status alterado."
 					+ "<br/><br/><b>Status Atual:</b> "+statusAtual
