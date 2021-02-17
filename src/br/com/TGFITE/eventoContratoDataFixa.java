@@ -21,6 +21,8 @@ import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
@@ -31,6 +33,7 @@ public class eventoContratoDataFixa implements EventoProgramavelJava {
 	
 	public void setDhVenc(Timestamp dh) {
 		this.dhvenc = dh;
+		//gg
 	}
 
 	public Timestamp getDhVenc() {
@@ -71,6 +74,7 @@ public class eventoContratoDataFixa implements EventoProgramavelJava {
 		EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 		DynamicVO financeiroVO = (DynamicVO) arg0.getVo();
 		BigDecimal numContrato =  financeiroVO.asBigDecimalOrZero("NUMCONTRATO");
+		BigDecimal valorBoleto = financeiroVO.asBigDecimal("VLRDESDOB");
 
 		if (validaFinanceiro(financeiroVO)) {
 			Date dataVencimento = financeiroVO.asTimestamp("DTVENC");
@@ -86,69 +90,33 @@ public class eventoContratoDataFixa implements EventoProgramavelJava {
 				financeiroVO.setProperty("DTVENC",dataReferencia );
 			}
 			
-		}
-		
-		//implementação Gabriel.Nascimento 16/02/21 Funcionalidade para alterar o valor do boleto
-		BigDecimal top = financeiroVO.asBigDecimal("CODTIPOPER");
-		if("S".equals(verificaSeEhUmaTopDeLocacao(top))) {
+			//implementação Gabriel.Nascimento 16/02/21 Funcionalidade para alterar o valor do boleto.
 			
-			Timestamp agora = TimeUtils.getNow();
-			Format formatMes = new SimpleDateFormat("MM");
-			Format formatAno = new SimpleDateFormat("YYYY");
-			String mes = formatMes.format(agora);
-			String ano = formatAno.format(agora);
-			
-			BigDecimal valorDesconto = verificaDescontoProgramado(numContrato,mes,ano);
-			BigDecimal valorAtual = financeiroVO.asBigDecimal("VLRDESDOB");
-			
-			if(valorDesconto.intValue()!=0 && valorAtual!=null) {
-				financeiroVO.setProperty("VLRDESDOB", valorAtual.subtract(valorDesconto));
+			BigDecimal top = financeiroVO.asBigDecimal("CODTIPOPER");
+			if("S".equals(verificaSeEhUmaTopDeLocacao(top))) {
+				
+				Timestamp dtAtual = TimeUtils.getNow();
+				Format formatMes = new SimpleDateFormat("MM");
+				Format formatAno = new SimpleDateFormat("YYYY");
+				String mes = formatMes.format(dtAtual);
+				String ano = formatAno.format(dtAtual);
+				BigDecimal valorDesconto = verificaDescontoProgramado(numContrato,mes,ano);
+				
+				if(valorDesconto!=null) {
+					financeiroVO.setProperty("VLRDESC", valorDesconto);
+					if(valorBoleto!=null) {
+						financeiroVO.setProperty("VLRDESDOB", valorBoleto.subtract(valorDesconto));
+					}
+				}
+				
 			}
 			
-			salvarException("MES: "+mes+" ANO: "+ano+" Valor Desconto: "+valorDesconto+" Valor Atual: "+valorAtual);
-		}		
+		}
 		
 	}
 
 	
 	// Metodos privados 
-	
-	private BigDecimal verificaDescontoProgramado(BigDecimal numcontrato, String mes, String ano) throws Exception {
-		
-		BigDecimal valorDesconto = BigDecimal.ZERO;
-		
-		try {
-			String referencia1 = "01/"+mes+ano;	
-			String referencia2 = null;	
-			
-			if("01".equals(mes)||"03".equals(mes)||"05".equals(mes)||"07".equals(mes)||"08".equals(mes)||"10".equals(mes)||"12".equals(mes)) {
-				referencia2 = "31/"+mes+ano;
-			}else if ("04".equals(mes)||"06".equals(mes)||"09".equals(mes)||"11".equals(mes)) {
-				referencia2 = "30/"+mes+ano;
-			}else if ("02".equals(mes)) {
-				referencia2 = "28/"+mes+ano;
-			}
-			
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("AD_DESCONTOFRANQUIA", "this.REFERENCIA >=? AND this.REFERENCIA <=? AND this.NUMCONTRATO=? ", new Object[] { referencia1,referencia2,numcontrato }));
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
-
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-
-				if(DynamicVO!=null) {
-					valorDesconto = DynamicVO.asBigDecimal("VLRDESC");
-				}
-			}
-			
-		} catch (Exception e) {
-			salvarException("[verificaDescontoProgramado] nao foi possivel pegar o desconto! "+e.getMessage()+"\n"+e.getCause());
-		}
-		
-		return valorDesconto;
-
-	}
 	
 	private String verificaSeEhUmaTopDeLocacao(BigDecimal top) throws Exception {
 		String locacao = "N";
@@ -165,6 +133,43 @@ public class eventoContratoDataFixa implements EventoProgramavelJava {
 			locacao = contagem.getString("LOCACAO");
 		}	
 		return locacao;
+	}
+	
+	private DynamicVO item(BigDecimal nunota) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("ItemNota");
+		DynamicVO VO = DAO.findOne("this.NUNOTA=? AND this.CODPROD=?",new Object[] { nunota, new BigDecimal(8) });
+		return VO;
+	}
+	
+	private BigDecimal verificaDescontoProgramado(BigDecimal numcontrato, String mes, String ano) throws Exception {
+		String referencia1 = "01/"+mes+ano;	
+		String referencia2 = null;	
+		
+		if("01".equals(mes)||"03".equals(mes)||"05".equals(mes)||"07".equals(mes)||"08".equals(mes)||"10".equals(mes)||"12".equals(mes)) {
+			referencia2 = "31/"+mes+ano;
+		}else if ("04".equals(mes)||"06".equals(mes)||"09".equals(mes)||"11".equals(mes)) {
+			referencia2 = "30/"+mes+ano;
+		}else if ("02".equals(mes)) {
+			referencia2 = "28/"+mes+ano;
+		}
+		
+		BigDecimal valorDesconto = BigDecimal.ZERO;
+		
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+		Collection<?> parceiro = dwfEntityFacade
+				.findByDynamicFinder(new FinderWrapper("AD_DESCONTOFRANQUIA", "this.REFERENCIA >=? AND this.REFERENCIA <=? AND this.NUMCONTRATO=? ", new Object[] { referencia1,referencia2,numcontrato }));
+		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+
+			if(DynamicVO!=null) {
+				valorDesconto = DynamicVO.asBigDecimal("VLRDESC");
+			}
+		}
+		
+		return valorDesconto;
+
 	}
 	
 	private Long dayToMiliseconds(int days){

@@ -34,15 +34,18 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+
+		if (cont == 1 && nunota != null) {
+			totalizaImpostos(nunota);
+		}
+
 	}
 
 	@Override
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		if(cont==1 && nunota!=null) {
-			totalizaImpostos(nunota);
-		}
+		/*
+		 * if(cont==1 && nunota!=null) { totalizaImpostos(nunota); }
+		 */
 	}
 
 	@Override
@@ -64,7 +67,7 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		start(arg0);
+		//start(arg0);
 		
 	}
 	
@@ -97,9 +100,14 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
 						nunota = numeroUnico;
 						cont++;
 				}
-
 			}
 		}
+		
+		
+		/*
+		 * if (cont == 1 && nunota != null) { totalizaImpostos(nunota); }
+		 */
+		 
 	}
 	
 	//1.1
@@ -163,9 +171,9 @@ public class tgfite_evento_desconto_programado implements EventoProgramavelJava 
         ImpostosHelpper impostos = new ImpostosHelpper();
         impostos.carregarNota(nunota);
         impostos.setForcarRecalculo(true);
-        impostos.calcularImpostos(nunota);
+        //impostos.calcularImpostos(nunota);
         impostos.calcularTotalItens(nunota, true);
-        impostos.calculaICMS(true);
+        //impostos.calculaICMS(true);
         impostos.totalizarNota(nunota);
         impostos.salvarNota();
 	}
