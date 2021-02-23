@@ -8,6 +8,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.PersistenceException;
@@ -21,8 +23,10 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class eventoTeclas implements EventoProgramavelJava {
 
@@ -60,7 +64,7 @@ public class eventoTeclas implements EventoProgramavelJava {
 		try {
 			start(arg0);
 		} catch (Exception e) {
-			System.out.println("Não foi possivel alterar as teclas do contrato ! "+e.getMessage());
+			salvarException("Rotina não funcionou!"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -85,7 +89,7 @@ public class eventoTeclas implements EventoProgramavelJava {
 			String erro = "O Patrimônio: "+codbem+"\n\nNão se encontra no contrato: "+contrato;
 			myException(erro);
 		}
-		
+		//2377
 		//valida se já existe esta tecla para este patrimonio
 		validaSeTeclaJaExiste(contrato,codbem,tecla);
 	
@@ -141,35 +145,41 @@ public class eventoTeclas implements EventoProgramavelJava {
 	
 	public void salvaProduto(BigDecimal numcontrato, BigDecimal codprod, BigDecimal vlrfuncionario, BigDecimal vlrparceiro) throws Exception{
 		
-		//TCSPSC
-		EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-		EntityVO padraoNPVO = dwfFacade.getDefaultValueObjectInstance(DynamicEntityNames.PRODUTO_SERVICO_CONTRATO);
-		DynamicVO prodservicoVO = (DynamicVO) padraoNPVO;
-		
-		prodservicoVO.setProperty("NUMCONTRATO", numcontrato);
-		prodservicoVO.setProperty("CODPROD", codprod);
-		prodservicoVO.setProperty("AD_FRANQUIA", "S");
-		
-		dwfFacade.createEntity(DynamicEntityNames.PRODUTO_SERVICO_CONTRATO, (EntityVO) prodservicoVO);
-		
-		//TCSPRE
-		BigDecimal tot = vlrfuncionario.add(vlrparceiro);
-		Timestamp dataAtual = new Timestamp(System.currentTimeMillis());
-		
-		EntityVO padrao2NPVO = dwfFacade.getDefaultValueObjectInstance(DynamicEntityNames.PRECO_CONTRATO);
-		DynamicVO precoVO = (DynamicVO) padrao2NPVO;
-		
-		precoVO.setProperty("NUMCONTRATO", numcontrato);
-		precoVO.setProperty("CODPROD", codprod);
-		precoVO.setProperty("VALOR", tot);
-		precoVO.setProperty("REFERENCIA", dataAtual);
-		
-		dwfFacade.createEntity(DynamicEntityNames.PRECO_CONTRATO, (EntityVO) precoVO);
+		try {
+			
+			//TCSPSC
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO padraoNPVO = dwfFacade.getDefaultValueObjectInstance(DynamicEntityNames.PRODUTO_SERVICO_CONTRATO);
+			DynamicVO prodservicoVO = (DynamicVO) padraoNPVO;
+			
+			prodservicoVO.setProperty("NUMCONTRATO", numcontrato);
+			prodservicoVO.setProperty("CODPROD", codprod);
+			prodservicoVO.setProperty("AD_FRANQUIA", "S");
+			
+			dwfFacade.createEntity(DynamicEntityNames.PRODUTO_SERVICO_CONTRATO, (EntityVO) prodservicoVO);
+			
+			//TCSPRE
+			BigDecimal tot = vlrfuncionario.add(vlrparceiro);
+			Timestamp dataAtual = new Timestamp(System.currentTimeMillis());
+			
+			EntityVO padrao2NPVO = dwfFacade.getDefaultValueObjectInstance(DynamicEntityNames.PRECO_CONTRATO);
+			DynamicVO precoVO = (DynamicVO) padrao2NPVO;
+			
+			precoVO.setProperty("NUMCONTRATO", numcontrato);
+			precoVO.setProperty("CODPROD", codprod);
+			precoVO.setProperty("VALOR", tot);
+			precoVO.setProperty("REFERENCIA", dataAtual);
+			
+			dwfFacade.createEntity(DynamicEntityNames.PRECO_CONTRATO, (EntityVO) precoVO);
+			
+		} catch (Exception e) {
+			salvarException("[salvaProduto] Nao foi possivel salvar o produto!"+e.getMessage()+"\n"+e.getCause());
+		}	
 		
 	}
 	
 	public void validaSeTeclaJaExiste(BigDecimal numcontrato, String codbem, BigDecimal tecla) throws Exception{
-
+	
 		JdbcWrapper jdbcWrapper = null;
 		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 		jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
@@ -292,6 +302,27 @@ public class eventoTeclas implements EventoProgramavelJava {
 		
 		itemEntity.setValueObject((EntityVO) VO);
 		
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "evento_verificaEncerramentoOS");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+
+		} catch (Exception e) {
+			// aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
 }
