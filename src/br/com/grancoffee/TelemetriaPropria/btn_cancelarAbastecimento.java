@@ -22,7 +22,7 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_cancelarAbastecimento implements AcaoRotinaJava {
-
+	int cont=0;
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 
@@ -45,18 +45,21 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 					if (confirmarSimNao) {
 						excluirNota(nunota);
 						cancelarOS(numos);
-						excluirRetornoAbastecimento(nunota);
+						excluirRetornoAbastecimento(numos, nunota);
 						linhas[0].setCampo("STATUS", "4");
+						cont++;
 						//start(linhas[0]);
 					}
 				}else if (nunota != null && numos==null) {
 					excluirNota(nunota);
-					excluirRetornoAbastecimento(nunota);
+					excluirRetornoAbastecimento(nunota, nunota);
 					linhas[0].setCampo("STATUS", "4");
+					cont++;
 				}else if (nunota == null && numos!=null) {
 					cancelarOS(numos);
-					excluirRetornoAbastecimento(nunota);
+					excluirRetornoAbastecimento(nunota, nunota);
 					linhas[0].setCampo("STATUS", "4");
+					cont++;
 				}
 				else {
 					arg0.mostraErro("<b>Pedido de abastecimento ainda não foi gerado!</b>");
@@ -68,6 +71,13 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 				arg0.mostraErro("<b>Abastecimento já foi realizado não é possível cancela-lo!</b>");
 			}
 		}
+		
+		if(cont>0) {
+			arg0.setMensagemRetorno("Visita Cancelada!");
+		}else {
+			arg0.setMensagemRetorno("Ops, algo deu errado!");
+		}
+		
 	}
 	
 	private void excluirNota(BigDecimal nunota) throws Exception {
@@ -115,11 +125,18 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		}
 	}
 	
-	private void excluirRetornoAbastecimento(BigDecimal nunota) {
+	private void excluirRetornoAbastecimento(BigDecimal numos, BigDecimal nunota) {
 		try {
 			
 			JapeWrapper DAO = JapeFactory.dao("AD_RETABAST");
-			DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
+			DynamicVO VO = null;
+			
+			if(numos!=null) {
+				VO = DAO.findOne("NUMOS=?",new Object[] { numos });
+			}else {
+				VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
+			}
+			
 			BigDecimal id = VO.asBigDecimal("ID");
 			
 			if(id!=null) {

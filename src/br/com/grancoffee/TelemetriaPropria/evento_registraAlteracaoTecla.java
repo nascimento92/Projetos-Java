@@ -53,7 +53,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-			
+		BeforeInsert(arg0);	
 	}
 
 	@Override
@@ -236,6 +236,33 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 			}
 		}
 	}
+	
+	//insert
+	private void BeforeInsert(PersistenceEvent arg0) {
+		DynamicVO teclas = (DynamicVO) arg0.getVo();
+		String patrimonio = teclas.asString("CODBEM");
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_LOGTECLAS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("DTALTER", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("CODBEM", patrimonio);
+			VO.setProperty("TECLA", teclas.asBigDecimal("TECLA").toString());
+			VO.setProperty("CODPROD", teclas.asBigDecimal("CODPROD"));
+			VO.setProperty("CAPACIDADE", teclas.asBigDecimal("AD_CAPACIDADE"));
+			VO.setProperty("NIVELPAR", teclas.asBigDecimal("AD_NIVELPAR"));
+			VO.setProperty("NIVELALERTA", teclas.asBigDecimal("AD_NIVELALERTA"));
+			VO.setProperty("VLRPAR", teclas.asBigDecimal("VLRPAR"));
+			VO.setProperty("VLRFUN", teclas.asBigDecimal("VLRFUN"));
+			VO.setProperty("STATUS", "Novo Cadastro");
+			
+			dwfFacade.createEntity("AD_LOGTECLAS", (EntityVO) VO);
+		} catch (Exception e) {
+			salvarException("[BeforeInsert] nao foi possivel registrar o Insert da tecla no AD_LOGTECLAS, patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
 
 	//delete
 	private void deletarTecla(PersistenceEvent arg0) throws Exception {
@@ -256,8 +283,30 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				
 				
 			} catch (Exception e) {
-				salvarException("[deletarTecla] Nao foi possivel excluir a tecla! "+e.getMessage()+"\n"+e.getCause());
+				salvarException("[deletarTecla] Nao foi possivel excluir a tecla! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 			}
+		}
+		
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_LOGTECLAS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("DTALTER", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("CODBEM", patrimonio);
+			VO.setProperty("TECLA", teclas.asBigDecimal("TECLA").toString());
+			VO.setProperty("CODPROD", teclas.asBigDecimal("CODPROD"));
+			VO.setProperty("CAPACIDADE", teclas.asBigDecimal("AD_CAPACIDADE"));
+			VO.setProperty("NIVELPAR", teclas.asBigDecimal("AD_NIVELPAR"));
+			VO.setProperty("NIVELALERTA", teclas.asBigDecimal("AD_NIVELALERTA"));
+			VO.setProperty("VLRPAR", teclas.asBigDecimal("VLRPAR"));
+			VO.setProperty("VLRFUN", teclas.asBigDecimal("VLRFUN"));
+			VO.setProperty("STATUS", "Excluido");
+			
+			dwfFacade.createEntity("AD_LOGTECLAS", (EntityVO) VO);
+		} catch (Exception e) {
+			salvarException("[deletarTecla] nao foi possivel registrar o delete da tecla no AD_LOGTECLAS, patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	

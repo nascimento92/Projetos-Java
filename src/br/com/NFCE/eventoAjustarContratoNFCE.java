@@ -23,6 +23,7 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 	 * 
 	 * 09/02/2021 13:09 inserir funcionalidade para ajustar o CR do contrato.
 	 * 01/03/2021 09:23 ajustar a rotina de alteração do CR.
+	 * 11/03/2021 14:20 chamado 633321 ajustar o CR de todas as notas.
 	 */
 	BigDecimal nota;
 	
@@ -78,11 +79,14 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 				}
 			}
 			
-			if(top.equals(new BigDecimal(1108))) {
-				if(contrato.intValue()!=0){
-					BigDecimal cr = getCR(contrato);
-					VO.setProperty("CODCENCUS", cr);
-				}
+			if(contratoAtual.intValue()!=0 && contratoAtual!=null) {
+				BigDecimal cr = getCR(contratoAtual);
+				VO.setProperty("CODCENCUS", cr);
+			}
+			
+			if(contrato.intValue()!=0){
+				BigDecimal cr = getCR(contrato);
+				VO.setProperty("CODCENCUS", cr);
 			}
 			
 		} catch (Exception e) {

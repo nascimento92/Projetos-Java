@@ -67,6 +67,8 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 
 	private void insert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
+		validacoes(arg0);
+		/*
 		String patrimonio = VO.asString("CODBEM");
 		
 		validacoes(arg0);
@@ -79,7 +81,7 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 				throw new PersistenceException("<br/><br/><br/><b>Erro - Já existe uma telemetria como principal!</b><br/><br/><br/>");
 			}
 		}	
-		
+		*/
 		VO.setProperty("AD_INTEGRADO", "N");
 		verificaSeEhUmaLojaUppay(VO);
 	}
@@ -90,6 +92,8 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 		
 	private void update(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
+		validacoes(arg0);
+		/*
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();	
 		String patrimonio = VO.asString("CODBEM");
 		
@@ -105,7 +109,7 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 				}
 			}
 		}	
-		
+		*/
 		VO.setProperty("AD_INTEGRADO", "N");
 		verificaSeEhUmaLojaUppay(VO);
 	}
@@ -198,12 +202,12 @@ public class evento_validaTelPrincipal implements EventoProgramavelJava {
 	
 	private void verificaSeEhUmaLojaUppay(DynamicVO VO) throws Exception {
 		BigDecimal idTel = VO.asBigDecimal("IDTEL");
-		String principal = VO.asString("PRINCIPAL");
+		//String principal = VO.asString("PRINCIPAL");
 		String patrimonio = VO.asString("CODBEM");
 		DynamicVO gcInstalacao = getGcInstalacao(patrimonio);
 		String micromarketing = gcInstalacao.asString("TOTEM");
 		
-		if(idTel.intValue()==2 && "S".equals(principal) && "S".equals(micromarketing)) {
+		if(idTel.intValue()==2 && "S".equals(micromarketing)) {
 			
 			Timer timer = new Timer(5000, new ActionListener() {	
 				@Override

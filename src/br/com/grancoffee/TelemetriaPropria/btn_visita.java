@@ -1,13 +1,16 @@
 package br.com.grancoffee.TelemetriaPropria;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Iterator;
 
-import com.sankhya.util.TimeUtils;
+import javax.swing.Timer;
 
+import com.sankhya.util.TimeUtils;
 import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
@@ -19,8 +22,11 @@ import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_visita implements AcaoRotinaJava {
@@ -43,6 +49,7 @@ public class btn_visita implements AcaoRotinaJava {
 			int visitaPendente = validaSeExisteVisitasPendentes(linhas[i].getCampo("CODBEM").toString());
 
 			if (visitaPendente > 0) {
+				/*
 				boolean confirmarSimNao = arg0.confirmarSimNao("Atenção!",
 						"Patrimonio <b>" + linhas[i].getCampo("CODBEM")
 								+ "</b> possui visita pendente, mesmo assim agendar uma nova visita?",
@@ -56,13 +63,24 @@ public class btn_visita implements AcaoRotinaJava {
 					}
 					
 				}
+				*/
+				arg0.mostraErro("O Patrimônio já possui uma visita pendente! não é possível gerar outra!");
 			} else {
 				BigDecimal idretorno = cadastrarNovaVisita(linhas[i].getCampo("CODBEM").toString());
 				if(idretorno!=null) {
 					carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idretorno);
 					agendarVisita(linhas[i].getCampo("CODBEM").toString(), dtVisita, motivo,idretorno);
 					cont++;
-					chamaPentaho();
+					
+					Timer timer = new Timer(5000, new ActionListener() {	
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							chamaPentaho();				
+						}
+					});
+					timer.setRepeats(false);
+					timer.start();
+					
 				}
 			}
 		}
@@ -101,7 +119,8 @@ public class btn_visita implements AcaoRotinaJava {
 			DynamicVO VO = (DynamicVO) NPVO;
 
 			VO.setProperty("CODBEM", patrimonio);
-			VO.setProperty("DTSOLICIT", dtVisita);
+			VO.setProperty("DTSOLICIT", TimeUtils.getNow());
+			VO.setProperty("DTAGENDAMENTO", dtVisita);
 			VO.setProperty("CODUSU", getUsuLogado());
 			VO.setProperty("STATUS", "1");
 			VO.setProperty("ROTA", new BigDecimal(getRota(patrimonio)));
@@ -134,7 +153,7 @@ public class btn_visita implements AcaoRotinaJava {
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
 			nativeSql.appendSql("SELECT ID FROM AD_ROTATEL WHERE ID IN (SELECT ID FROM AD_ROTATELINS WHERE codbem='"
-					+ patrimonio + "') AND auditoria='S'");
+					+ patrimonio + "') AND ROWNUM=1");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				count = contagem.getInt("ID");
@@ -163,6 +182,8 @@ public class btn_visita implements AcaoRotinaJava {
 			VO.setProperty("STATUS", "1");
 			VO.setProperty("SOLICITANTE", getUsuLogado());
 			VO.setProperty("APENASVISITA", "S");
+			VO.setProperty("NUMCONTRATO", getContrato(patrimonio));
+			VO.setProperty("CODPARC", getParceiro(patrimonio));
 
 			if (rota != 0) {
 				VO.setProperty("ROTA", new BigDecimal(rota));
@@ -193,8 +214,6 @@ public class btn_visita implements AcaoRotinaJava {
 
 			String tecla = DynamicVO.asString("TECLA");
 			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-			//BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-			//BigDecimal nivelPar = DynamicVO.asBigDecimal("NIVELPAR");
 			
 			try {
 
@@ -206,8 +225,6 @@ public class btn_visita implements AcaoRotinaJava {
 				VO.setProperty("CODBEM", patrimonio);
 				VO.setProperty("TECLA", tecla);
 				VO.setProperty("CODPROD", produto);
-				//VO.setProperty("CAPACIDADE", capacidade);
-				//VO.setProperty("NIVELPAR", nivelPar);
 
 				dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
 
@@ -218,11 +235,31 @@ public class btn_visita implements AcaoRotinaJava {
 		}
 	}
 	
+	private BigDecimal getContrato(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		return contrato;
+	}
+	
+	private BigDecimal getParceiro(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		
+		DAO = JapeFactory.dao("Contrato");
+		DynamicVO VOS = DAO.findOne("NUMCONTRATO=?",new Object[] { contrato });
+		BigDecimal parceiro = VOS.asBigDecimal("CODPARC");
+		
+		return parceiro;
+	}
+	
 	private void chamaPentaho() {
 
 		try {
-
-			String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
+			
+			final String parameter = (String) MGECoreParameter.getParameter("PENTAHOIP");
+			String site = parameter;
 			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
