@@ -61,6 +61,7 @@ public class validaInvativacaoContrato implements EventoProgramavelJava {
 		DynamicVO tsiusu = getTSIUSU(usuario);
 		String ativaContrato = tsiusu.asString("AD_ATIVACONTRATO");
 		String desativaContrato = tsiusu.asString("AD_DESATIVACONTRATO");
+		String desativarContratoOS = tsiusu.asString("AD_DESATIVACONTOS");
 		
 		if("S".equals(oldAtivo) && "N".equals(newAtivo)) {
 			
@@ -70,7 +71,7 @@ public class validaInvativacaoContrato implements EventoProgramavelJava {
 						"\n\n\n\n<font size=\"15\" color=\"#008B45\"><b>O seu executante não possui autorização para Inativar um contrato!!</b></font>\n\n\n");
 			}else {
 				
-				if(validaOsAbertas(contrato)) {
+				if(validaOsAbertas(contrato, desativarContratoOS)) {
 					throw new PersistenceException(
 							"<p align=\"center\"><img src=\"http://grancoffee.com.br/wp-content/uploads/2016/07/grancoffee-logo-325x100.png\" height=\"100\" width=\"325\"></img></p><br/><br/><br/><br/><br/><br/>"+
 							"\n\n\n\n<font size=\"15\" color=\"#008B45\"><b>Não é possivel inativar um contrato com OS pendentes!!</b></font>\n\n\n");
@@ -104,16 +105,22 @@ public class validaInvativacaoContrato implements EventoProgramavelJava {
 		}
 	}
 	
-	private boolean validaOsAbertas(BigDecimal contrato) throws Exception {
+	private boolean validaOsAbertas(BigDecimal contrato, String desativarContratoOS) throws Exception {
 		boolean valida = false;
 		
-		JapeWrapper DAO = JapeFactory.dao("OrdemServico");
-		DynamicVO VO = DAO.findOne("NUMCONTRATO=? AND SITUACAO=?",new Object[] { contrato, "P" });
-		
-		if(VO!=null) {
-			valida=true;
+		if(desativarContratoOS==null) {
+			desativarContratoOS="N";
 		}
 		
+		if("N".equals(desativarContratoOS)) {
+			JapeWrapper DAO = JapeFactory.dao("OrdemServico");
+			DynamicVO VO = DAO.findOne("NUMCONTRATO=? AND SITUACAO=?",new Object[] { contrato, "P" });
+			
+			if(VO!=null) {
+				valida=true;
+			}
+		}
+
 		return valida;
 	}
 	

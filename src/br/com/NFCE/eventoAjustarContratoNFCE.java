@@ -24,6 +24,7 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 	 * 09/02/2021 13:09 inserir funcionalidade para ajustar o CR do contrato.
 	 * 01/03/2021 09:23 ajustar a rotina de alteração do CR.
 	 * 11/03/2021 14:20 chamado 633321 ajustar o CR de todas as notas.
+	 * 29/03/2021 17:40 vincular o parceiro na nota 1108
 	 */
 	BigDecimal nota;
 	
@@ -72,6 +73,7 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 			BigDecimal contratoAtual = VO.asBigDecimal("NUMCONTRATO");
 			nota = VO.asBigDecimal("NUNOTA");
 			BigDecimal contrato = getNumeroDoContrato(patrimonio);
+			BigDecimal empresa = VO.asBigDecimal("CODEMP");
 			
 			if(top.equals(new BigDecimal(1108)) && patrimonio!=null && contratoAtual.equals(new BigDecimal(0))){				
 				if(contrato.intValue()!=0){
@@ -89,10 +91,34 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 				VO.setProperty("CODCENCUS", cr);
 			}
 			
+			if(top.equals(new BigDecimal(1108))) {
+				BigDecimal parceiroEmpresa = getParceiroEmpresa(empresa);
+				if(parceiroEmpresa.intValue()!=0) {
+					VO.setProperty("CODPARC", parceiroEmpresa);
+				}
+			}
+			
 		} catch (Exception e) {
 			salvarException("[start] nao foi possivel alterar o CR ou o Contrato! nota: "+nota+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 		
+	}
+	
+	private BigDecimal getParceiroEmpresa(BigDecimal codemp) {
+		BigDecimal parceiro = BigDecimal.ZERO;
+		try {
+			JapeWrapper DAO = JapeFactory.dao("EmpresaFinanceiro");
+			DynamicVO VO = DAO.findOne("CODEMP=?",new Object[] { codemp });
+			if(VO!=null) {
+				if(VO.asBigDecimal("CODPARCNFCE")!=null) {
+					parceiro = VO.asBigDecimal("CODPARCNFCE");
+				}
+			}
+		} catch (Exception e) {
+			salvarException("[getParceiroEmpresa] nao foi possivel obter o parceiro da nota: "+nota+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+		
+		return parceiro;
 	}
 	
 	private BigDecimal getNumeroDoContrato(String codbem) throws Exception{		
