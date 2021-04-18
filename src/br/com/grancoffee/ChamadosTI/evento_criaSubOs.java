@@ -34,6 +34,7 @@ public class evento_criaSubOs implements EventoProgramavelJava {
 	// ID da tratativa n pode ser somado automaticamente
 	/**
 	 * 28/10/20 14:11 - Inserido no método beforeupdate para considerar se o chamado não está sendo reaberto.
+	 * 07/04/21 10:14 - Inserido método para registrar as Exceptions.
 	 */
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
@@ -214,8 +215,7 @@ public class evento_criaSubOs implements EventoProgramavelJava {
 			}
 			
 		} catch (Exception e) {
-			System.out.println("## [evento_criaSubOS] ## - NAO FOI POSSIVEL ALTERAR A SUB-OS"+e.getMessage());
-			e.printStackTrace();
+			salvarException("[atualizaSubOs] NAO FOI POSSIVEL ALTERAR A SUB-OS OS: "+numos+e.getMessage()+"\n"+e.getCause());
 		}
 		
 	}
@@ -309,9 +309,8 @@ public class evento_criaSubOs implements EventoProgramavelJava {
 			dwfFacade.createEntity(DynamicEntityNames.ITEM_ORDEM_SERVICO,(EntityVO) NotaProdVO);
 
 
-		} catch (Exception e) {
-			System.out.println("## [ChamadosTI.evento_criaOS] ## - NAO FOI POSSIVEL GERAR A SUB-OS OS: "+numos+" "+e.getMessage());
-			e.printStackTrace();
+		} catch (Exception e) {			
+			salvarException("[cadastraSubOs] NAO FOI POSSIVEL GERAR A SUB-OS OS: "+numos+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -400,5 +399,26 @@ public class evento_criaSubOs implements EventoProgramavelJava {
 			valida=true;
 		}
 		return valida;
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "evento_criaSubOs");
+			VO.setProperty("PACOTE", "br.com.grancoffee.ChamadosTI");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+
+		} catch (Exception e) {
+			// aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
+		}
 	}
 }

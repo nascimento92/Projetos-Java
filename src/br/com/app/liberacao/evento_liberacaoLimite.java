@@ -66,19 +66,33 @@ public class evento_liberacaoLimite implements EventoProgramavelJava {
 	}
 
 	private void start(PersistenceEvent arg0) {
+		BigDecimal valorASerLiberado = null;
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal nroUnico = VO.asBigDecimal("NUNOTA");
 		BigDecimal usuarioLiberacao = VO.asBigDecimal("CODUSU");
 		BigDecimal vlrLiberado = VO.asBigDecimal("VALORLIBERADO");
+		BigDecimal valorTotal = VO.asBigDecimal("VALOR");
 		String liberado = VO.asString("LIBERADO");
 		String obs = VO.asString("OBSERVACAO");
+		String evento = VO.asString("EVENTO");
+		
+		if(vlrLiberado.intValue()==valorTotal.intValue()) {
+			if(evento.equals("18")) {
+				valorASerLiberado=new BigDecimal(1);
+			}else {
+				valorASerLiberado=vlrLiberado;
+			}
+		}else {
+			valorASerLiberado=vlrLiberado;
+		}
 
 		if ("N".equals(liberado)) {
-			liberarNota(nroUnico, usuarioLiberacao, vlrLiberado, obs, VO);
+			liberarNota(nroUnico, usuarioLiberacao, valorASerLiberado, obs, VO);
 		}
 	}
 
 	private void liberarNota(BigDecimal nroUnico, BigDecimal usuarioLiberacao, BigDecimal vlrLiberado, String obs, DynamicVO VOS) {
+		
 		try {
 
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();

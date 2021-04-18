@@ -235,7 +235,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 			
 			dwfFacade.createEntity("ServicoProdutoExecutante", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException("[cadastraServicoParaOhExecutante] - Nao foi possivel cadastrar o serviço para o executante. "+e.getMessage()+"\n"+e.getCause());
+			//salvarException("[cadastraServicoParaOhExecutante] - Nao foi possivel cadastrar o serviço para o executante. "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
