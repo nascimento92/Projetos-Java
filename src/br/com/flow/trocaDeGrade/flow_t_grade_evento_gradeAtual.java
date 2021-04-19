@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
 
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
@@ -12,7 +14,9 @@ import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 
@@ -75,14 +79,14 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("AD_GRADEATUAL", "this.IDINSTPRN=?",new Object[] {idFlow}));
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[deletar] Não foi possível deletar AD_GRADEATUAL IdFlow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("AD_GRADEFUTURA", "this.IDINSTPRN=?",new Object[] {idFlow}));
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[deletar] Não foi possível deletar AD_GRADEFUTURA IdFlow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -96,22 +100,28 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 
 			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-
-			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-			String tecla = DynamicVO.asString("TECLA");
 				
-			insereTeclaAtual(idFlow,idTarefa,codRegistro,idCard,patrimonio,produto,tecla);
-			insereTeclaFutura(idFlow,idTarefa,codRegistro,idCard,patrimonio,produto,tecla);
+			insereTeclaAtual(idFlow,idTarefa,codRegistro,idCard,patrimonio,DynamicVO);
+			insereTeclaFutura(idFlow,idTarefa,codRegistro,idCard,patrimonio,DynamicVO);
 			
 			}
 
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[getTeclas] Não foi possível obter as teclas IdFlow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
 	public void insereTeclaAtual(BigDecimal idFlow,BigDecimal idTarefa,BigDecimal codRegistro,String idCard,String patrimonio, 
-			BigDecimal produto, String tecla) {
+			DynamicVO DynamicVO) {
+		
+		BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+		String tecla = DynamicVO.asString("TECLA");
+		BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+		BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+		BigDecimal nivelalerta = DynamicVO.asBigDecimal("NIVELALERTA");
+		BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
+		BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
+		
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_GRADEATUAL");
@@ -123,15 +133,29 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 			VO.setProperty("TECLA", tecla);
 			VO.setProperty("CODREGISTRO", codRegistro);
 			VO.setProperty("IDTAREFA", idCard);
+			VO.setProperty("VLRFUN", vlrfun);
+			VO.setProperty("NIVELPAR", nivelpar);
+			VO.setProperty("CAPACIDADE", capacidade);
+			VO.setProperty("NIVELALERTA", nivelalerta);
+			VO.setProperty("VLRPARC", vlrpar);
 			
 			dwfFacade.createEntity("AD_GRADEATUAL", (EntityVO) VO);
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[getTeclas] Não foi possível insereTeclaAtual as teclas IdFlow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
 	public void insereTeclaFutura(BigDecimal idFlow,BigDecimal idTarefa,BigDecimal codRegistro,String idCard,String patrimonio, 
-			BigDecimal produto, String tecla) {
+			DynamicVO DynamicVO) {
+		
+		BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+		String tecla = DynamicVO.asString("TECLA");
+		BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+		BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+		BigDecimal nivelalerta = DynamicVO.asBigDecimal("NIVELALERTA");
+		BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
+		BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
+		
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_GRADEFUTURA");
@@ -143,10 +167,36 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 			VO.setProperty("TECLA", tecla);
 			VO.setProperty("CODREGISTRO", codRegistro);
 			VO.setProperty("IDTAREFA", idCard);
+			VO.setProperty("VLRFUN", vlrfun);
+			VO.setProperty("NIVELPAR", nivelpar);
+			VO.setProperty("CAPACIDADE", capacidade);
+			VO.setProperty("NIVELALERTA", nivelalerta);
+			VO.setProperty("VLRPARC", vlrpar);
 			
 			dwfFacade.createEntity("AD_GRADEFUTURA", (EntityVO) VO);
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[getTeclas] Não foi possível insereTeclaAtual as teclas IdFlow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "flow_t_grade_evento_gradeAtual");
+			VO.setProperty("PACOTE", "br.com.flow.trocaDeGrade");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+
+		} catch (Exception e) {
+			// aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
 
