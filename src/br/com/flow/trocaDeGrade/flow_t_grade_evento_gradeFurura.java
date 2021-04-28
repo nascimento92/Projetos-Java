@@ -44,21 +44,40 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		delete(arg0);
 	}
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		insert(arg0);
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
 		update(arg0);
 	}
-
+	
+	public void delete(PersistenceEvent arg0) {
+		DynamicVO newVO = (DynamicVO) arg0.getVo();
+		
+		BigDecimal idflow = newVO.asBigDecimal("IDINSTPRN");
+		BigDecimal produto = newVO.asBigDecimal("CODPROD");
+		String tecla = newVO.asString("TECLA");
+		
+		delteraDadoAnterior(idflow,tecla,produto);
+	}
+	
+	public void insert(PersistenceEvent arg0) {
+		DynamicVO newVO = (DynamicVO) arg0.getVo();
+		
+		BigDecimal idflow = newVO.asBigDecimal("IDINSTPRN");
+		BigDecimal produto = newVO.asBigDecimal("CODPROD");
+		String tecla = newVO.asString("TECLA");
+		String tipo = "Produto Novo";
+		
+		salvaDadosAlterados(newVO,idflow,produto,tecla,tipo);
+	}
+	
 	public void update(PersistenceEvent arg0) {
 		DynamicVO newVO = (DynamicVO) arg0.getVo();
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();

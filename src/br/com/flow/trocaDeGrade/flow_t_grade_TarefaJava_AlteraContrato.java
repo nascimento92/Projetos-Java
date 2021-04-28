@@ -1,7 +1,10 @@
 package br.com.flow.trocaDeGrade;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
+
+import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.flow.ContextoTarefa;
 import br.com.sankhya.extensions.flow.TarefaJava;
@@ -12,7 +15,9 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 
@@ -21,7 +26,7 @@ public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 		Object idFlow = arg0.getIdInstanceProcesso();
 		String patrimonio = getPatrimonio(idFlow);
 		deletarTeclasContrato(patrimonio);
-		getTeclas(idFlow);
+		getTeclas(idFlow, patrimonio);
 	}
 
 	public String getPatrimonio(Object idFlow) throws Exception {
@@ -37,11 +42,11 @@ public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("teclas", "this.CODBEM=?", new Object[] { patrimonio }));
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[deletarTeclasContrato] Nao foi possivel excluir as teclas, patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
-	public void getTeclas(Object idFlow) {
+	public void getTeclas(Object idFlow, String patrimonio) {
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
@@ -53,27 +58,61 @@ public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
 						.wrapInterface(DynamicVO.class);
-				inserirTecla(DynamicVO);
+				inserirTecla(DynamicVO, patrimonio);
 			}
 
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[getTeclas] Nao foi possivel obter as teclas, idFlow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
-	public void inserirTecla(DynamicVO DynamicVO) {
+	public void inserirTecla(DynamicVO DynamicVO, String patrimonio) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("teclas");
 			DynamicVO VO = (DynamicVO) NPVO;
 
-			VO.setProperty("NUMCONTRATO", numcontrato);
-			VO.setProperty("CODPROD", codprod);
+			VO.setProperty("CODBEM", patrimonio);
+			VO.setProperty("TECLA", new BigDecimal(DynamicVO.asString("TECLA")));
+			VO.setProperty("CODPROD", DynamicVO.asBigDecimal("CODPROD"));
+			VO.setProperty("NUMCONTRATO", getContrato(patrimonio));
+			VO.setProperty("VLRPAR", DynamicVO.asBigDecimal("VLRPARC"));
+			VO.setProperty("VLRFUN", DynamicVO.asBigDecimal("VLRFUN"));
+			VO.setProperty("AD_CAPACIDADE", DynamicVO.asBigDecimal("CAPACIDADE"));
+			VO.setProperty("AD_NIVELPAR", DynamicVO.asBigDecimal("NIVELPAR"));
+			VO.setProperty("AD_NIVELALERTA", DynamicVO.asBigDecimal("NIVELALERTA"));
 
-			dwfFacade.createEntity("CertificacaoRegra", (EntityVO) VO);
+			dwfFacade.createEntity("teclas", (EntityVO) VO);
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[inserirTecla] Nao foi possivel inserir as teclas, codbem: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
+	
+	private void salvarException(String mensagem) {
+		try {
 
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "flow_t_grade_TarefaJava_AlteraContrato");
+			VO.setProperty("PACOTE", "br.com.flow.trocaDeGrade");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+
+		} catch (Exception e) {
+			// aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
+		}
+	}
+	
+	private BigDecimal getContrato(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		return contrato;
+	}
 }

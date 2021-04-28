@@ -126,7 +126,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				}
 
 			} catch (Exception e) {
-				salvarException("[deletarTecla] Nao foi possivel alterar a tecla! "+e.getMessage()+"\n"+e.getCause());
+				salvarException("[salvaDadosNaTelainstalacaoAbaPlanograma] Nao foi possivel cadastrar a tecla! patrimonio: "+patrimonio+" tecla: "+tecla+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 	}
@@ -154,6 +154,11 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 	private void insereNaTelaLogDasTeclas(DynamicVO oldVO,DynamicVO newVO) {
 		try {
 			
+			BigDecimal usuario = getUsuLogado();
+			if(usuario==null) {
+				usuario = new BigDecimal(0);
+			}
+			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_LOGTECLAS");
 			DynamicVO VO = (DynamicVO) NPVO;
@@ -163,7 +168,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 			VO.setProperty("CODBEM", newVO.asString("CODBEM"));
 			VO.setProperty("CODPROD", newVO.asBigDecimal("CODPROD"));
 			VO.setProperty("CODPRODANT", oldVO.asBigDecimal("CODPROD"));
-			VO.setProperty("CODUSU", getUsuLogado());
+			VO.setProperty("CODUSU", usuario);
 			VO.setProperty("DTALTER", TimeUtils.getNow());
 			VO.setProperty("NIVELALERTA", newVO.asBigDecimal("AD_NIVELALERTA"));
 			VO.setProperty("NIVELALERTAANT", oldVO.asBigDecimal("AD_NIVELALERTA"));
@@ -187,7 +192,11 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 	
 	private BigDecimal getUsuLogado() {
 		BigDecimal codUsuLogado = BigDecimal.ZERO;
-	    codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
+		try {
+		    codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}	
 	    return codUsuLogado;    	
 }
 	
@@ -232,7 +241,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				dwfFacade.createEntity("GCPlanograma", (EntityVO) VO);
 				
 			} catch (Exception e) {
-				salvarException("[inserirTecla] Nao foi possivel cadastrar a tecla! "+e.getMessage()+"\n"+e.getCause());
+				salvarException("[inserirTecla] Nao foi possivel cadastrar a tecla! patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 	}
@@ -242,12 +251,18 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 		DynamicVO teclas = (DynamicVO) arg0.getVo();
 		String patrimonio = teclas.asString("CODBEM");
 		try {
+			
+			BigDecimal usuario = getUsuLogado();
+			if(usuario==null) {
+				usuario = new BigDecimal(0);
+			}
+			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_LOGTECLAS");
 			DynamicVO VO = (DynamicVO) NPVO;
 			
 			VO.setProperty("DTALTER", TimeUtils.getNow());
-			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("CODUSU", usuario);
 			VO.setProperty("CODBEM", patrimonio);
 			VO.setProperty("TECLA", teclas.asBigDecimal("TECLA").toString());
 			VO.setProperty("CODPROD", teclas.asBigDecimal("CODPROD"));
@@ -288,12 +303,18 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 		}
 		
 		try {
+			
+			BigDecimal usuario = getUsuLogado();
+			if(usuario==null) {
+				usuario = new BigDecimal(0);
+			}
+			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_LOGTECLAS");
 			DynamicVO VO = (DynamicVO) NPVO;
 			
 			VO.setProperty("DTALTER", TimeUtils.getNow());
-			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("CODUSU", usuario);
 			VO.setProperty("CODBEM", patrimonio);
 			VO.setProperty("TECLA", teclas.asBigDecimal("TECLA").toString());
 			VO.setProperty("CODPROD", teclas.asBigDecimal("CODPROD"));
