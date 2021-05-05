@@ -27,6 +27,7 @@ public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 		String patrimonio = getPatrimonio(idFlow);
 		deletarTeclasContrato(patrimonio);
 		getTeclas(idFlow, patrimonio);
+		verificaNecessidadeDePecas(idFlow);
 	}
 
 	public String getPatrimonio(Object idFlow) throws Exception {
@@ -88,6 +89,66 @@ public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 		}
 	}
 	
+	public void verificaNecessidadeDePecas(Object idFlow) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("InstanciaVariavel",
+					"this.IDINSTPRN = ? and this.NOME=? ", new Object[] { idFlow, "PECA_SEPARADA" }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				String texto = (String) DynamicVO.getProperty("TEXTO");
+
+				if ("1".equals(texto)) {
+					String patrimonio = getPatrimonioPecas(idFlow);
+					setarPecasNoProximoAbastecimento(patrimonio, idFlow);
+				}
+
+			}
+
+		} catch (Exception e) {
+			salvarException("[verificaNecessidadeDePecas] Nao foi possivel verificar se tem pecas idflow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void setarPecasNoProximoAbastecimento(String patrimonio, Object idFlow) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("GCInstalacao",
+					"this.CODBEM=?", new Object[] { patrimonio}));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("AD_RETIRARPECAS", "S");
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			salvarException("[setarPecasNoProximoAbastecimento] Nao foi possivel setar que no próximo abastecimento existem peças para serem retiradas, patrimonio: "+patrimonio+" flow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private String getPatrimonioPecas(Object idFlow) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("AD_MAQUINASTGRADE");
+		DynamicVO VO = DAO.findOne("IDINSTPRN=?",new Object[] { idFlow });
+		String patrimonio = VO.asString("CODBEM");
+		return patrimonio;
+	}
+	
+	private BigDecimal getContrato(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		return contrato;
+	}
+	
 	private void salvarException(String mensagem) {
 		try {
 
@@ -107,12 +168,5 @@ public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 			// aqui não tem jeito rs tem que mostrar no log
 			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
-	}
-	
-	private BigDecimal getContrato(String patrimonio) throws Exception {
-		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
-		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
-		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
-		return contrato;
 	}
 }

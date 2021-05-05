@@ -68,13 +68,14 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 	}
 	
 	public void insert(PersistenceEvent arg0) {
+		
 		DynamicVO newVO = (DynamicVO) arg0.getVo();
 		
 		BigDecimal idflow = newVO.asBigDecimal("IDINSTPRN");
 		BigDecimal produto = newVO.asBigDecimal("CODPROD");
 		String tecla = newVO.asString("TECLA");
 		String tipo = "Produto Novo";
-		
+		//validar se a trcla já existe antes de salvar, apenas para máquinas.
 		salvaDadosAlterados(newVO,idflow,produto,tecla,tipo);
 	}
 	
@@ -89,6 +90,8 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		if (tecla != "0") {
 			validarAlteracao(idflow, tecla, produto, newVO, oldVO);
 		}
+		//implementar quando for totem.
+		//se for totem não pode inserir tecla, tem que ser zero (validar)
 	}
 
 	public void validarAlteracao(BigDecimal idflow, String tecla, BigDecimal produto, DynamicVO newVO,

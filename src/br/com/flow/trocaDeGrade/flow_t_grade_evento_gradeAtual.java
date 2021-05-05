@@ -103,7 +103,7 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 				
 			insereTeclaAtual(idFlow,idTarefa,codRegistro,idCard,patrimonio,DynamicVO);
 			insereTeclaFutura(idFlow,idTarefa,codRegistro,idCard,patrimonio,DynamicVO);
-			
+			deletarAlteracoesIniciais(idFlow);
 			}
 
 		} catch (Exception e) {
@@ -176,6 +176,15 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 			dwfFacade.createEntity("AD_GRADEFUTURA", (EntityVO) VO);
 		} catch (Exception e) {
 			salvarException("[getTeclas] Não foi possível insereTeclaAtual as teclas IdFlow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void deletarAlteracoesIniciais(BigDecimal idFlow) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_PRODUTOSALTERADOS", "this.IDINSTPRN=?",new Object[] {idFlow}));
+		} catch (Exception e) {
+			salvarException("[deletarAlteracoesIniciais] Não foi excluir as teclas iniciais IdFlow: "+idFlow+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
