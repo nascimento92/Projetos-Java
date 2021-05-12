@@ -78,13 +78,12 @@ public class evento_validaAlteracaoCodigoBarras implements EventoProgramavelJava
 	private void chamaPentaho() {
 		
 		try {
-			final String parameter = (String) MGECoreParameter.getParameter("PENTAHOIP");
-			String site = parameter;
+			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");
 		    String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
 		    WSPentaho si = new WSPentaho(site, Key);
 		    		    
-		    String path = "home/GC/Projetos/GCW/Transformations/";
-		    String objName = "TF - GSN010 - Atualiza Codigo Barras";
+		    String path = "home/GC_New/Extraction/Sankhya/Codigo_de_barras/";
+		    String objName = "T-GET-Codigo_barras";
 		    
 		    si.runTrans(path, objName);
 		    		
@@ -96,19 +95,18 @@ public class evento_validaAlteracaoCodigoBarras implements EventoProgramavelJava
 	private void chamaPentahoExclusao() {
 
 		try {
-			final String parameter = (String) MGECoreParameter.getParameter("PENTAHOIP");
-			String site = parameter;
+			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");
 			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
-			String path = "home/GC/Projetos/GCW/Transformations/";
-			String objName = "TF - GSN010 - Exclui Codigo Barras";
+			String path = "home/GC_New/Transformation/Mid-Uppay-Codigo_de_Barras/";
+			String objName = "T-TF-Exclui_codigo_de_barras";
 
 			si.runTrans(path, objName);
 
 		} catch (Exception e) {
 			salvarException(
-					"[chamaPentaho] Não foi possível chamar a Rotina Pentaho!" + e.getMessage() + "\n" + e.getCause());
+					"[chamaPentahoExclusao] Não foi possível chamar a Rotina Pentaho!" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
 	

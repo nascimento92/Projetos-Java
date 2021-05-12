@@ -407,19 +407,18 @@ public class btn_abastecimento implements AcaoRotinaJava{
 	private void chamaPentaho() {
 
 		try {
-			final String parameter = (String) MGECoreParameter.getParameter("PENTAHOIP");
-			//String site = "http://pentaho.grancoffee.com.br:8080/pentaho/kettle/";
-			String site = parameter;
-			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+
+			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");;
+			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
-			String path = "home/GC/Projetos/GCW/Jobs/";
-			String objName = "JOB - GSN003 - Gerar Pedido-OS abastecimento";
+			String path = "home/GC_New/Transformation/Sankhya-Pedido/";
+			String objName = "J-Loop_visitas_pendentes";
 
 			si.runJob(path, objName);
 
 		} catch (Exception e) {
-			e.getMessage();
+			salvarException("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	

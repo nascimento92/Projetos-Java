@@ -21,6 +21,7 @@ public class btn_testeChamarPentaho implements AcaoRotinaJava {
 		chamaPentaho(parameter);
 	}
 
+	/*
 	private void chamaPentaho(String url) {
 
 		try {
@@ -31,6 +32,25 @@ public class btn_testeChamarPentaho implements AcaoRotinaJava {
 
 			String path = "home/GC/Projetos/GCW/Jobs/";
 			String objName = "JOB - GSN001 - Verifica Encerramento OS";
+
+			si.runJob(path, objName);
+
+		} catch (Exception e) {
+			salvarException("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	*/
+	
+	private void chamaPentaho(String url) {
+
+		try {
+
+			String site = url;
+			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
+			WSPentaho si = new WSPentaho(site, Key);
+
+			String path = "home/GC_New/Transformation/Sankhya-Pedido/";
+			String objName = "J-Loop_visitas_pendentes";
 
 			si.runJob(path, objName);
 
