@@ -50,7 +50,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 	
 		for(int i=0; i<linhas.length; i++) {
 			
-			Timestamp dtAbastecimento = validacoes(linhas[i],arg0, tipoAbastecimento);
+			Timestamp dtAbastecimento = validacoes(linhas[i],arg0, tipoAbastecimento, secosCongelados);
 			
 			if("1".equals(secosCongelados)) { //apenas secos
 				BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N");//salva tela Abastecimento
@@ -110,12 +110,12 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		chamaPentaho();
 	}
 	
-	private Timestamp validacoes(Registro linhas,ContextoAcao arg0, String tipoAbastecimento) throws PersistenceException {
+	private Timestamp validacoes(Registro linhas,ContextoAcao arg0, String tipoAbastecimento, String secosCongelados) throws PersistenceException {
 		
 		Timestamp dtAbastecimento = (Timestamp) arg0.getParam("DTABAST");
 		Timestamp dtSolicitacao=null;
 
-			if(validaPedido(linhas.getCampo("CODBEM").toString())) {
+			if(validaPedido(linhas.getCampo("CODBEM").toString(), secosCongelados)) {
 				throw new PersistenceException("<br/>Patrimônio <b>"+linhas.getCampo("CODBEM")+"</b> já possui pedido pendente!<br/>");
 			}	
 			
@@ -284,7 +284,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		return valida;
 	}
 
-	private boolean validaPedido(String patrimonio) {
+	private boolean validaPedido(String patrimonio, String secosCongelados) {
 		boolean valida=false;
 		
 		try {
@@ -295,8 +295,18 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql(
-					"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='1'");
+			
+			if("1".equals(secosCongelados)) {
+				nativeSql.appendSql(
+						"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('1') AND NVL(AD_TIPOPRODUTOS,'1')='1'");
+			}else if("2".equals(secosCongelados)) {
+				nativeSql.appendSql(
+						"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('2') AND NVL(AD_TIPOPRODUTOS,'1')='1'");
+			}else {
+				nativeSql.appendSql(
+						"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('1','2') AND NVL(AD_TIPOPRODUTOS,'1')='1'");
+			}
+			
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				int count = contagem.getInt("COUNT(*)");
