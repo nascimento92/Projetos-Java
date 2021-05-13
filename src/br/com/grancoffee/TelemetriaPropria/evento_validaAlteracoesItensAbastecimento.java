@@ -47,7 +47,8 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		//start(arg0);		
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		VO.setProperty("QTDRETORNO", new BigDecimal(0));
 	}
 
 	@Override
@@ -59,60 +60,74 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 	private void start(PersistenceEvent arg0) throws Exception {
 		
 		DynamicVO newVO = (DynamicVO) arg0.getVo();
-		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
 		BigDecimal contagem = newVO.asBigDecimal("CONTAGEM");
+		
+		if(contagem!=null) {
 		//BigDecimal saldoEsperado = newVO.asBigDecimal("SALDOESPERADO");
 		BigDecimal qtdretorno = newVO.asBigDecimal("QTDRETORNO");
 		BigDecimal id = newVO.asBigDecimal("ID");
 		BigDecimal diferenca = null;
 		BigDecimal saldoAntes = newVO.asBigDecimal("SALDOANTERIOR");
 		BigDecimal pedido = newVO.asBigDecimal("QTDPEDIDO");
+		BigDecimal saldoEsperado = null;
 		
-		BigDecimal saldoEsperado = saldoAntes.add(pedido);
-		
-		if(validaSeHouveContagem(id)) { //quando há contagem
-			if(qtdretorno==null) {
-				qtdretorno=new BigDecimal(0);
-			}
-			
-			if(contagem!=null) {
-				BigDecimal diferencaFinal = contagem.subtract(saldoEsperado);
-				newVO.setProperty("DIFERENCA", diferencaFinal.add(qtdretorno));
-			}
-			
-			diferenca = newVO.asBigDecimal("DIFERENCA");
-			
-			if(diferenca!=null) {
-				BigDecimal saldoFinal = diferenca.add(saldoEsperado);
-				newVO.setProperty("SALDOAPOS", saldoFinal.subtract(qtdretorno));
-			}
-		}else { //quando não há contagem
-			if(newVO.asBigDecimal("CONTAGEM")!=oldVO.asBigDecimal("CONTAGEM")) {
-				throw new Error("Esta visita não houve contagem, não alterar este campo!");
-			}
-			
-			newVO.setProperty("SALDOAPOS", saldoEsperado.subtract(qtdretorno));
+		if(saldoAntes!=null && pedido!=null) {
+			saldoEsperado = saldoAntes.add(pedido);
 		}
 		
+		if (id != null) {
+			if (validaSeHouveContagem(id)) { // quando há contagem
+				if (qtdretorno == null) {
+					qtdretorno = new BigDecimal(0);
+				}
+
+				if (contagem != null) {
+					BigDecimal diferencaFinal = contagem.subtract(saldoEsperado);
+					newVO.setProperty("DIFERENCA", diferencaFinal.add(qtdretorno));
+				}
+
+				diferenca = newVO.asBigDecimal("DIFERENCA");
+
+				if (diferenca != null) {
+					BigDecimal saldoFinal = diferenca.add(saldoEsperado);
+					newVO.setProperty("SALDOAPOS", saldoFinal.subtract(qtdretorno));
+				}
+			} else { // quando não há contagem
+				
+				DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
+				
+				if (newVO.asBigDecimal("CONTAGEM") != oldVO.asBigDecimal("CONTAGEM")) {
+					throw new Error("Esta visita não houve contagem, não alterar este campo!");
+				}
+
+				newVO.setProperty("SALDOAPOS", saldoEsperado.subtract(qtdretorno));
+			}
+		}
+		}
 	}
 	
 	private void valida(PersistenceEvent arg0) throws PersistenceException {
 		DynamicVO VO = (DynamicVO) arg0.getOldVO();
-		String ajustado = VO.asString("AJUSTADO");
-		
-		if("S".equals(ajustado)) {
-			throw new PersistenceException("<br/><br/><br/> <b>Não é possivel alterar uma tecla já ajustada!</b> <br/><br/><br/>");
-		}
+		if(VO!=null) {
+			String ajustado = VO.asString("AJUSTADO");
+			
+			if("S".equals(ajustado)) {
+				throw new PersistenceException("<br/><br/><br/> <b>Não é possivel alterar uma tecla já ajustada!</b> <br/><br/><br/>");
+			}
+		}	
 	}
 	
 	private boolean validaSeHouveContagem(BigDecimal id) throws Exception {
 		boolean valida=false;
 		JapeWrapper DAO = JapeFactory.dao("AD_RETABAST");
 		DynamicVO VO = DAO.findOne("ID=?",new Object[] { id });
-		String contagem = VO.asString("CONTAGEM");
-		if("S".equals(contagem)) {
-			valida=true;
+		if(VO!=null) {
+			String contagem = VO.asString("CONTAGEM");
+			if("S".equals(contagem)) {
+				valida=true;
+			}
 		}
+		
 		return valida;
 	}
 }

@@ -46,8 +46,7 @@ public class evento_registraRetornos implements EventoProgramavelJava {
 
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		delete(arg0);
 	}
 
 	@Override
@@ -84,6 +83,17 @@ public class evento_registraRetornos implements EventoProgramavelJava {
 		String tecla = VO.asString("TECLA");
 
 		cadastrarRetorno(codprod, idretorno, idTelaRetorno, qtd, tecla);
+	}
+	
+	private void delete(PersistenceEvent arg0) throws Exception {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal numos = VO.asBigDecimal("NUMOS");
+		BigDecimal idTelaRetorno = getIdTelaRetorno(numos);
+		BigDecimal codprod = VO.asBigDecimal("CODPROD");
+		BigDecimal idretorno = VO.asBigDecimal("IDRETORNO");
+		String tecla = VO.asString("TECLA");
+		
+		deletaRetorno(idTelaRetorno,codprod,tecla,idretorno);
 	}
 
 	private BigDecimal getIdTelaRetorno(BigDecimal numos) throws Exception {
@@ -133,6 +143,16 @@ public class evento_registraRetornos implements EventoProgramavelJava {
 		}
 	}
 
+	private void deletaRetorno(BigDecimal idTelaRetorno,BigDecimal codprod,String tecla, BigDecimal idretorno) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_PRODRETABAST", "this.ID=? AND this.CODPROD=? AND this.TECLA=? AND this.IDRETORNO=?",new Object[] {idTelaRetorno,codprod,tecla,idretorno}));
+		} catch (Exception e) {
+			salvarException("[alterarRetorno] Nao foi possivel excluir o produto! ID Tela Retorno: " + idTelaRetorno
+					+ " produto: " + codprod + "\n" + e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
 	private void salvarException(String mensagem) {
 		try {
 
