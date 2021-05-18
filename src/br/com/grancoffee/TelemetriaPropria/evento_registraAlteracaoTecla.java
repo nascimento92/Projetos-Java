@@ -70,6 +70,11 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 		BigDecimal produto = newVO.asBigDecimal("CODPROD");
 		
 		if(verificaSeExisteNaAbaInstalacoes(patrimonio,tecla,produto)) {
+			
+			if("S".equals(validaSeEhMicroMarketing(patrimonio))) {
+				tecla = new BigDecimal(0);
+			}
+			
 			salvaDadosNaTelainstalacaoAbaPlanograma(oldVO,newVO);
 		}else {
 			inserirTecla(arg0);
@@ -80,12 +85,16 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 	
 	//atualizar
 	private void salvaDadosNaTelainstalacaoAbaPlanograma(DynamicVO oldVO,DynamicVO newVO) throws Exception {
-		String patrimonio = oldVO.asString("CODBEM");
-		String tecla = oldVO.asBigDecimal("TECLA").toString();
-		BigDecimal produto = oldVO.asBigDecimal("CODPROD");
+		String patrimonio = newVO.asString("CODBEM");
+		String tecla = newVO.asBigDecimal("TECLA").toString();
+		BigDecimal produto = newVO.asBigDecimal("CODPROD");
 		
 		if(validaSeOhPatrimonioEstaNaTelaDeInstalacoes(patrimonio)) {
 			String microMarketing = validaSeEhMicroMarketing(patrimonio);
+			
+			if("S".equals(microMarketing)) {
+				tecla = "0";
+			}
 			
 			try {
 
@@ -110,10 +119,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 					
 					if(VO!=null) {
 
-						if ("N".equals(microMarketing)) {
-							VO.setProperty("TECLA", newVO.asBigDecimal("TECLA").toString());
-						}					 
-						
+						VO.setProperty("TECLA", tecla);					 
 						VO.setProperty("CODPROD", newVO.asBigDecimal("CODPROD"));
 						VO.setProperty("NIVELPAR", newVO.asBigDecimal("AD_NIVELPAR"));
 						VO.setProperty("CAPACIDADE", newVO.asBigDecimal("AD_CAPACIDADE"));
@@ -126,7 +132,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				}
 
 			} catch (Exception e) {
-				salvarException("[salvaDadosNaTelainstalacaoAbaPlanograma] Nao foi possivel cadastrar a tecla! patrimonio: "+patrimonio+" tecla: "+tecla+e.getMessage()+"\n"+e.getCause());
+				salvarException("[salvaDadosNaTelainstalacaoAbaPlanograma] Nao foi possivel atualizar a tecla! patrimonio: "+patrimonio+" tecla: "+tecla+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 	}
@@ -200,7 +206,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 	    return codUsuLogado;    	
 }
 	
-	//insert
+	//after insert
 	private void inserirTecla(PersistenceEvent arg0) throws Exception {
 		DynamicVO teclas = (DynamicVO) arg0.getVo();
 		String patrimonio = teclas.asString("CODBEM");

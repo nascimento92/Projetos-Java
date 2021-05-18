@@ -348,10 +348,15 @@ public class btn_abastecimento implements AcaoRotinaJava{
 				VO.setProperty("AD_TIPOPRODUTOS", "2");
 			}
 			
+			String body = montarBody(patrimonio);
+			if(body!=null) {
+				VO.setProperty("AD_BODYPLANOGRAMA", body);
+			}
+			
 			dwfFacade.createEntity("GCSolicitacoesAbastecimento", (EntityVO) VO);
 			
 			idSolicitAbast = VO.asBigDecimal("ID");
-			
+					
 		} catch (Exception e) {
 			salvarException("[agendarAbastecimento] Nao foi possivel agendar o Abastecimento! " + e.getMessage() + "\n" + e.getCause());
 		}
@@ -430,6 +435,89 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		} catch (Exception e) {
 			salvarException("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
 		}
+	}
+	
+	public String montarBody(Object codbem){
+		
+		String head="{\"planogram\":{\"items_attributes\": [";
+		String bottom="]}}";
+		
+		String body = "";
+		
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade
+					.findByDynamicFinder(new FinderWrapper("teclas", "this.CODBEM = ? ", new Object[] { codbem }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				
+				String teclaAlternativa = DynamicVO.asString("TECLAALT");
+				String tecla = DynamicVO.asBigDecimal("TECLA").toString();
+				String name = "";
+				
+				if(teclaAlternativa!=null) {
+					name = teclaAlternativa;
+				}else {
+					name = tecla;
+				}
+				
+				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+				
+				
+				if(Iterator.hasNext()) {
+					body=body+"{"+
+							"\"type\": \"Coil\","+
+							"\"name\": \""+name+"\","+
+							"\"good_id\": "+getGoodId(produto)+","+
+							"\"capacity\": "+DynamicVO.asBigDecimal("AD_CAPACIDADE").toString()+","+
+							"\"par_level\": "+DynamicVO.asBigDecimal("AD_NIVELPAR").toString()+","+
+							"\"alert_level\": "+DynamicVO.asBigDecimal("AD_NIVELALERTA").toString()+","+
+							"\"desired_price\": "+DynamicVO.asBigDecimal("VLRFUN").add(DynamicVO.asBigDecimal("VLRPAR")).toString()+","+
+							"\"logical_locator\": "+DynamicVO.asBigDecimal("TECLA").toString()+","+
+							"\"status\": \"active\""
+							+ "},";
+				}else {
+					body=body+"{"+
+							"\"type\": \"Coil\","+
+							"\"name\": \""+DynamicVO.asBigDecimal("TECLA").toString()+"\","+
+							"\"good_id\": "+getGoodId(produto)+","+
+							"\"capacity\": "+DynamicVO.asBigDecimal("AD_CAPACIDADE").toString()+","+
+							"\"par_level\": "+DynamicVO.asBigDecimal("AD_NIVELPAR").toString()+","+
+							"\"alert_level\": "+DynamicVO.asBigDecimal("AD_NIVELALERTA").toString()+","+
+							"\"desired_price\": "+DynamicVO.asBigDecimal("VLRFUN").add(DynamicVO.asBigDecimal("VLRPAR")).toString()+","+
+							"\"logical_locator\": "+DynamicVO.asBigDecimal("TECLA").toString()+","+
+							"\"status\": \"active\""
+							+ "}";
+				}
+			
+			}
+			
+		} catch (Exception e) {
+			salvarException("[montarBody] nao foi possivel montar o Body! patrimonio:"+codbem+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+		
+		return head+body+bottom;
+
+	}
+	
+	public BigDecimal getGoodId(BigDecimal produto) throws Exception {
+		BigDecimal id = null;
+		JapeWrapper DAO = JapeFactory.dao("Produto");
+		DynamicVO VO = DAO.findOne("CODPROD=?",new Object[] { produto });
+		BigDecimal idVerti = VO.asBigDecimal("AD_IDPROVERTI");
+		
+		if(idVerti==null) {
+			id = new BigDecimal(179707);
+		}else {
+			id = idVerti;
+		}
+		
+		return id;
 	}
 	
 	private void salvarException(String mensagem) {

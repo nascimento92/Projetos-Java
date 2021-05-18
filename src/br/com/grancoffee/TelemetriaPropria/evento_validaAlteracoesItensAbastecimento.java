@@ -52,7 +52,7 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 	}
 
 	@Override
-	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
+	public void beforeUpdate(PersistenceEvent arg0) throws Exception {	
 		valida(arg0);
 		start(arg0);		
 	}

@@ -46,20 +46,23 @@ public class evento_calculaRetornos implements EventoProgramavelJava {
 
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		
 	}
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		if(VO.asBigDecimal("QTD").intValue()==0) {
+			VO.setProperty("QTD", new BigDecimal(1));
+		}
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		if(VO.asBigDecimal("QTD").intValue()==0) {
+			throw new Error("Valor não pode ser zero, caso não houve retorno deste item, exclui-lo!");
+		}
 	}
 
 
@@ -72,7 +75,7 @@ public class evento_calculaRetornos implements EventoProgramavelJava {
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				DynamicVO VO = (DynamicVO) NVO;
-
+				
 				VO.setProperty("QTDRETORNO", quantidade);
 
 				itemEntity.setValueObject(NVO);
@@ -84,14 +87,15 @@ public class evento_calculaRetornos implements EventoProgramavelJava {
 	
 	private void update(PersistenceEvent arg0) {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal codprod = VO.asBigDecimal("CODPROD");
 		BigDecimal id = VO.asBigDecimal("ID");
+		
+		BigDecimal codprod = VO.asBigDecimal("CODPROD");
 		String tecla = VO.asString("TECLA");
-		
 		BigDecimal qtd = new BigDecimal(calculaRetornos(id,codprod,tecla));
-		
 		salvaNovoValorTelaItens(codprod,id,tecla,qtd);
+		
 	}
+	
 	
 	private int calculaRetornos(BigDecimal id, BigDecimal codprod, String tecla) {
 		int qtd=0;
