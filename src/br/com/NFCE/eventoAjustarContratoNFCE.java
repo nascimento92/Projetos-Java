@@ -99,7 +99,7 @@ public class eventoAjustarContratoNFCE implements EventoProgramavelJava {
 			}
 			
 		} catch (Exception e) {
-			salvarException("[start] nao foi possivel alterar o CR ou o Contrato! nota: "+nota+"\n"+e.getMessage()+"\n"+e.getCause());
+			//salvarException("[start] nao foi possivel alterar o CR ou o Contrato! nota: "+nota+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 		
 	}

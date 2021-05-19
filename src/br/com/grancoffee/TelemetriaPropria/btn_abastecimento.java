@@ -358,7 +358,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			idSolicitAbast = VO.asBigDecimal("ID");
 					
 		} catch (Exception e) {
-			salvarException("[agendarAbastecimento] Nao foi possivel agendar o Abastecimento! " + e.getMessage() + "\n" + e.getCause());
+			salvarException("[agendarAbastecimento] Nao foi possivel agendar o Abastecimento! patrimonio: "+patrimonio+"\n"+ e.getMessage() + "\n" + e.getCause());
 		}
 		
 		return idSolicitAbast;
@@ -527,7 +527,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
 			DynamicVO VO = (DynamicVO) NPVO;
 			
-			VO.setProperty("OBJETO", "btn_visita");
+			VO.setProperty("OBJETO", "btn_abastecimento");
 			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
 			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
 			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());

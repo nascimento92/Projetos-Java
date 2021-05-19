@@ -57,6 +57,14 @@ public class evento_ImpedeIntegracaoPedido implements EventoProgramavelJava {
 		BigDecimal vendedor = VO.asBigDecimal("CODVEND");
 		String patrimonio = VO.asString("AD_CODBEM");
 		
+		if(vendedor==null) {
+			vendedor = new BigDecimal(0);
+		}
+		
+		if(patrimonio==null) {
+			patrimonio = "0";
+		}
+		
 		boolean validaPatrimonio = validaPatrimonio(patrimonio);
 		
 		if(top.intValue()==1018 && vendedor.intValue()==743 && validaPatrimonio==true) {
