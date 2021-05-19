@@ -350,7 +350,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			
 			String body = montarBody(patrimonio);
 			if(body!=null) {
-				VO.setProperty("AD_BODYPLANOGRAMA", body);
+				VO.setProperty("AD_BODYPLANOGRAMA", body.toCharArray());
 			}
 			
 			dwfFacade.createEntity("GCSolicitacoesAbastecimento", (EntityVO) VO);
