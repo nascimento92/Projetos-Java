@@ -64,7 +64,7 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		BigDecimal produto = newVO.asBigDecimal("CODPROD");
 		String tecla = newVO.asString("TECLA");
 		
-		delteraDadoAnterior(idflow,tecla,produto);
+		deletaDadoAnterior(idflow,tecla,produto);
 	}
 	
 	public void insert(PersistenceEvent arg0) {
@@ -103,48 +103,47 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 
 			BigDecimal produtoAnterior = VO.asBigDecimal("CODPROD");
 
+			deletaDadoAnterior(idflow, tecla, produto);
+			deletaDadoAnterior(idflow, tecla, oldVO.asBigDecimal("CODPROD"));
+
+			BigDecimal nivelpar = newVO.asBigDecimal("NIVELPAR");
+			BigDecimal nivelparAnterior = VO.asBigDecimal("NIVELPAR");
+
+			BigDecimal valor = newVO.asBigDecimal("VLRFUN").add(newVO.asBigDecimal("VLRPARC"));
+			BigDecimal valorAnterior = VO.asBigDecimal("VLRFUN").add(VO.asBigDecimal("VLRPARC"));
+
+			BigDecimal capacidade = newVO.asBigDecimal("CAPACIDADE");
+			BigDecimal capacidadeAnterior = VO.asBigDecimal("CAPACIDADE");
+
+			String retorno = "";
+
 			if (produto.intValue() != produtoAnterior.intValue()) {
-				delteraDadoAnterior(idflow, tecla, oldVO.asBigDecimal("CODPROD"));
-				salvaDadosAlterados(newVO, idflow, produto, tecla, "Produto Novo");
-				salvaDadosAlterados(newVO, idflow, produtoAnterior, tecla, "Produto p/ Retirar");
+				retorno = retorno + " Produto Novo,";
+				salvaDadosAlterados(oldVO, idflow, produtoAnterior, tecla, "Produto p/ Retirar");
 			}
 
-			if (produto.intValue() == produtoAnterior.intValue()) {
-				delteraDadoAnterior(idflow, tecla, produto);
-				delteraDadoAnterior(idflow, tecla, oldVO.asBigDecimal("CODPROD"));
+			if (nivelpar.intValue() > nivelparAnterior.intValue()) {
+				retorno = retorno + " Aumento NivelPar,";
+			} else if (nivelpar.intValue() < nivelparAnterior.intValue()) {
+				retorno = retorno + " Redução NivelPar,";
+			}
 
-				BigDecimal nivelpar = newVO.asBigDecimal("NIVELPAR");
-				BigDecimal nivelparAnterior = VO.asBigDecimal("NIVELPAR");
+			if (valor.intValue() > valorAnterior.intValue()) {
+				retorno = retorno + " Aumento Valor,";
+			} else if (valor.intValue() < valorAnterior.intValue()) {
+				retorno = retorno + " Redução Valor,";
+			}
 
-				BigDecimal valor = newVO.asBigDecimal("VLRFUN").add(newVO.asBigDecimal("VLRPARC"));
-				BigDecimal valorAnterior = VO.asBigDecimal("VLRFUN").add(VO.asBigDecimal("VLRPARC"));
-				
-				BigDecimal capacidade = newVO.asBigDecimal("CAPACIDADE");
-				BigDecimal capacidadeAnterior = VO.asBigDecimal("CAPACIDADE");
-
-				String retorno = "";
-
-				if (nivelpar.intValue() > nivelparAnterior.intValue()) {
-					retorno = retorno + " Aumento NivelPar,";
-				} else if (nivelpar.intValue() < nivelparAnterior.intValue()) {
-					retorno = retorno + " Redução NivelPar,";
-				}
-
-				if (valor.intValue() > valorAnterior.intValue()) {
-					retorno = retorno + " Aumento Valor,";
-				} else if (valor.intValue() < valorAnterior.intValue()) {
-					retorno = retorno + " Redução Valor,";
-				}
-				
-				if(capacidade.intValue() > capacidadeAnterior.intValue()) {
-					retorno = retorno + " Aumento Capacidade/Mola,";
-				}else if (capacidade.intValue() < capacidadeAnterior.intValue()) {
-					retorno = retorno + " Redução Capacidade/Mola,";
-				}
-
+			if (capacidade.intValue() > capacidadeAnterior.intValue()) {
+				retorno = retorno + " Aumento Capacidade/Mola,";
+			} else if (capacidade.intValue() < capacidadeAnterior.intValue()) {
+				retorno = retorno + " Redução Capacidade/Mola,";
+			}
+			
+			if(retorno!=null) {
 				salvaDadosAlterados(newVO, idflow, produto, tecla, retorno);
 			}
-
+			
 		} catch (Exception e) {
 			salvarException("[validarAlteracao] Nao foi possivel alterar a tecla: " + tecla + " flow: " + idflow + "\n"
 					+ e.getMessage() + "\n" + e.getCause());
@@ -152,7 +151,7 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 
 	}
 
-	public void delteraDadoAnterior(BigDecimal idflow, String tecla, BigDecimal codprod) {
+	public void deletaDadoAnterior(BigDecimal idflow, String tecla, BigDecimal codprod) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("AD_PRODUTOSALTERADOS",
