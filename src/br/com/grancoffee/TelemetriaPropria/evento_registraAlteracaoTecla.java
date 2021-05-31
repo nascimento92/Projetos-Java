@@ -69,18 +69,20 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 		BigDecimal tecla = newVO.asBigDecimal("TECLA");
 		BigDecimal produto = newVO.asBigDecimal("CODPROD");
 		
-		if(verificaSeExisteNaAbaInstalacoes(patrimonio,tecla,produto)) {
+		if(validaSeOhPatrimonioEstaNaTelaDeInstalacoes(patrimonio)) { //valida se existe nas instalações
 			
 			if("S".equals(validaSeEhMicroMarketing(patrimonio))) {
 				tecla = new BigDecimal(0);
 			}
 			
-			salvaDadosNaTelainstalacaoAbaPlanograma(oldVO,newVO);
-		}else {
-			inserirTecla(arg0);
+			if(verificaSeExisteNaAbaInstalacoes(patrimonio,tecla,produto)) {
+				salvaDadosNaTelainstalacaoAbaPlanograma(oldVO,newVO);
+			}else {
+				inserirTecla(arg0);
+			}
+			
+			insereNaTelaLogDasTeclas(oldVO,newVO);
 		}
-		
-		insereNaTelaLogDasTeclas(oldVO,newVO);
 	}
 	
 	//atualizar

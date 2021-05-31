@@ -1,6 +1,7 @@
 package br.com.flow.trocaDeGrade;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -9,8 +10,10 @@ import com.sankhya.util.TimeUtils;
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
+import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
@@ -50,14 +53,33 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		validaSeJaTemUmPatrimonio(arg0);		
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		deletar(arg0);
+		start(arg0);		
+	}
+	
+	private void validaSeJaTemUmPatrimonio(PersistenceEvent arg0) throws Exception {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal idFlow = VO.asBigDecimal("IDINSTPRN");
 		
+		JdbcWrapper jdbcWrapper = null;
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+		jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+		ResultSet contagem;
+		NativeSql nativeSql = new NativeSql(jdbcWrapper);
+		nativeSql.resetSqlBuf();
+		nativeSql.appendSql("SELECT COUNT(CODBEM) AS QTD FROM AD_MAQUINASTGRADE WHERE IDINSTPRN=" + idFlow);
+		contagem = nativeSql.executeQuery();
+		while (contagem.next()) {
+			int count = contagem.getInt("QTD");
+			if (count >= 1) {
+				throw new Error("Já existe um patrimônio cadastrado neste flow");
+			}
+		}
 	}
 	
 	public void start(PersistenceEvent arg0) {

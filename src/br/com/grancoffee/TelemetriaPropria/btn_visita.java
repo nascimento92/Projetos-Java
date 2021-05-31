@@ -257,19 +257,18 @@ public class btn_visita implements AcaoRotinaJava {
 	private void chamaPentaho() {
 
 		try {
-			
-			final String parameter = (String) MGECoreParameter.getParameter("PENTAHOIP");
-			String site = parameter;
-			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
+
+			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");;
+			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
-			String path = "home/GC/Projetos/GCW/Jobs/";
-			String objName = "JOB - GSN008 - Verificar Visitas";
+			String path = "home/GC_New/Transformation/Sankhya-Apenas_Visita/";
+			String objName = "J-Loop_Apenas_visita";
 
 			si.runJob(path, objName);
 
 		} catch (Exception e) {
-			e.getMessage();
+			salvarException("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -290,7 +289,7 @@ public class btn_visita implements AcaoRotinaJava {
 			
 		} catch (Exception e) {
 			//aqui não tem jeito rs tem que mostrar no log
-			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
+			System.out.println("## [salvarException] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
 		}
 	}
 
