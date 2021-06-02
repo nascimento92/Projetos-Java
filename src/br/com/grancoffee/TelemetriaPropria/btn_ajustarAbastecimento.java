@@ -1,6 +1,7 @@
 package br.com.grancoffee.TelemetriaPropria;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -30,6 +31,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 		String campo = (String) linhas[0].getCampo("AJUSTADO");
 		BigDecimal idabast = (BigDecimal) linhas[0].getCampo("ID");
 		String status = verificaStatusAbastecimento(idabast);
+		Timestamp hora = TimeUtils.getNow();
 
 		if ("S".equals(campo)) {
 			arg0.mostraErro("<br/><b>Abastecimento já ajustado!</b><br/>");
@@ -45,13 +47,13 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			if (confirmarSimNao) {
 
 				Object idObjeto = linhas[0].getCampo("ID");
-				pegarTeclas(idObjeto, arg0);
-				salvaResonsavelPeloAjuste(idObjeto);
+				pegarTeclas(idObjeto, arg0, hora);
+				salvaResonsavelPeloAjuste(idObjeto, hora);
 			}
 		}
 	}
 
-	private void pegarTeclas(Object idObjeto, ContextoAcao arg0) throws Exception {
+	private void pegarTeclas(Object idObjeto, ContextoAcao arg0, Timestamp hora) throws Exception {
 
 		int cont = 0;
 
@@ -81,7 +83,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 				}
 				
 				inserirSolicitacaoDeAjuste(codbem, tecla, produto, capacidade, nivelpar, saldoEsperado, valor,
-						idObjeto);
+						idObjeto, hora);
 			
 				cont++;
 			}
@@ -97,7 +99,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 	}
 
 	private void inserirSolicitacaoDeAjuste(String codbem, String tecla, BigDecimal produto, BigDecimal capacidade, BigDecimal nivelpar, 
-			BigDecimal saldoAnterior, BigDecimal valor, Object idObjeto) {
+			BigDecimal saldoAnterior, BigDecimal valor, Object idObjeto, Timestamp hora) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCSolicitAjuste");
@@ -115,7 +117,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			VO.setProperty("OBSERVACAO", "Botão Ajustar Abastecimento");
 			VO.setProperty("SALDOFINAL", saldoAnterior.add(valor));
 			VO.setProperty("IDABASTECIMENTO", idObjeto);
-			VO.setProperty("AD_DTSOLICIT", TimeUtils.getNow());
+			VO.setProperty("AD_DTSOLICIT", hora);
 
 			dwfFacade.createEntity("GCSolicitAjuste", (EntityVO) VO);
 
@@ -145,7 +147,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 		return status;
 	}
 
-	private void salvaResonsavelPeloAjuste(Object idObjeto) {
+	private void salvaResonsavelPeloAjuste(Object idObjeto, Timestamp hora) {
 		try {
 
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -156,7 +158,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				DynamicVO VO = (DynamicVO) NVO;
 
-				VO.setProperty("DTVALIDACAO", TimeUtils.getNow());
+				VO.setProperty("DTVALIDACAO", hora);
 				VO.setProperty("STATUSVALIDACAO", "2");
 				VO.setProperty("CODUSUVALIDACAO", getUsuLogado());
 
