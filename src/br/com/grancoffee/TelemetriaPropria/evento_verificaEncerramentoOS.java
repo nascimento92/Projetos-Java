@@ -78,7 +78,9 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		
 		if("P".equals(oldSituacao) && "F".equals(newSituacao)) {
 			if(validaSeEhDaTelemetriaPropria(numos)) {
-				Timer timer = new Timer(10000, new ActionListener() {	
+				
+				
+				Timer timer = new Timer(30000, new ActionListener() {	
 					@Override
 					public void actionPerformed(ActionEvent e) {
 						chamaPentaho(parameter);				
@@ -86,6 +88,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 				});
 				timer.setRepeats(false);
 				timer.start();
+				
 			}
 		}
 		

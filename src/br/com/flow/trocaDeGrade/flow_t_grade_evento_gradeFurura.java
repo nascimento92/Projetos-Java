@@ -285,6 +285,10 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			BigDecimal vlrfunOr = TeclaOriginal.asBigDecimal("VLRFUN");
 			BigDecimal vlrparOr = TeclaOriginal.asBigDecimal("VLRPARC");
 			
+			/**
+			 * se algum desses campos for alterado, vai prejudicar o flow da troca de grade, uma vez que ele faz uma consulta baseado nas descrições.
+			 */
+			
 			if(capacidade.intValue()>capacidadeOr.intValue()) {
 				retorno+=" <b>Aumento</b> Capacidade/Mola,";
 			}

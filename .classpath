@@ -24,7 +24,6 @@
 	<classpathentry kind="lib" path="/api_custom/Flow/java-lib/org.apache.commons.io.jar"/>
 	<classpathentry kind="lib" path="/api_custom/Atualizados/java-lib/jaxb-api-2.3.0.jar"/>
 	<classpathentry kind="lib" path="/api_custom/Atualizados/java-lib/jsoup-1.12.1.jar"/>
-	<classpathentry kind="lib" path="/api_sankhya/SankhyaW-extensions.jar"/>
-	<classpathentry kind="lib" path="/api_outros/minimal-json_0.9.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Gabriel/Documents/eclipse/apis/api_custom/SankhyaW-extensions.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
