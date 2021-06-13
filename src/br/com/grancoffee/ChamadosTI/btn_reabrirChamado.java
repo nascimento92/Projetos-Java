@@ -189,7 +189,7 @@ public class btn_reabrirChamado implements AcaoRotinaJava {
 			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("STATUS", "Pendente");
 			VO.setProperty("CODCON", new BigDecimal(0));	
-			VO.setProperty("CODSMTP", new BigDecimal(1));
+			VO.setProperty("CODSMTP", getContaSmtpPrincipal());
 			VO.setProperty("MAXTENTENVIO", new BigDecimal(3));
 			VO.setProperty("TENTENVIO", new BigDecimal(0));
 			VO.setProperty("REENVIAR", "N");
@@ -200,6 +200,28 @@ public class btn_reabrirChamado implements AcaoRotinaJava {
 			e.printStackTrace();
 			retorno += e.getMessage();
 		}	
+	}
+	
+	private BigDecimal getContaSmtpPrincipal() throws Exception {
+		int count = 1;
+
+		JdbcWrapper jdbcWrapper = null;
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+		jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+
+		ResultSet contagem;
+		NativeSql nativeSql = new NativeSql(jdbcWrapper);
+		nativeSql.resetSqlBuf();
+		nativeSql.appendSql("SELECT MAX(CODSMTP) AS COD FROM TSISMTP WHERE PADRAO = 'S'");
+		contagem = nativeSql.executeQuery();
+
+		while (contagem.next()) {
+			count = contagem.getInt("COD");
+		}
+
+		BigDecimal codigoConta = new BigDecimal(count);
+
+		return codigoConta;
 	}
 	
 	private BigDecimal getUltimoCodigoFila() throws Exception {

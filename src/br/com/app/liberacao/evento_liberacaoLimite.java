@@ -1,18 +1,14 @@
 package br.com.app.liberacao;
 
 import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.Iterator;
 
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
-import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.core.JapeSession;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
-import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.MGEModelException;
@@ -62,65 +58,33 @@ public class evento_liberacaoLimite implements EventoProgramavelJava {
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		start(arg0);
+
 	}
 
-	private void start(PersistenceEvent arg0) {
-		BigDecimal valorASerLiberado = null;
+	private void start(PersistenceEvent arg0) throws MGEModelException {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal nroUnico = VO.asBigDecimal("NUNOTA");
-		BigDecimal usuarioLiberacao = VO.asBigDecimal("CODUSU");
-		BigDecimal vlrLiberado = VO.asBigDecimal("VALORLIBERADO");
-		BigDecimal valorTotal = VO.asBigDecimal("VALOR");
+		BigDecimal nunota = VO.asBigDecimal("NUNOTA");
 		String liberado = VO.asString("LIBERADO");
-		String obs = VO.asString("OBSERVACAO");
-		String evento = VO.asString("EVENTO");
 		
-		if(vlrLiberado.intValue()==valorTotal.intValue()) {
-			if(evento.equals("18")) {
-				valorASerLiberado=new BigDecimal(1);
-			}else {
-				valorASerLiberado=vlrLiberado;
-			}
-		}else {
-			valorASerLiberado=vlrLiberado;
-		}
-
-		if ("N".equals(liberado)) {
-			liberarNota(nroUnico, usuarioLiberacao, valorASerLiberado, obs, VO);
+		if("N".equals(liberado)) {
+			confirmar(nunota);
+			VO.setProperty("LIBERADO", "S");
 		}
 	}
 
-	private void liberarNota(BigDecimal nroUnico, BigDecimal usuarioLiberacao, BigDecimal vlrLiberado, String obs, DynamicVO VOS) {
+	public void confirmar(BigDecimal notaConfirmando) throws MGEModelException {
 		
 		try {
+			ServiceContext serviceCtx = ServiceContext.getCurrent();
+			JapeSession.putProperty("CabecalhoNota.confirmacao.ehPedido.Web", Boolean.FALSE);
+			AuthenticationInfo auth = (AuthenticationInfo) serviceCtx.getAutentication();
+			BarramentoRegra bRegras = BarramentoRegra.build(CACHelper.class, "regrasAprovarCAC.xml", auth);
 
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
-					new FinderWrapper("LiberacaoLimite", "this.NUCHAVE=?", new Object[] { nroUnico }));
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-				DynamicVO VO = (DynamicVO) NVO;
-
-				VO.setProperty("VLRLIBERADO", vlrLiberado);
-				VO.setProperty("CODUSULIB", usuarioLiberacao);
-				VO.setProperty("OBSLIB", obs);
-				VO.setProperty("DHLIB", TimeUtils.getNow());
-
-				itemEntity.setValueObject(NVO);
-
-				VOS.setProperty("LIBERADO", "S");
-			}
+			CACHelper.setupContext(serviceCtx);
+			ConfirmacaoNotaHelper.confirmarNota(notaConfirmando, bRegras);
 
 		} catch (Exception e) {
-			salvarException("[liberarNota] Nao foi possivel salvar na TSILIB! Nota: "+nroUnico+"\n"+e.getMessage()+"\n"+e.getCause());
-		}
-		
-		try {
-			confirmar(nroUnico);
-		} catch (Exception e) {
-			salvarException("[liberarNota] Nao foi possivel confirmar Nota: "+nroUnico+"\n"+e.getMessage()+"\n"+e.getCause());
+			salvarException("[confirmar] Nao foi possivel confirmar a nota "+notaConfirmando+"\n"+e.getMessage()+e.getMessage());
 		}
 	}
 	
@@ -143,26 +107,5 @@ public class evento_liberacaoLimite implements EventoProgramavelJava {
 			// aqui não tem jeito rs tem que mostrar no log
 			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
-	}
-	
-	public static Boolean confirmar(BigDecimal notaConfirmando) throws MGEModelException {
-		Boolean retorno = Boolean.FALSE;
-		try {
-			ServiceContext serviceCtx = ServiceContext.getCurrent();
-			JapeSession.putProperty("CabecalhoNota.confirmacao.ehPedido.Web", Boolean.FALSE);
-			AuthenticationInfo auth = (AuthenticationInfo) serviceCtx.getAutentication();
-			BarramentoRegra bRegras = BarramentoRegra.build(CACHelper.class, "regrasAprovarCAC.xml", auth);
-
-			CACHelper.setupContext(serviceCtx);
-			ConfirmacaoNotaHelper.confirmarNota(notaConfirmando, bRegras);
-
-		} catch (Exception e) {
-			MGEModelException.throwMe(e);
-			retorno = Boolean.FALSE;
-
-		} finally {
-			retorno = Boolean.TRUE;
-		}
-		return retorno;
 	}
 }
