@@ -27,8 +27,7 @@ public class evento_ajustaTeclaVisita implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		
 	}
 
 	@Override
@@ -56,18 +55,18 @@ public class evento_ajustaTeclaVisita implements EventoProgramavelJava {
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		DynamicVO VO = (DynamicVO) arg0.getVo();	
+		VO.setProperty("DTALTER", TimeUtils.getNow());
 	}
 
 	private void start(PersistenceEvent arg0) {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		String tecla = VO.asString("TECLA");
+		BigDecimal os = VO.asBigDecimal("NUMOS");
+		BigDecimal produto = VO.asBigDecimal("CODPROD");
 
 		if (tecla == null) {
-			BigDecimal os = VO.asBigDecimal("NUMOS");
-			BigDecimal produto = VO.asBigDecimal("CODPROD");
-
+			
 			String obtemTecla = obtemTecla(os, produto);
 			
 			if(obtemTecla==null) {
@@ -76,6 +75,8 @@ public class evento_ajustaTeclaVisita implements EventoProgramavelJava {
 			
 			VO.setProperty("TECLA", obtemTecla);
 		}
+		
+		VO.setProperty("DTREGISTRO", TimeUtils.getNow());
 	}
 
 	private String obtemTecla(BigDecimal os, BigDecimal produto) {
