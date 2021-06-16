@@ -93,6 +93,10 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			}
 
 			if (validaSeJaExisteOhProduto(idflow, produto)) {
+				VO.setProperty("PRODREPETIDO", "S");
+			}
+			
+			if(validaSeEhUmaMolaDupla(produto)) {
 				VO.setProperty("MOLADUPLA", "S");
 			}
 
@@ -102,6 +106,10 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		if ("0".equals(tecla)) {
 			if (validaSeJaExisteOhProduto(idflow, produto)) {
 				throw new Error("O Produto <b>" + produto + "</b> já está cadastrada para o patrimônio!");
+			}
+			
+			if(validaSeEhUmaMolaDupla(produto)) {
+				VO.setProperty("MOLADUPLA", "S");
 			}
 
 			salvaDadosAlterados(VO, idflow, produto, tecla, "Novo Produto", valorFuncionario,valorParceiro);
@@ -161,6 +169,11 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		if(validaSeOhProdutoExistiaTotem(idflow,produtoAnterior)) { //produto anterior
 			
 			if(produto!=produtoAnterior) {
+				
+				if(validaSeEhUmaMolaDupla(produto)) {
+					newVO.setProperty("MOLADUPLA", "S");
+				}
+				
 				deletaDadoAnterior(idflow,teclaAnterior,produtoAnterior);
 				salvaDadosAlterados(oldVO, idflow, produtoAnterior, teclaAnterior, "Retirar Produto", valorFunAnterior,valorParAnterior);
 			}
@@ -217,8 +230,13 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			}
 
 			if (validaSeJaExisteOhProduto(idflow, produto, tecla)) {
+				newVO.setProperty("PRODREPETIDO", "S");
+			}
+			
+			if(validaSeEhUmaMolaDupla(produto)) {
 				newVO.setProperty("MOLADUPLA", "S");
 			}
+			
 		} else {
 			throw new Error(
 					"O patrimônio " + patrimonio + " não é um totem, a sua tecla <b>não</b> pode ser 0 (zero)!");
@@ -226,6 +244,11 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		
 		
 		if(!validaSeJaExistiaAhTecla(idflow,tecla)) { //verifica se a tecla é nova
+			
+			if(validaSeEhUmaMolaDupla(produto)) {
+				newVO.setProperty("MOLADUPLA", "S");
+			}
+			
 			deletaDadoAnterior(idflow,tecla,produto);
 			salvaDadosAlterados(newVO, idflow, produto, tecla, "Nova tecla/Mola", valorFuncionario,valorParceiro);
 		}else { //tecla já existe
@@ -233,12 +256,22 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			if(validaSeJaExistiaAhTeclaEOhProduto(idflow,teclaAnterior, produtoAnterior)) { //produto anterior
 				
 				if(produto!=produtoAnterior) {
+					
+					if(validaSeEhUmaMolaDupla(produto)) {
+						newVO.setProperty("MOLADUPLA", "S");
+					}
+					
 					deletaDadoAnterior(idflow,teclaAnterior,produtoAnterior);
 					salvaDadosAlterados(oldVO, idflow, produtoAnterior, teclaAnterior, "Retirar Produto", valorFunAnterior,valorParAnterior);
 				}		
 			}
 			
 			if(!validaSeJaExistiaAhTeclaEOhProduto(idflow,tecla, produto)){ //produto novo
+				
+				if(validaSeEhUmaMolaDupla(produto)) {
+					newVO.setProperty("MOLADUPLA", "S");
+				}
+				
 				deletaDadoAnterior(idflow,tecla,produto);
 				salvaDadosAlterados(newVO, idflow, produto, tecla, "Novo Produto", valorFuncionario,valorParceiro);
 			}else { //ja existe
@@ -467,6 +500,22 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 
 		return valida;
 	}
+	
+	public boolean validaSeEhUmaMolaDupla(BigDecimal produto) throws Exception {
+		boolean valida = false;
+
+		JapeWrapper DAO = JapeFactory.dao("Produto");
+		DynamicVO VO = DAO.findOne("CODPROD=?", new Object[] { produto });
+
+		if (VO != null) {
+			String mola = VO.asString("AD_MOLADUPLA");
+			if("S".equals(mola)) {
+				valida = true;
+			}
+		}
+
+		return valida;
+	}
 
 	public void salvaDadosAlterados(DynamicVO newVO, BigDecimal idflow, BigDecimal codprod, String tecla, String tipo, BigDecimal valorFuncionario, BigDecimal valorParceiro) {
 		
@@ -488,8 +537,8 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			VO.setProperty("VLRPARC", valorParceiro);
 			VO.setProperty("TIPO", tipo);
 
-			if ("S".equals(newVO.asString("MOLADUPLA"))) {
-				VO.setProperty("MOLADUPLA", "S");
+			if ("S".equals(newVO.asString("PRODREPETIDO"))) {
+				VO.setProperty("PRODREPETIDO", "S");
 			}
 
 			dwfFacade.createEntity("AD_PRODUTOSALTERADOS", (EntityVO) VO);
@@ -555,8 +604,8 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 				VO.setProperty("VLRFUN", newVO.asBigDecimal("VLRFUN"));
 				VO.setProperty("VLRPARC", newVO.asBigDecimal("VLRPARC"));
 				
-				if("S".equals(newVO.asString("MOLADUPLA"))) {
-					VO.setProperty("MOLADUPLA", "S");
+				if("S".equals(newVO.asString("PRODREPETIDO"))) {
+					VO.setProperty("PRODREPETIDO", "S");
 				}
 
 				itemEntity.setValueObject(NVO);
