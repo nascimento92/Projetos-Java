@@ -33,45 +33,63 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			BigDecimal nunota = (BigDecimal) linhas[0].getCampo("NUNOTA");
 			BigDecimal numos = (BigDecimal) linhas[0].getCampo("NUMOS");
 			String status = (String) linhas[0].getCampo("STATUS");
-
+			
+			boolean confirmarSimNao = false;
+			boolean confirmarNotaJaFaturada = false;
+			
 			if ("1".equals(status)) {
-
-				if (nunota != null && numos != null) {
-					boolean confirmarSimNao = arg0.confirmarSimNao("Atenção!",
-							"O pedido <b>" + nunota + "</b> será excluido do portal de vendas, e a OS <b>" + numos
-									+ "</b> será cancelada, continuar?",
-							1);
-
-					if (confirmarSimNao) {
-						excluirNota(nunota);
-						cancelarOS(numos);
-						excluirRetornoAbastecimento(numos, nunota);
-						linhas[0].setCampo("STATUS", "4");
-						cont++;
-						//start(linhas[0]);
-					}
-				}else if (nunota != null && numos==null) {
-					excluirNota(nunota);
+				if (nunota == null && numos == null) {
+					confirmarSimNao = arg0.confirmarSimNao("Atenção", "A solicitação ainda não possui um pedido nem uma OS, mesmo assim deseja cancelar?", 1);
+				}else {
+					confirmarSimNao = arg0.confirmarSimNao("Atenção", "O pedido <b>"+nunota+"</b> será excluido do portal de vendas, e a OS <b>"+numos+"</b> será cancelada, continuar?", 1);
+				}
+				
+				if(confirmarSimNao) {
+					if (nunota != null && numos != null) {
+						
+						DynamicVO tgfVar = getTgfVar(nunota);
+						if (tgfVar != null) {
+							confirmarNotaJaFaturada = arg0.confirmarSimNao("Atenção", "Pedido já faturada, deseja cancelar apenas a OS?", 1);
+							
+							if(confirmarNotaJaFaturada) {
+								cancelarOS(numos);
+								//cancelar subos
+							}
+						}else {
+							excluirNota(nunota);
+							cancelarOS(numos);
+							//cancelar subos
+						}
+						
+					}else
+						if(nunota != null && numos == null) {
+							
+							DynamicVO tgfVar = getTgfVar(nunota);
+							if (tgfVar != null) {
+								confirmarNotaJaFaturada = arg0.confirmarSimNao("Atenção", "Pedido já faturada, será apenas cancelada a visita, continuar?", 1);
+							}else {
+								excluirNota(nunota);
+							}
+							
+						}
+						else
+							if(nunota == null && numos != null) {
+								cancelarOS(numos);
+								//cancelar subos
+							}
+					this.cont++;
 					excluirRetornoAbastecimento(nunota, nunota);
 					linhas[0].setCampo("STATUS", "4");
-					cont++;
-				}else if (nunota == null && numos!=null) {
-					cancelarOS(numos);
-					excluirRetornoAbastecimento(nunota, nunota);
-					linhas[0].setCampo("STATUS", "4");
-					cont++;
+			        linhas[0].setCampo("AD_DTCANCELAMENTO", TimeUtils.getNow());
+			        linhas[0].setCampo("AD_CODUSUCANCEL", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
 				}
-				else {
-					arg0.mostraErro("<b>Pedido de abastecimento ainda não foi gerado!</b>");
+			}else
+				if("4".equals(status)) {
+					arg0.mostraErro("<b>Abastecimento jfoi cancelado!</b>");
+				}else {
+					arg0.mostraErro("<b>Abastecimento jfoi realizado nposscancela-lo!</b>");
 				}
-
-			} else if ("4".equals(status)) {
-				arg0.mostraErro("<b>Abastecimento já foi cancelado!</b>");
-			}else {
-				arg0.mostraErro("<b>Abastecimento já foi realizado não é possível cancela-lo!</b>");
-			}
 		}
-		
 		if(cont>0) {
 			arg0.setMensagemRetorno("Visita Cancelada!");
 		}else {
@@ -81,13 +99,6 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 	}
 	
 	private void excluirNota(BigDecimal nunota) throws Exception {
-
-		DynamicVO tgfVar = getTgfVar(nunota);
-		if (tgfVar != null) {
-			throw new PersistenceException(
-					"<br/>O Pedido: <b>" + nunota + "</b> já foi faturado e gerou o número único: <b>"
-							+ tgfVar.asBigDecimal("NUNOTA") + "</b> não é possível cancelar o abastecimento!");
-		}
 
 		try {
 
