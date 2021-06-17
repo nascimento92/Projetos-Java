@@ -51,10 +51,16 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 							confirmarNotaJaFaturada = arg0.confirmarSimNao("Atenção", "Pedido já faturada, deseja cancelar apenas a OS?", 1);
 							
 							if(confirmarNotaJaFaturada) {
+								DynamicVO tabelaTcsite = getTcsite(numos);
+								BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
+								insertTcsrus(numos,codusurel);
 								cancelarSubOS(numos);
 								cancelarOS(numos);		
 							}
 						}else {
+							DynamicVO tabelaTcsite = getTcsite(numos);
+							BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
+							insertTcsrus(numos,codusurel);
 							excluirNota(nunota);
 							cancelarSubOS(numos);
 							cancelarOS(numos);
@@ -73,6 +79,9 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 						}
 						else
 							if(nunota == null && numos != null) {
+								DynamicVO tabelaTcsite = getTcsite(numos);
+								BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
+								insertTcsrus(numos,codusurel);
 								cancelarSubOS(numos);
 								cancelarOS(numos);		
 							}
@@ -184,6 +193,29 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			salvarException("[excluirRetornoAbastecimento] Nao foi possivel excluir o retorno de abastecimento! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
+	
+	private void insertTcsrus(BigDecimal numos, BigDecimal codusurel) throws Exception {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("RelacionamentoUsuario");
+
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("CODUSUREL", codusurel);
+			VO.setProperty("TIPO", "G");
+			VO.setProperty("VINCULO", "s");
+			VO.setProperty("LIDERIMEDIATO", "N");
+			
+			dwfFacade.createEntity("RelacionamentoUsuario", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			salvarException("[insertTcsrus] não foi possível alterar usuário numos:" + numos + "\n" + e.getMessage()
+			+ "\n" + e.getCause());
+
+		}
+	}
 
 	private DynamicVO getTgfVar(BigDecimal nunota) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("CompraVendavariosPedido");
@@ -216,5 +248,11 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			//aqui não tem jeito rs tem que mostrar no log
 			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
 		}
+	}
+	
+	private DynamicVO getTcsite(BigDecimal NumOs) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("ItemOrdemServico");
+		DynamicVO VO = DAO.findOne("NUMOS=?", new Object[] { NumOs });
+		return VO;
 	}
 }
