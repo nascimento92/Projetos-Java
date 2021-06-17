@@ -10,7 +10,6 @@ import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
-import br.com.sankhya.jape.PersistenceException;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
@@ -52,13 +51,13 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 							confirmarNotaJaFaturada = arg0.confirmarSimNao("Atenção", "Pedido já faturada, deseja cancelar apenas a OS?", 1);
 							
 							if(confirmarNotaJaFaturada) {
-								cancelarOS(numos);
-								//cancelar subos
+								cancelarSubOS(numos);
+								cancelarOS(numos);		
 							}
 						}else {
 							excluirNota(nunota);
+							cancelarSubOS(numos);
 							cancelarOS(numos);
-							//cancelar subos
 						}
 						
 					}else
@@ -74,8 +73,8 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 						}
 						else
 							if(nunota == null && numos != null) {
-								cancelarOS(numos);
-								//cancelar subos
+								cancelarSubOS(numos);
+								cancelarOS(numos);		
 							}
 					this.cont++;
 					excluirRetornoAbastecimento(nunota, nunota);
@@ -133,6 +132,30 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			}
 		} catch (Exception e) {
 			salvarException("[cancelarOS] Nao foi possivel cancelar a OS! "+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void cancelarSubOS(BigDecimal numos) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade
+					.findByDynamicFinder(new FinderWrapper("ItemOrdemServico", "this.NUMOS=?", new Object[] { numos }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("CODSIT", new BigDecimal(5));
+				VO.setProperty("HRINICIAL", new BigDecimal(0));
+				VO.setProperty("HRFINAL", new BigDecimal(0));
+				VO.setProperty("INICEXEC", TimeUtils.getNow());
+				VO.setProperty("TERMEXEC", TimeUtils.getNow());
+				VO.setProperty("SOLUCAO", "OS Cancelada através do botão \"Cancelar Abastecimento\" localizado na tela instalações!");
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			salvarException("[cancelarSubOS] Nao foi possivel cancelar a sub-OS! "+numos+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
