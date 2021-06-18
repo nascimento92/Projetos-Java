@@ -85,6 +85,19 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		VO.setProperty("VLRFUN", valorFuncionario);
 		VO.setProperty("VLRPARC", valorParceiro);	
 		VO.setProperty("MOLANOVA", "S");
+		
+		BigDecimal nivelpar = VO.asBigDecimal("NIVELPAR");
+		BigDecimal capacidade = VO.asBigDecimal("CAPACIDADE");
+		BigDecimal nivelalerta = VO.asBigDecimal("NIVELALERTA");
+		
+		if(nivelpar.intValue()>capacidade.intValue()) {
+			throw new Error("<b>Nivel par não pode ser maior que a capacidade!");
+		}
+		
+		if(nivelalerta.intValue()>nivelpar.intValue()) {
+			throw new Error("<b>Nivel alerta não pode ser maior que o Nivel par!");
+		}
+		
 
 		if (!"0".equals(tecla)) { // impede que sejam cadastradas teclas iguais para as máquinas (GCE não entra na validação)
 			
@@ -92,7 +105,7 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 				throw new Error("A tecla <b>" + tecla + "</b> já está cadastrada para o patrimônio!");
 			}
 
-			if (validaSeJaExisteOhProduto(idflow, produto)) {
+			if (validaSeJaExisteOhProduto(idflow, produto, tecla)) {
 				VO.setProperty("PRODREPETIDO", "S");
 			}
 			
@@ -121,6 +134,18 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal idflow = VO.asBigDecimal("IDINSTPRN");
 		String patrimonio = getPatrimonio(idflow);
+	
+		BigDecimal nivelpar = VO.asBigDecimal("NIVELPAR");
+		BigDecimal capacidade = VO.asBigDecimal("CAPACIDADE");
+		BigDecimal nivelalerta = VO.asBigDecimal("NIVELALERTA");
+		
+		if(nivelpar.intValue()>capacidade.intValue()) {
+			throw new Error("<b>Nivel par não pode ser maior que a capacidade!");
+		}
+		
+		if(nivelalerta.intValue()>nivelpar.intValue()) {
+			throw new Error("<b>Nivel alerta não pode ser maior que o Nivel par!");
+		}
 		
 		if(verificaSeEstaNaTelaInstalacoes(patrimonio)) {
 			if("S".equals(verificaSeEhUmTotem(patrimonio))) {
@@ -219,6 +244,16 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		BigDecimal valorFunAnterior = oldVO.asBigDecimal("VLRFUN");
 		BigDecimal valorParAnterior = oldVO.asBigDecimal("VLRPARC");
 		
+		
+		if (validaSeJaExisteOhProduto(idflow, produto, tecla)) {
+			newVO.setProperty("PRODREPETIDO", "S");
+		}
+		
+		if(validaSeEhUmaMolaDupla(produto)) {
+			newVO.setProperty("MOLADUPLA", "S");
+		}
+		
+		
 		if (!"0".equals(tecla)) { // impede que sejam cadastradas teclas iguais para as máquinas (GCE não entra na
 									// validação)
 
@@ -229,13 +264,6 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 				}
 			}
 
-			if (validaSeJaExisteOhProduto(idflow, produto, tecla)) {
-				newVO.setProperty("PRODREPETIDO", "S");
-			}
-			
-			if(validaSeEhUmaMolaDupla(produto)) {
-				newVO.setProperty("MOLADUPLA", "S");
-			}
 			
 		} else {
 			throw new Error(
@@ -245,21 +273,14 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		
 		if(!validaSeJaExistiaAhTecla(idflow,tecla)) { //verifica se a tecla é nova
 			
-			if(validaSeEhUmaMolaDupla(produto)) {
-				newVO.setProperty("MOLADUPLA", "S");
-			}
-			
 			deletaDadoAnterior(idflow,tecla,produto);
 			salvaDadosAlterados(newVO, idflow, produto, tecla, "Nova tecla/Mola", valorFuncionario,valorParceiro);
+			
 		}else { //tecla já existe
 			
 			if(validaSeJaExistiaAhTeclaEOhProduto(idflow,teclaAnterior, produtoAnterior)) { //produto anterior
 				
 				if(produto!=produtoAnterior) {
-					
-					if(validaSeEhUmaMolaDupla(produto)) {
-						newVO.setProperty("MOLADUPLA", "S");
-					}
 					
 					deletaDadoAnterior(idflow,teclaAnterior,produtoAnterior);
 					salvaDadosAlterados(oldVO, idflow, produtoAnterior, teclaAnterior, "Retirar Produto", valorFunAnterior,valorParAnterior);
@@ -268,12 +289,9 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			
 			if(!validaSeJaExistiaAhTeclaEOhProduto(idflow,tecla, produto)){ //produto novo
 				
-				if(validaSeEhUmaMolaDupla(produto)) {
-					newVO.setProperty("MOLADUPLA", "S");
-				}
-				
 				deletaDadoAnterior(idflow,tecla,produto);
-				salvaDadosAlterados(newVO, idflow, produto, tecla, "Novo Produto", valorFuncionario,valorParceiro);
+				//salvaDadosAlterados(newVO, idflow, produto, tecla, "Novo Produto", valorFuncionario,valorParceiro);
+				realizaAlteracao(newVO,oldVO);
 			}else { //ja existe
 				DynamicVO TeclaOriginal = getTeclaAnterior(idflow, tecla, produto);
 				
@@ -312,6 +330,7 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			}
 			
 			//anterior
+			BigDecimal produtoOr = TeclaOriginal.asBigDecimal("CODPROD");
 			BigDecimal capacidadeOr = TeclaOriginal.asBigDecimal("CAPACIDADE");
 			BigDecimal nivelparOr = TeclaOriginal.asBigDecimal("NIVELPAR");
 			BigDecimal nivelalertaOr = TeclaOriginal.asBigDecimal("NIVELALERTA");
@@ -321,6 +340,10 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			/**
 			 * se algum desses campos for alterado, vai prejudicar o flow da troca de grade, uma vez que ele faz uma consulta baseado nas descrições.
 			 */
+			
+			if(produto.intValue()!=produtoOr.intValue()) {
+				retorno+=" Novo Produto,";
+			}
 			
 			if(capacidade.intValue()>capacidadeOr.intValue()) {
 				retorno+=" <b>Aumento</b> Capacidade/Mola,";
