@@ -223,26 +223,10 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		BigDecimal produto = newVO.asBigDecimal("CODPROD");
 		String tecla = newVO.asString("TECLA");
 		
-		BigDecimal valorFuncionario = BigDecimal.ZERO;
-		BigDecimal valorParceiro = BigDecimal.ZERO;
-		
-		if(newVO.asBigDecimal("VLRFUN")!=null) {
-			valorFuncionario = newVO.asBigDecimal("VLRFUN");		
-		}else {
-			valorFuncionario = getValorFuncionario(idflow,tecla,produto);
-			newVO.setProperty("VLRFUN", valorFuncionario);
-		}
-		
-		if(newVO.asBigDecimal("VLRPARC")!=null) {
-			valorParceiro = newVO.asBigDecimal("VLRPARC");
-		}
-		
 		//old
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
 		BigDecimal produtoAnterior = oldVO.asBigDecimal("CODPROD");
 		String teclaAnterior = oldVO.asString("TECLA");
-		BigDecimal valorFunAnterior = oldVO.asBigDecimal("VLRFUN");
-		BigDecimal valorParAnterior = oldVO.asBigDecimal("VLRPARC");
 		
 		
 		if (validaSeJaExisteOhProduto(idflow, produto, tecla)) {
@@ -256,12 +240,13 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		
 		if (!"0".equals(tecla)) { // impede que sejam cadastradas teclas iguais para as máquinas (GCE não entra na
 									// validação)
-
 			if (tecla != teclaAnterior) {
 
 				if (validaSeJaExisteAhTecla(idflow, tecla)) {
 					throw new Error("A tecla <b>" + tecla + "</b> já está cadastrada para o patrimônio!");
 				}
+				
+				//deletaDadoAnterior(idflow,teclaAnterior,produto);
 			}
 
 			
@@ -270,35 +255,28 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 					"O patrimônio " + patrimonio + " não é um totem, a sua tecla <b>não</b> pode ser 0 (zero)!");
 		}
 		
-		
-		if(!validaSeJaExistiaAhTecla(idflow,tecla)) { //verifica se a tecla é nova
+		if(validaSeJaExistiaAhTecla(idflow, tecla)) { //mesma tecla
 			
-			deletaDadoAnterior(idflow,tecla,produto);
-			salvaDadosAlterados(newVO, idflow, produto, tecla, "Nova tecla/Mola", valorFuncionario,valorParceiro);
-			
-		}else { //tecla já existe
-			
-			if(validaSeJaExistiaAhTeclaEOhProduto(idflow,teclaAnterior, produtoAnterior)) { //produto anterior
-				
-				if(produto!=produtoAnterior) {
-					
-					deletaDadoAnterior(idflow,teclaAnterior,produtoAnterior);
-					salvaDadosAlterados(oldVO, idflow, produtoAnterior, teclaAnterior, "Retirar Produto", valorFunAnterior,valorParAnterior);
-				}		
-			}
-			
-			if(!validaSeJaExistiaAhTeclaEOhProduto(idflow,tecla, produto)){ //produto novo
-				
-				deletaDadoAnterior(idflow,tecla,produto);
-				//salvaDadosAlterados(newVO, idflow, produto, tecla, "Novo Produto", valorFuncionario,valorParceiro);
-				realizaAlteracao(newVO,oldVO);
-			}else { //ja existe
+			if(validaSeJaExistiaAhTeclaEOhProduto(idflow, tecla, produto)) { //mesma tecla, mesmo produto
 				DynamicVO TeclaOriginal = getTeclaAnterior(idflow, tecla, produto);
-				
 				realizaAlteracao(newVO,TeclaOriginal);
+			}else { // mesma tecla, produto diferente
+				DynamicVO TeclaOriginal = getTeclaAnterior(idflow, tecla);
+				BigDecimal produtoOriginal = TeclaOriginal.asBigDecimal("CODPROD");
+				
+				deletaDadoAnterior(idflow,teclaAnterior,produtoAnterior);
+				deletaDadoAnterior(idflow,tecla,produtoOriginal);
+				salvaDadosAlterados(TeclaOriginal, idflow,produtoOriginal,tecla,"Retirar Produto."); //registrar retirada do prod. anterior
+				
+				realizaAlteracao(newVO,TeclaOriginal); //registra novo produto.
 			}
-			
-		}	
+		
+		}else { //tecla diferente
+			deletaDadoAnterior(idflow,teclaAnterior,produtoAnterior);
+			deletaDadoAnterior(idflow,tecla,produto);
+			salvaDadosAlterados(newVO, idflow,produto,tecla,"Nova Tecla / Mola.");
+		}
+		
 		
 	}
 	
@@ -567,8 +545,64 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 			dwfFacade.createEntity("AD_PRODUTOSALTERADOS", (EntityVO) VO);
 
 		} catch (Exception e) {
-			salvarException("[salvaDadosAlterados] Nao foi possivel salvar a tecla: " + tecla + " flow: " + idflow
-					+ "\n" + e.getMessage() + "\n" + e.getCause());
+			salvarException(""
+					+ "[salvaDadosAlterados] Nao foi possivel salvar a tecla: " + tecla + 
+					" flow: " + idflow +
+					" IDINSTTAR: "+newVO.asBigDecimal("IDINSTTAR")+
+					" CODPROD: "+codprod+
+					" TECLA: "+tecla+
+					" CODREGISTRO: "+newVO.asBigDecimal("CODREGISTRO")+
+					" IDTAREFA: "+newVO.asString("IDTAREFA")+
+					" VLRFUN: "+valorFuncionario+
+					" NIVELPAR: "+newVO.asBigDecimal("NIVELPAR")+
+					" CAPACIDADE: "+newVO.asBigDecimal("CAPACIDADE")+
+					" NIVELALERTA: "+newVO.asBigDecimal("NIVELALERTA")+
+					" VLRPARC: "+valorParceiro+
+					" TIPO: "+tipo+
+					" PRODREPETIDO: "+newVO.asString("PRODREPETIDO")+
+					"\n" + e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	public void salvaDadosAlterados(DynamicVO newVO, BigDecimal idflow, BigDecimal codprod, String tecla, String tipo) {
+		
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_PRODUTOSALTERADOS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("IDINSTPRN", idflow);
+			VO.setProperty("IDINSTTAR", newVO.asBigDecimal("IDINSTTAR"));
+			VO.setProperty("CODPROD", codprod);
+			VO.setProperty("TECLA", tecla);
+			VO.setProperty("CODREGISTRO", newVO.asBigDecimal("CODREGISTRO"));
+			VO.setProperty("IDTAREFA", newVO.asString("IDTAREFA"));
+			VO.setProperty("VLRFUN", newVO.asBigDecimal("VLRFUN"));
+			VO.setProperty("NIVELPAR", newVO.asBigDecimal("NIVELPAR"));
+			VO.setProperty("CAPACIDADE", newVO.asBigDecimal("CAPACIDADE"));
+			VO.setProperty("NIVELALERTA", newVO.asBigDecimal("NIVELALERTA"));
+			VO.setProperty("VLRPARC", newVO.asBigDecimal("VLRPARC"));
+			VO.setProperty("TIPO", tipo);
+
+			dwfFacade.createEntity("AD_PRODUTOSALTERADOS", (EntityVO) VO);
+
+		} catch (Exception e) {
+			salvarException(""
+					+ "[salvaDadosAlterados] Nao foi possivel salvar a tecla: " + tecla + 
+					" flow: " + idflow +
+					" IDINSTTAR: "+newVO.asBigDecimal("IDINSTTAR")+
+					" CODPROD: "+codprod+
+					" TECLA: "+tecla+
+					" CODREGISTRO: "+newVO.asBigDecimal("CODREGISTRO")+
+					" IDTAREFA: "+newVO.asString("IDTAREFA")+
+					" VLRFUN: "+newVO.asBigDecimal("VLRFUN")+
+					" NIVELPAR: "+newVO.asBigDecimal("NIVELPAR")+
+					" CAPACIDADE: "+newVO.asBigDecimal("CAPACIDADE")+
+					" NIVELALERTA: "+newVO.asBigDecimal("NIVELALERTA")+
+					" VLRPARC: "+newVO.asBigDecimal("VLRPARC")+
+					" TIPO: "+tipo+
+					" PRODREPETIDO: "+newVO.asString("PRODREPETIDO")+
+					"\n" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
 	
@@ -605,6 +639,13 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 	private DynamicVO getTeclaAnterior(BigDecimal idflow, String tecla, BigDecimal produto) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("AD_GRADEATUAL");
 		DynamicVO VO = DAO.findOne("IDINSTPRN=? AND TECLA=? AND CODPROD=?", new Object[] { idflow, tecla, produto });
+		
+		return VO;
+	}
+	
+	private DynamicVO getTeclaAnterior(BigDecimal idflow, String tecla) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("AD_GRADEATUAL");
+		DynamicVO VO = DAO.findOne("IDINSTPRN=? AND TECLA=?", new Object[] { idflow, tecla});
 		
 		return VO;
 	}
