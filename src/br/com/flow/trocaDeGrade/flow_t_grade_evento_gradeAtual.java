@@ -17,6 +17,8 @@ import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
@@ -82,13 +84,16 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 		}
 	}
 	
-	public void start(PersistenceEvent arg0) {
+	public void start(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal idFlow = VO.asBigDecimal("IDINSTPRN");
 		BigDecimal idTarefa = VO.asBigDecimal("IDINSTTAR");
 		BigDecimal codRegistro = VO.asBigDecimal("CODREGISTRO");
 		String idCard = VO.asString("IDTAREFA");
 		String patrimonio = VO.asString("CODBEM");
+		
+		VO.setProperty("NUMCONTRATO", getNumcontrato(patrimonio));
+		VO.setProperty("CODPARC", getParceiro(getNumcontrato(patrimonio)));
 		
 		getTeclas(idFlow,idTarefa,codRegistro,idCard,patrimonio);
 	}
@@ -229,6 +234,20 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 			// aqui não tem jeito rs tem que mostrar no log
 			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
+	}
+	
+	private BigDecimal getNumcontrato(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("ENDERECAMENTO");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		return contrato;
+	}
+	
+	private BigDecimal getParceiro(BigDecimal numcontrato) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("Contrato");
+		DynamicVO VO = DAO.findOne("NUMCONTRATO=?",new Object[] { numcontrato });
+		BigDecimal parceiro = VO.asBigDecimal("CODPARC");
+		return parceiro;
 	}
 
 }
