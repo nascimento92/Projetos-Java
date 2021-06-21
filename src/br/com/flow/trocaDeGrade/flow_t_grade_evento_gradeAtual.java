@@ -55,13 +55,27 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		validaSeJaTemUmPatrimonio(arg0);		
+		validaSeJaTemUmPatrimonio(arg0);
+		alteraContratoParceiro(arg0);
+		
+		 
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
 		deletar(arg0);
+		alteraContratoParceiro(arg0);
 		start(arg0);		
+	}
+	
+	private void alteraContratoParceiro(PersistenceEvent arg0) throws Exception {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		String patrimonio = VO.asString("CODBEM");
+		
+		if (patrimonio != null) {
+			VO.setProperty("NUMCONTRATO", getNumcontrato(patrimonio));
+			VO.setProperty("CODPARC", getParceiro(getNumcontrato(patrimonio)));
+		}
 	}
 	
 	private void validaSeJaTemUmPatrimonio(PersistenceEvent arg0) throws Exception {
@@ -92,10 +106,12 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 		String idCard = VO.asString("IDTAREFA");
 		String patrimonio = VO.asString("CODBEM");
 		
-		VO.setProperty("NUMCONTRATO", getNumcontrato(patrimonio));
-		VO.setProperty("CODPARC", getParceiro(getNumcontrato(patrimonio)));
+		try {
+			getTeclas(idFlow,idTarefa,codRegistro,idCard,patrimonio);
+		} catch (Exception e) {
+			salvarException("[start] não foi possivel realizar os procedimentos! "+e.getMessage()+"\n"+e.getCause());
+		}
 		
-		getTeclas(idFlow,idTarefa,codRegistro,idCard,patrimonio);
 	}
 	
 	public void deletar(PersistenceEvent arg0) {
