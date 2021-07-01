@@ -10,7 +10,6 @@ import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
-import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
@@ -25,8 +24,7 @@ public class btn_abrirOS implements AcaoRotinaJava {
 
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
-		Registro[] linhas = arg0.getLinhas();
-		String patrimonio = (String) linhas[0].getCampo("CODBEM");
+		String patrimonio = (String) arg0.getParam("CODBEM");
 		
 		BigDecimal numos = gerarCabecalhoOS(arg0, patrimonio);
 		
@@ -37,11 +35,24 @@ public class btn_abrirOS implements AcaoRotinaJava {
 		
 	}
 	
-	private BigDecimal gerarCabecalhoOS(ContextoAcao arg0, String patrimonio){
+	private BigDecimal gerarCabecalhoOS(ContextoAcao arg0, String patrimonio) throws Exception{
 		
 		String problema = (String) arg0.getParam("DESCRICAO");
 		
 		BigDecimal numos = BigDecimal.ZERO;
+		
+		DynamicVO adPatrimonio = getAdPatrimonio(patrimonio);
+		BigDecimal contrato = adPatrimonio.asBigDecimal("NUMCONTRATO");
+		BigDecimal parceiro = BigDecimal.ZERO;
+		
+		if(contrato.intValue()!=0) {
+			DynamicVO tcscon = getTcscon(contrato);
+			parceiro = tcscon.asBigDecimal("CODPARC");
+		}else {
+			contrato = new BigDecimal(1314);
+			parceiro = new BigDecimal(1);
+		}
+		
 		
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -64,7 +75,9 @@ public class btn_abrirOS implements AcaoRotinaJava {
 			NotaProdVO.setProperty("TEMPOSLA", new BigDecimal(7000));
 			NotaProdVO.setProperty("AD_TELASAC", "S");
 			NotaProdVO.setProperty("CODCOS", new BigDecimal(1));
-			  
+			NotaProdVO.setProperty("NUMCONTRATO", contrato);
+			NotaProdVO.setProperty("CODPARC", parceiro);
+			
 			dwfFacade.createEntity(DynamicEntityNames.ORDEM_SERVICO,(EntityVO) NotaProdVO);
 			numos = NotaProdVO.asBigDecimal("NUMOS");
 			
@@ -98,7 +111,7 @@ public class btn_abrirOS implements AcaoRotinaJava {
 			NotaProdVO.setProperty("DHPREVISTA", addDias(dataAtual,new BigDecimal(7)));
 			NotaProdVO.setProperty("INICEXEC", null); 
 			NotaProdVO.setProperty("TERMEXEC", null); 
-			NotaProdVO.setProperty("SERIE", null);
+			NotaProdVO.setProperty("SERIE", patrimonio);
 			NotaProdVO.setProperty("CODSIT", new BigDecimal(1));
 			NotaProdVO.setProperty("CODOCOROS", new BigDecimal(motivo));
 			NotaProdVO.setProperty("SOLUCAO", " ");
@@ -131,6 +144,18 @@ public class btn_abrirOS implements AcaoRotinaJava {
 		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
 		BigDecimal produto = VO.asBigDecimal("CODPROD");
 		return produto;
+	}
+	
+	private DynamicVO getAdPatrimonio(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		return VO;
+	}
+	
+	private DynamicVO getTcscon(BigDecimal contrato) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("Contrato");
+		DynamicVO VO = DAO.findOne("NUMCONTRATO=?",new Object[] { contrato });
+		return VO;
 	}
 	
 	private void cadastraServicoParaOhExecutante(BigDecimal usuario, BigDecimal produto) {
