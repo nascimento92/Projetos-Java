@@ -1,14 +1,17 @@
 package br.com.app.liberacao;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.core.JapeSession;
+import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.MGEModelException;
@@ -58,18 +61,43 @@ public class evento_liberacaoLimite implements EventoProgramavelJava {
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-
+		start(arg0);
 	}
 
-	private void start(PersistenceEvent arg0) throws MGEModelException {
+	private void start(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal nunota = VO.asBigDecimal("NUNOTA");
 		String liberado = VO.asString("LIBERADO");
+		String usuario = VO.asString("NOMEUSU");
 		
-		if("N".equals(liberado)) {
-			confirmar(nunota);
-			VO.setProperty("LIBERADO", "S");
+		if(validaSeConfirmaNota(usuario)) {
+			if("N".equals(liberado)) {
+				confirmar(nunota);
+				VO.setProperty("LIBERADO", "S");
+			}
 		}
+		
+	}
+	
+	private boolean validaSeConfirmaNota(String usuario) throws Exception {
+		boolean valida = false;
+		
+		JdbcWrapper jdbcWrapper = null;
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+		jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+		ResultSet contagem;
+		NativeSql nativeSql = new NativeSql(jdbcWrapper);
+		nativeSql.resetSqlBuf();
+		nativeSql.appendSql("SELECT TENTACONFIRMAR FROM AD_APPLIBCONFIG WHERE NOMEUSU='"+usuario+"'");
+		contagem = nativeSql.executeQuery();
+		while (contagem.next()) {
+			String confirma = contagem.getString("TENTACONFIRMAR");
+			if ("S".equals(confirma)) {
+				valida = true;
+			}
+		}
+		
+		return valida;
 	}
 
 	public void confirmar(BigDecimal notaConfirmando) throws MGEModelException {
