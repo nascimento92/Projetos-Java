@@ -86,7 +86,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 								cancelarOS(numos);		
 							}
 					this.cont++;
-					excluirRetornoAbastecimento(nunota, nunota);
+					excluirRetornoAbastecimento(numos, nunota);
 					linhas[0].setCampo("STATUS", "4");
 			        linhas[0].setCampo("AD_DTCANCELAMENTO", TimeUtils.getNow());
 			        linhas[0].setCampo("AD_CODUSUCANCEL", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
