@@ -60,14 +60,8 @@ public class carregaBeneficio implements EventoProgramavelJava {
 		
 	}
 	
-	
-	
-	// Metodos privados 
-	
 	private void carregabeneficio(PersistenceEvent arg0) throws Exception {
-		
-		//try {
-			
+
 			DynamicVO itemVO = (DynamicVO) arg0.getVo();
 			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -99,22 +93,28 @@ public class carregaBeneficio implements EventoProgramavelJava {
 
 		
 			// Beneficio
-			if (CodBeneficio==null && TipoMovimento.contentEquals("T") && grupoICMSprod!=null) {
-				//System.out.println("Produto: "+codProd+" Empresa:"+codEmp.toString()+" Estado:"+codUF.toString()+" Grupo ICMS:"+grupoICMSprod.toString()+ " Tributação:"+codTrib.toString() + " Tipo de Movimento:"+TipoMovimento + " Beneficio:"+CodBeneficio);
-
-				CodBeneficio = obtemBeneficio(codEmp,codUF,grupoICMSprod,codTrib);
+			if (CodBeneficio==null && grupoICMSprod!=null) {
 				
-				if(CodBeneficio!=null){
-					itemVO.setProperty("CODBENEFNAUF", CodBeneficio);
+				if(validaTipoMovimento(TipoMovimento)) {
+					CodBeneficio = obtemBeneficio(codEmp,codUF,grupoICMSprod,codTrib);
+					
+					if(CodBeneficio!=null){
+						itemVO.setProperty("CODBENEFNAUF", CodBeneficio);
+					}
 				}
-				
 			};
 			
-		//} catch (Exception e) {
-		//	System.out.println("**** Não foi possivel carregar os beneficios da nota: "+nunota+e.getMessage());
-		//}
-		
 
+	}
+	
+	private boolean validaTipoMovimento(String TipoMovimento) {
+		boolean valida = false;
+		if("V".equals(TipoMovimento)) {
+			valida = true;
+		}else if ("T".equals(TipoMovimento)) {
+			valida=true;
+		}
+		return valida;
 	}
 
     private static String obtemBeneficio(BigDecimal codEmp, BigDecimal codUF, BigDecimal grupoICMSprod, BigDecimal codTrib) throws Exception {
