@@ -2,100 +2,143 @@ package br.com.Desenvolvimentos;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Locale;
 
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
-import br.com.sankhya.jape.PersistenceException;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.ws.ServiceContext;
 
 public class eventoCalculaTempoDasAtividades implements EventoProgramavelJava {
 
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		registraTempoTotalDasEtapas(arg0);
-		
+		aUpdate(arg0);
 	}
 
 	public void beforeCommit(TransactionContext arg0) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		start(arg0);	
+		bUpdate(arg0);
 	}
-	
-	private void start(PersistenceEvent arg0) throws Exception {
+
+	private void bUpdate(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		Timestamp dataFinal = VO.asTimestamp("DTFIM");
+		Timestamp dataInicio = VO.asTimestamp("DTINICIO");
+		String status = VO.asString("STATUS");
+		
+		if ("2".equals(status) && dataInicio == null) {
+			VO.setProperty("DTINICIO", TimeUtils.getNow());
+		}
+
+		if ("3".equals(status) && dataFinal == null) {
+			VO.setProperty("DTFIM", TimeUtils.getNow());
+		}
 		
 		if(dataFinal!=null) {
-			BigDecimal nroEtapa = VO.asBigDecimal("NROETAPA");
-			BigDecimal id = VO.asBigDecimal("ID");
-			
-			double tempo = calculaTempoTotal(nroEtapa,id);
-			BigDecimal a = new BigDecimal(tempo);
-			BigDecimal b = casasDecimais(3,a);
-			
-			VO.setProperty("TEMPO", b);
-			VO.setProperty("STATUS", "4");
-			
-			//throw new PersistenceException("\n\nTempo: "+tempo+"\nBigDecimal: "+a+"\nBig Convertido: "+b);
+			if (dataInicio.after(dataFinal)) {
+				throw new Error("<br/> <b>Data inicial não pode ser maior que data final!</b> <br/>");
+			}
 		}
-	}
-	
-	private double calculaTempoTotal(BigDecimal nroEtapa,BigDecimal id) throws Exception {
-		double tempo = 0.0;
-		double valor = 0.0;
-		
-		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-		Collection<?> col = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_ATIVIDADEPROJETO","this.NROETAPA=? AND this.ID=? ", new Object[] { nroEtapa,id }));
-		for (Iterator<?> Iterator = col.iterator(); Iterator.hasNext();) {
 
-		PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-		DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+	}
+
+	private void aUpdate(PersistenceEvent arg0) throws Exception {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal idProjeto = VO.asBigDecimal("ID");
+		double somaTempoPrevisto = soma(idProjeto, "TEMPPREVISTO");
+		double somaTempoGasto = soma(idProjeto,"TEMPO");
 		
-		Timestamp fim = DynamicVO.asTimestamp("DTFIM");
-		
-			if (fim == null) {
-				throw new PersistenceException(
-						"\n\nA atividade " + DynamicVO.asBigDecimal("NRATIVIDADE") + " nao foi finalizada!\n\n");
-			} else if (fim != null) {
-				valor = DynamicVO.asDouble("TEMPO");
-				tempo += valor;
+		salvaTotalHoras(idProjeto,somaTempoPrevisto,"TEMPREVISTO");
+		salvaTotalHoras(idProjeto,somaTempoGasto,"TEMPOGASTO");
+	}
+
+	private double soma(BigDecimal idProjeto, String campo) {
+		double total = 0;
+
+		try {
+
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_ETAPAPROJETO",
+					"this.ID = ?", new Object[] { idProjeto}));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				BigDecimal tempo = (BigDecimal) DynamicVO.getProperty(campo);
+				if(tempo==null) {
+					tempo = new BigDecimal(0);
+				}
+				double x = tempo.doubleValue();
+
+				total += x;
+
 			}
 
+		} catch (Exception e) {
+			salvarException("[soma] nao foi possivel somar as horas! " + e.getMessage() + "\n" + e.getCause());
 		}
-		return tempo;
+
+		return total;
+	}
+	
+	private void salvaTotalHoras(BigDecimal idProjeto, double horas, String campo) throws Exception {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_PROJETOS",
+					"this.ID=? ", new Object[] { idProjeto }));
+			
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty(campo, casasDecimais(2,new BigDecimal(horas)));
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			salvarException("[salvaTotalHoras] nao foi possivel salvar as horas! "+e.getMessage()+"\n"+e.getCause());
+		}		
+
 	}
 	
 	private BigDecimal casasDecimais(int casas, BigDecimal valor)
@@ -115,60 +158,25 @@ public class eventoCalculaTempoDasAtividades implements EventoProgramavelJava {
 	    return new BigDecimal(textoValor.replace(",", "."));
 	}
 	
-	public double converterDoubleDoisDecimais(double precoDouble) {
-	    DecimalFormat fmt = new DecimalFormat("0.00");      
-	    String string = fmt.format(precoDouble);
-	    String[] part = string.split("[,]");
-	    String string2 = part[0]+"."+part[1];
-	        double preco = Double.parseDouble(string2);
-	    return preco;
-	}
-	
-	public void registraTempoTotalDasEtapas(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		Timestamp tempoFinal = VO.asTimestamp("DTFIM");
-		
-		if(tempoFinal!=null) {
-			BigDecimal id = VO.asBigDecimal("ID");
-			double tempo = calculaTempoTotal(id);
-			BigDecimal a = new BigDecimal(tempo);
-			BigDecimal b = casasDecimais(3,a);
-			
-			salvaDados(b,id);
+	private void salvarException(String mensagem) {
+		try {
+
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "eventoCalculaTempoDasAtividades");
+			VO.setProperty("PACOTE", "br.com.Desenvolvimentos");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+
+		} catch (Exception e) {
+			// aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
-	
-	private double calculaTempoTotal(BigDecimal id) throws Exception {
-		double tempo = 0.0;
-		double valor = 0.0;
-		
-		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-		Collection<?> col = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_ETAPAPROJETO","this.ID=? ", new Object[] { id }));
-		for (Iterator<?> Iterator = col.iterator(); Iterator.hasNext();) {
 
-		PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-		DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-		
-		Timestamp fim = DynamicVO.asTimestamp("DTFIM");
-		
-			if (fim != null) {
-				valor = DynamicVO.asDouble("TEMPO");
-				tempo += valor;
-			}
-		}
-		return tempo;
-	}
-	
-	private void salvaDados(BigDecimal tempo, BigDecimal id) throws Exception {
-		EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-		PersistentLocalEntity PersistentLocalEntity = dwfFacade.findEntityByPrimaryKey("AD_PROJETOS", id);
-		EntityVO NVO = PersistentLocalEntity.getValueObject();
-		DynamicVO appVO = (DynamicVO) NVO;
-
-		appVO.setProperty("TEMPATUAL", tempo);
-
-		PersistentLocalEntity.setValueObject(NVO);
-
-	}
-	
 }

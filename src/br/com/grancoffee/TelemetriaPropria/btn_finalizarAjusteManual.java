@@ -64,6 +64,7 @@ public class btn_finalizarAjusteManual implements AcaoRotinaJava {
 			});
 			timer.setRepeats(false);
 			timer.start();
+
 		}
 	}
 
@@ -198,12 +199,10 @@ public class btn_finalizarAjusteManual implements AcaoRotinaJava {
 			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
-			String path = "home/GC/Projetos/GCW/Transformations/";
-			String objName = "TF - GSN007 - Verifica Solicitacoes de ajuste";
-			String objName2 = "TF - GSN002 - Salva Estoque MID-SKW";
+			String path = "home/GC_New/Transformation/Mid-Ajuste_Estoque/";
+			String objName = "J-Ajuste_de_estoque";
 
-			si.runTrans(path, objName);
-			si.runTrans(path, objName2);
+			si.runJob(path, objName);		
 
 		} catch (Exception e) {
 			salvarException("Não foi possível chamar a Rotina Pentaho!" + e.getMessage() + "\n" + e.getCause());
@@ -223,7 +222,7 @@ public class btn_finalizarAjusteManual implements AcaoRotinaJava {
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
 			DynamicVO VO = (DynamicVO) NPVO;
 
-			VO.setProperty("OBJETO", "btn_zerarMaquina");
+			VO.setProperty("OBJETO", "btn_finalizarAjusteManual");
 			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
 			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
 			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());

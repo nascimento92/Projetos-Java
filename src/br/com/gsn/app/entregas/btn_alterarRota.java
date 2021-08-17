@@ -1,8 +1,11 @@
 package br.com.gsn.app.entregas;
 
-import java.math.BigDecimal;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.Collection;
 import java.util.Iterator;
+
+import javax.swing.Timer;
 
 import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
@@ -16,44 +19,51 @@ import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.modelcore.util.MGECoreParameter;
 
-public class btn_removerMotorista implements AcaoRotinaJava {
+public class btn_alterarRota implements AcaoRotinaJava {
 
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
-
-		boolean confirmarSimNao = arg0.confirmarSimNao("Atenção", "O vinculo entre Motorista/Veiculo/O.C será desfeito, continuar?", 0);
-		if(confirmarSimNao) {
-
-			for (int i = 0; i < linhas.length; i++) {
-				removerMotorista(linhas[i]);
-			}
+		String novaRota = (String) arg0.getParam("ROTA");
+		Integer oc = (Integer) linhas[0].getCampo("ORDEMCARGA");
+		
+		for (int i=0; i<linhas.length; i++) {
+			alterarRota(oc, novaRota);
 		}
-
-		arg0.setMensagemRetorno("Motorista/Veiculo removidos!");
-		chamaPentaho();	
+		
+		arg0.setMensagemRetorno("Rota alterada!");
+		
+		Timer timer = new Timer(5000, new ActionListener() {	
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				chamaPentaho();				
+			}
+		});
+		timer.setRepeats(false);
+		timer.start();
+		
 	}
-
-	private void removerMotorista(Registro linhas) {
+	
+	private void alterarRota(Integer oc, String novaRota) {
+		
 		try {
-			Object oc = linhas.getCampo("ORDEMCARGA");
-
+			
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("OrdemCarga", "this.ORDEMCARGA=?", new Object[] { oc }));
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("OrdemCarga",
+					"this.ORDEMCARGA=?", new Object[] { oc }));
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				DynamicVO VO = (DynamicVO) NVO;
 
-				VO.setProperty("AD_APPMOTO", null);
-				VO.setProperty("CODVEICULO", new BigDecimal(0));
-				VO.setProperty("AD_INTEGRADO", "N");
+				VO.setProperty("AD_ROTA", novaRota);
+				VO.setProperty("AD_ATUALIZADO", "N");
 
 				itemEntity.setValueObject(NVO);
 			}
+			
 		} catch (Exception e) {
-			throw new Error("ops " + e.getCause());
+			throw new Error("ops "+ e.getCause());
 		}
 	}
 	
@@ -66,7 +76,7 @@ public class btn_removerMotorista implements AcaoRotinaJava {
 			WSPentaho si = new WSPentaho(site, Key);
 
 			String path = "home/APPS/APP Entregas/Prod/Entregas/";
-			String objName = "T-Excluir_entregas";
+			String objName = "T-Alterar_entregas";
 
 			si.runTrans(path, objName);
 

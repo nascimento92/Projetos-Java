@@ -439,6 +439,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 	
 	public String montarBody(Object codbem){
 		
+		int cont = 1;
 		String head="{\"planogram\":{\"items_attributes\": [";
 		String bottom="]}}";
 		
@@ -460,6 +461,11 @@ public class btn_abastecimento implements AcaoRotinaJava{
 				String tecla = DynamicVO.asBigDecimal("TECLA").toString();
 				String name = "";
 				
+				if("0".equals(tecla)) {
+					tecla=String.valueOf(cont);
+					cont++;
+				}
+				
 				if(teclaAlternativa!=null) {
 					name = teclaAlternativa;
 				}else {
@@ -478,7 +484,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 							"\"par_level\": "+DynamicVO.asBigDecimal("AD_NIVELPAR").toString()+","+
 							"\"alert_level\": "+DynamicVO.asBigDecimal("AD_NIVELALERTA").toString()+","+
 							"\"desired_price\": "+DynamicVO.asBigDecimal("VLRFUN").add(DynamicVO.asBigDecimal("VLRPAR")).toString()+","+
-							"\"logical_locator\": "+DynamicVO.asBigDecimal("TECLA").toString()+","+
+							"\"logical_locator\": "+tecla+","+
 							"\"status\": \"active\""
 							+ "},";
 				}else {
@@ -490,7 +496,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 							"\"par_level\": "+DynamicVO.asBigDecimal("AD_NIVELPAR").toString()+","+
 							"\"alert_level\": "+DynamicVO.asBigDecimal("AD_NIVELALERTA").toString()+","+
 							"\"desired_price\": "+DynamicVO.asBigDecimal("VLRFUN").add(DynamicVO.asBigDecimal("VLRPAR")).toString()+","+
-							"\"logical_locator\": "+DynamicVO.asBigDecimal("TECLA").toString()+","+
+							"\"logical_locator\": "+tecla+","+
 							"\"status\": \"active\""
 							+ "}";
 				}
