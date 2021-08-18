@@ -75,8 +75,11 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 		if (patrimonio != null) {
 			VO.setProperty("NUMCONTRATO", getNumcontrato(patrimonio));
 			VO.setProperty("CODPARC", getParceiro(getNumcontrato(patrimonio)));
+			VO.setProperty("ROTA", getRota(patrimonio));
+			VO.setProperty("FILIAL", getFilial(patrimonio));
 		}
 	}
+	
 	
 	private void validaSeJaTemUmPatrimonio(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
@@ -264,6 +267,34 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 		DynamicVO VO = DAO.findOne("NUMCONTRATO=?",new Object[] { numcontrato });
 		BigDecimal parceiro = VO.asBigDecimal("CODPARC");
 		return parceiro;
+	}
+	
+	private BigDecimal getRota(String patrimonio) throws Exception {
+		BigDecimal rota = BigDecimal.ZERO;
+		JapeWrapper DAO = JapeFactory.dao("rotatelins");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		if(VO!=null) {
+			rota = VO.asBigDecimal("ID");
+		}
+		return rota;
+	}
+	
+	private BigDecimal getFilial(String patrimonio) throws Exception {
+		BigDecimal filial = BigDecimal.ZERO;
+		
+		JdbcWrapper jdbcWrapper = null;
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+		jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+		ResultSet contagem;
+		NativeSql nativeSql = new NativeSql(jdbcWrapper);
+		nativeSql.resetSqlBuf();
+		nativeSql.appendSql("SELECT NVL(T.CODEMPABAST,C.CODEMP) AS EMP FROM AD_PATRIMONIO P  JOIN AD_ENDERECAMENTO T ON (T.CODBEM=P.CODBEM) JOIN TCSCON C ON (C.NUMCONTRATO=P.NUMCONTRATO) WHERE P.CODBEM='"+patrimonio+"'");
+		contagem = nativeSql.executeQuery();
+		while (contagem.next()) {
+			filial = contagem.getBigDecimal("EMP");
+		}
+		
+		return filial;
 	}
 
 }
