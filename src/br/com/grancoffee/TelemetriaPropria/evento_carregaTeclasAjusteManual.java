@@ -12,6 +12,8 @@ import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class evento_carregaTeclasAjusteManual implements EventoProgramavelJava {
@@ -31,11 +33,12 @@ public class evento_carregaTeclasAjusteManual implements EventoProgramavelJava {
 		BigDecimal idAjuste = VO.asBigDecimal("ID");
 		
 		carregaTeclas(patrimonio,idAjuste);
+		
 	}
 
 	@Override
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub AD_AJUSTESMANUAIS
 
 	}
 
@@ -55,6 +58,11 @@ public class evento_carregaTeclasAjusteManual implements EventoProgramavelJava {
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		VO.setProperty("STATUS", "1");
+		
+		if(getNumcontrato(VO.asString("CODBEM")).intValue()!=0) {
+			VO.setProperty("NUMCONTRATO", getNumcontrato(VO.asString("CODBEM")));
+			VO.setProperty("CODPARC", getCodparc(getNumcontrato(VO.asString("CODBEM"))));
+		}
 	}
 
 	@Override
@@ -108,5 +116,21 @@ public class evento_carregaTeclasAjusteManual implements EventoProgramavelJava {
 			}
 
 		}
+	}
+	
+	private BigDecimal getNumcontrato(String patrimonio) throws Exception {
+		BigDecimal contrato = BigDecimal.ZERO;
+		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
+		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		contrato = VO.asBigDecimal("NUMCONTRATO");
+		return contrato;
+	}
+	
+	private BigDecimal getCodparc(BigDecimal contrato) throws Exception {
+		BigDecimal parceiro = BigDecimal.ZERO;
+		JapeWrapper DAO = JapeFactory.dao("Contrato");
+		DynamicVO VO = DAO.findOne("NUMCONTRATO=?",new Object[] { contrato });
+		parceiro = VO.asBigDecimal("CODPARC");
+		return parceiro;
 	}
 }
