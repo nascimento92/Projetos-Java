@@ -47,13 +47,14 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		
 		String tipoAbastecimento = (String) arg0.getParam("TIPABAST");//1=Agora	2=Agendado
 		String secosCongelados = (String) arg0.getParam("SECOSECONGELADOS");//1=Abastecer Apenas Secos.2=Abastecer Apenas Congelados.3=Abastecer Secos e Congelados.
-	
+
 		for(int i=0; i<linhas.length; i++) {
 			
+			BigDecimal idflow = (BigDecimal) linhas[i].getCampo("AD_IDFLOW");
 			Timestamp dtAbastecimento = validacoes(linhas[i],arg0, tipoAbastecimento, secosCongelados);
 			
 			if("1".equals(secosCongelados)) { //apenas secos
-				BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N");//salva tela Abastecimento
+				BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N", idflow);//salva tela Abastecimento
 				
 				if(idAbastecimento!=null) {
 					apenasSecos(idAbastecimento,dtAbastecimento,linhas[i].getCampo("CODBEM").toString());//carrega itens
@@ -68,7 +69,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			}
 			
 			else if ("2".equals(secosCongelados)) {//apenas congelados
-				BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S");
+				BigDecimal idAbastecimento = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S", idflow);
 
 				if(idAbastecimento!=null) {
 					apenasCongelados(idAbastecimento,dtAbastecimento,linhas[i].getCampo("CODBEM").toString());//carrega itens
@@ -83,7 +84,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			}
 			
 			else { //secos e congelados
-				BigDecimal idsecos = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N");
+				BigDecimal idsecos = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N", idflow);
 				if (idsecos != null) {
 					apenasSecos(idsecos,dtAbastecimento,linhas[i].getCampo("CODBEM").toString());
 						if(dtAbastecimento!=null) {//agendado
@@ -95,7 +96,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 				}
 				
 				
-				BigDecimal idcongelados = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S");
+				BigDecimal idcongelados = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S", idflow);
 				if (idcongelados != null) {
 					apenasCongelados(idcongelados,dtAbastecimento,linhas[i].getCampo("CODBEM").toString());
 						if(dtAbastecimento!=null) {//agendado
@@ -106,6 +107,8 @@ public class btn_abastecimento implements AcaoRotinaJava{
 						cont++;
 				}	
 			}
+			
+			linhas[i].setCampo("AD_IDFLOW", null);
 		}
 		chamaPentaho();
 	}
@@ -150,7 +153,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			return dtAbastecimento;
 	}
 	
-	private BigDecimal cadastrarNovoAbastecimento(String patrimonio, String secos, String congelados) {
+	private BigDecimal cadastrarNovoAbastecimento(String patrimonio, String secos, String congelados, BigDecimal idflow) {
 		BigDecimal idAbastecimento = null;
 		
 		try {
@@ -170,6 +173,10 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			
 			if(rota!=0) {
 				VO.setProperty("ROTA", new BigDecimal(rota));
+			}
+			
+			if(idflow!=null) {
+				VO.setProperty("IDFLOW", idflow);
 			}
 			
 			VO.setProperty("SECOS", secos);

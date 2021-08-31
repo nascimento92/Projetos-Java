@@ -28,6 +28,7 @@ public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 		deletarTeclasContrato(patrimonio);
 		getTeclas(idFlow, patrimonio);
 		verificaNecessidadeDePecas(idFlow);
+		salvarOhIdDoFlow(patrimonio, idFlow);
 	}
 
 	public String getPatrimonio(Object idFlow) throws Exception {
@@ -147,6 +148,28 @@ public class flow_t_grade_TarefaJava_AlteraContrato implements TarefaJava {
 		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
 		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
 		return contrato;
+	}
+	
+	private void salvarOhIdDoFlow(String patrimonio, Object idflow) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("GCInstalacao",
+					"this.CODBEM=?", new Object[] { patrimonio }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+				
+				BigDecimal x = (BigDecimal) idflow;
+
+				VO.setProperty("AD_IDFLOW", x);
+
+				itemEntity.setValueObject(NVO);
+			}
+			
+		} catch (Exception e) {
+			salvarException("[salvarOhIdDoFlow]  nao foi possivel salvar o id do flow, patrimonio: "+patrimonio+" flow: "+idflow+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
 	}
 	
 	private void salvarException(String mensagem) {
