@@ -34,6 +34,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 	 * 29/10/20 08:07 inserido a lógica para a data prevista da OS preventiva considerar 7 dias uteis.
 	 * 06/11/20 09:33 implementado a função de direcionar para a operação atrelada a empresa, método getAtendente, utiliza (AD_ATENDENTEPREVENTIVA da TSIEMP).
 	 * 09/12/20 09:23 Inserido método para salvar as Exceptions
+	 * 17/09/21 16:45 Ajustado o método de criação da sub-os, inserido o usuário responsável pela abertura CODUSUREM
 	 */
 	
 	@Override
@@ -145,6 +146,7 @@ public class btn_ManutencaoPreventivaNovo implements AcaoRotinaJava {
 				NotaProdVO.setProperty("SOLUCAO", " ");
 				NotaProdVO.setProperty("CODUSU", atendente);
 				NotaProdVO.setProperty("CORSLA", null);
+				NotaProdVO.setProperty("CODUSUREM", getUsuLogado());
 				
 				dwfFacade.createEntity(DynamicEntityNames.ITEM_ORDEM_SERVICO,(EntityVO) NotaProdVO);
 
