@@ -42,7 +42,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 
 		String totem = totem(tipo);
 		
-		arg0.setMensagemRetorno(totem);
+		//arg0.setMensagemRetorno(totem);
 		
 		cadastrarAdPatrimonio(totem,nome,contrato);
 		cadastrarTelaInstalacoes(totem,contrato,endereco);
@@ -87,7 +87,7 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT MAX(CODBEM) AS BEM FROM AD_PATRIMONIO WHERE CODBEM LIKE '%"+tipo+"%'");
+			nativeSql.appendSql("SELECT MAX(CODBEM) AS BEM FROM AD_PATRIMONIO WHERE CODBEM LIKE '%"+tipo+"%' AND CODBEM NOT IN ('GCETESTE')");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				String result = contagem.getString("BEM");
@@ -202,8 +202,8 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
-			String path = "home/GC/Projetos/GCW/Jobs/";
-			String objName = "JOB - GSN009 - CRIAR LOJA";
+			String path = "home/GC_New/Transformation/Uppay-Cadastrar_Loja/";
+			String objName = "J-Cadastrar_loja_uppay";
 
 			si.runJob(path, objName);
 
