@@ -26,6 +26,9 @@ import br.com.sankhya.ws.ServiceContext;
 
 public class btn_cadastrarLoja implements AcaoRotinaJava {
 
+	/**
+	 * 24/09/21 vs 1.6 Ajustado o método cadastrarTelaInstalacoes estava inserindo um campo que não existe mais.
+	 */
 	String erro = "";
 
 	@Override
@@ -137,7 +140,6 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 			DynamicVO VO = (DynamicVO) NPVO;
 
 			VO.setProperty("ABASTECIMENTO", "S");
-			VO.setProperty("AD_CORNER", "S");
 			VO.setProperty("AD_IDPLANTA", new BigDecimal(endereco));
 			VO.setProperty("CODBEM", totem);
 			VO.setProperty("PLANOGRAMAPENDENTE", "N");

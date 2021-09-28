@@ -1,17 +1,12 @@
 package br.com.grancoffee.TelemetriaPropria;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Iterator;
 
-import javax.swing.Timer;
-
 import com.sankhya.util.TimeUtils;
 
-import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -24,7 +19,6 @@ import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
-import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_ajustarAbastecimento implements AcaoRotinaJava {
@@ -60,14 +54,6 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 				salvaResonsavelPeloAjuste(idObjeto, hora);
 				salvarNoHistorico(idabast);
 				
-				Timer timer = new Timer(5000, new ActionListener() {	
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						chamaPentaho();				
-					}
-				});
-				timer.setRepeats(false);
-				timer.start();
 			}
 		}
 	}
@@ -233,23 +219,6 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 		}
 	}
 	
-	private void chamaPentaho() {
-
-		try {
-
-			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");
-			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
-			WSPentaho si = new WSPentaho(site, Key);
-
-			String path = "home/GC_New/Transformation/Sankhya-Mid-Ajustar_processos/";
-			String objName = "J-Ajustar_saldo_estoque";
-
-			si.runTrans(path, objName);
-
-		} catch (Exception e) {
-			e.getMessage();
-		}
-	}
 }
 
 
