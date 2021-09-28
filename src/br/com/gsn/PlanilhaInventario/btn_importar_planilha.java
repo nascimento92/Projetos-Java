@@ -2,13 +2,14 @@ package br.com.gsn.PlanilhaInventario;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 import java.sql.Timestamp;
-
 import com.sankhya.util.TimeUtils;
-
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.dao.JdbcWrapper;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
@@ -58,6 +59,7 @@ public class btn_importar_planilha implements AcaoRotinaJava{
 	 * DTFABRICACAO
 	 */
 	
+	int contador = 0;
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		lerAhPlanilha(arg0);
@@ -170,8 +172,11 @@ public class btn_importar_planilha implements AcaoRotinaJava{
 						}
 						
 						//validar qual data esta sendo salva vazia!.
-						
-						//insereNaTela(dtcontagem, codemp, codlocal, codproduto, controle, volume, codparc, tipo, dtval, dtfabric, contagem);
+						//Validar se a planilha já existe, se sim, precisa retornar um erro.
+						//Validar se os dados importantes estão preenchidos.
+					
+						insereNaTela(dtcontagem, codemp, codlocal, codproduto, controle, volume, codparc, tipo, dtval, dtfabric, contagem);
+
 					}
 
 				}
@@ -179,10 +184,10 @@ public class btn_importar_planilha implements AcaoRotinaJava{
 				//arg0.setMensagemRetorno("Linhas: "+linhas);
 			}
 		} catch (Exception e) {
-			arg0.setMensagemRetorno(e.getMessage()+"\n"+e.getCause());
+			arg0.setMensagemRetorno("<br/><br/>"+e.getMessage()+"<br/><br/>"+e.getCause());
 		}
 	}
-	
+
 	public void insereNaTela(Timestamp dtcontagem, BigDecimal codemp, BigDecimal codlocal, 
 			BigDecimal codproduto, String controle, String volume, BigDecimal codparc, String tipo, Timestamp dtval, Timestamp dtfabric, BigDecimal contagem) {
 		try {
