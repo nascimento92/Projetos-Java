@@ -29,6 +29,11 @@ import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_abastecimento implements AcaoRotinaJava{
+	
+	/**
+	 * 23/09/21 vs 3.0 Inserido o método validaSeAhMaquinaEstaNaRota que valida se a máquina esta em uma rota, se não estiver ele impede a geração da visita.
+	 */
+	
 	String retornoNegativo="";
 	int cont=0;
 	
@@ -49,6 +54,12 @@ public class btn_abastecimento implements AcaoRotinaJava{
 		String secosCongelados = (String) arg0.getParam("SECOSECONGELADOS");//1=Abastecer Apenas Secos.2=Abastecer Apenas Congelados.3=Abastecer Secos e Congelados.
 
 		for(int i=0; i<linhas.length; i++) {
+			
+			boolean maquinaNaRota = validaSeAhMaquinaEstaNaRota(linhas[i].getCampo("CODBEM").toString());
+			
+			if(!maquinaNaRota) {
+				throw new Error("O patrimônio "+linhas[i].getCampo("CODBEM").toString()+" não está em rota, não pode ser gerado o abastecimento!");
+			}
 			
 			BigDecimal idflow = (BigDecimal) linhas[i].getCampo("AD_IDFLOW");
 			Timestamp dtAbastecimento = validacoes(linhas[i],arg0, tipoAbastecimento, secosCongelados);
@@ -111,6 +122,31 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			linhas[i].setCampo("AD_IDFLOW", null);
 		}
 		chamaPentaho();
+	}
+	
+	private boolean validaSeAhMaquinaEstaNaRota(String patrimonio) throws Exception {
+		boolean valida = false;
+		try {
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT CASE WHEN EXISTS(SELECT CODBEM FROM AD_ROTATELINS WHERE CODBEM='"+patrimonio+"') THEN 'S' ELSE 'N' END AS VALIDA FROM DUAL");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				String verifica = contagem.getString("VALIDA");
+				if("S".equals(verifica)) {
+					valida=true;
+				}
+			}
+			
+		} catch (Exception e) {
+			salvarException("[validaSeAhMaquinaEstaNaRota] Não foi possivel verificar se a maquina "+patrimonio+" esta na rota. "+e.getMessage()+"\n"+e.getCause());
+		}
+		return valida;	
 	}
 	
 	private Timestamp validacoes(Registro linhas,ContextoAcao arg0, String tipoAbastecimento, String secosCongelados) throws PersistenceException {
