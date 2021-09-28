@@ -30,6 +30,9 @@ import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_visita implements AcaoRotinaJava {
+	/**
+	 * 23/09/21 vs 1.6 Inserido o método validaSeAhMaquinaEstaNaRota que valida se a máquina esta em uma rota, se não estiver ele impede a geração da visita.
+	 */
 	int cont = 0;
 
 	@Override
@@ -47,40 +50,30 @@ public class btn_visita implements AcaoRotinaJava {
 		for (int i = 0; i < linhas.length; i++) {
 
 			int visitaPendente = validaSeExisteVisitasPendentes(linhas[i].getCampo("CODBEM").toString());
+			boolean maquinaNaRota = validaSeAhMaquinaEstaNaRota(linhas[i].getCampo("CODBEM").toString());
 
 			if (visitaPendente > 0) {
-				/*
-				boolean confirmarSimNao = arg0.confirmarSimNao("Atenção!",
-						"Patrimonio <b>" + linhas[i].getCampo("CODBEM")
-								+ "</b> possui visita pendente, mesmo assim agendar uma nova visita?",
-						1);
-				if (confirmarSimNao) {
+				arg0.mostraErro("O Patrimônio <b>"+linhas[i].getCampo("CODBEM").toString()+"</b> já possui uma visita pendente! não é possível gerar outra!");
+			} else {
+				if(!maquinaNaRota) {
+					arg0.mostraErro("Patrimônio <b>"+linhas[i].getCampo("CODBEM").toString()+"</b> fora da Rota, não pode ser gerado uma visita!");
+				}else {
 					BigDecimal idretorno = cadastrarNovaVisita(linhas[i].getCampo("CODBEM").toString());
 					if(idretorno!=null) {
 						carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idretorno);
 						agendarVisita(linhas[i].getCampo("CODBEM").toString(), dtVisita, motivo,idretorno);
 						cont++;
+						
+						Timer timer = new Timer(5000, new ActionListener() {	
+							@Override
+							public void actionPerformed(ActionEvent e) {
+								chamaPentaho();				
+							}
+						});
+						timer.setRepeats(false);
+						timer.start();
+						
 					}
-					
-				}
-				*/
-				arg0.mostraErro("O Patrimônio já possui uma visita pendente! não é possível gerar outra!");
-			} else {
-				BigDecimal idretorno = cadastrarNovaVisita(linhas[i].getCampo("CODBEM").toString());
-				if(idretorno!=null) {
-					carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idretorno);
-					agendarVisita(linhas[i].getCampo("CODBEM").toString(), dtVisita, motivo,idretorno);
-					cont++;
-					
-					Timer timer = new Timer(5000, new ActionListener() {	
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							chamaPentaho();				
-						}
-					});
-					timer.setRepeats(false);
-					timer.start();
-					
 				}
 			}
 		}
@@ -109,6 +102,31 @@ public class btn_visita implements AcaoRotinaJava {
 		}
 
 		return quantidade;
+	}
+	
+	private boolean validaSeAhMaquinaEstaNaRota(String patrimonio) throws Exception {
+		boolean valida = false;
+		try {
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT CASE WHEN EXISTS(SELECT CODBEM FROM AD_ROTATELINS WHERE CODBEM='"+patrimonio+"') THEN 'S' ELSE 'N' END AS VALIDA FROM DUAL");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				String verifica = contagem.getString("VALIDA");
+				if("S".equals(verifica)) {
+					valida=true;
+				}
+			}
+			
+		} catch (Exception e) {
+			salvarException("[validaSeAhMaquinaEstaNaRota] Não foi possivel verificar se a maquina "+patrimonio+" esta na rota. "+e.getMessage()+"\n"+e.getCause());
+		}
+		return valida;	
 	}
 
 	private void agendarVisita(String patrimonio, Timestamp dtVisita, String motivo,BigDecimal idretorno) {
