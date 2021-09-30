@@ -32,6 +32,7 @@ import br.com.sankhya.ws.ServiceContext;
 public class btn_visita implements AcaoRotinaJava {
 	/**
 	 * 23/09/21 vs 1.6 Inserido o método validaSeAhMaquinaEstaNaRota que valida se a máquina esta em uma rota, se não estiver ele impede a geração da visita.
+	 * 23/09/21 vs 1.7 Inserido no método agendarVisita o preenchimento do código do contrato e do código do parceiro.
 	 */
 	int cont = 0;
 
@@ -146,6 +147,8 @@ public class btn_visita implements AcaoRotinaJava {
 			VO.setProperty("IDABASTECIMENTO", idretorno);
 			VO.setProperty("APENASVISITA", "S");
 			VO.setProperty("REABASTECIMENTO", "N");
+			VO.setProperty("AD_NUMCONTRATO", getContrato(patrimonio));
+			VO.setProperty("AD_CODPARC", getParceiro(patrimonio));
 
 			dwfFacade.createEntity("GCSolicitacoesAbastecimento", (EntityVO) VO);
 
