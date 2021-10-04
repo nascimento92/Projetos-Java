@@ -32,7 +32,12 @@ public class btn_alterarMotorista implements AcaoRotinaJava{
 			registrarMotorista(linhas[i], new BigDecimal(idMotorista), new BigDecimal(veiculo));
 		}
 		
-		arg0.setMensagemRetorno("Motorista/Veiculo alterado!");
+		if(linhas.length>0) {
+			arg0.setMensagemRetorno("Motorista/Veiculo alterado!");
+		}else {
+			throw new Error("<br/><br/><b>Selecione uma ou mais Ordens de carga!</b><br/></b><br/>");
+		}
+		
 		
 		Timer timer = new Timer(5000, new ActionListener() {	
 			@Override

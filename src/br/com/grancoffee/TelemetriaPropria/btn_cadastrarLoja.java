@@ -27,7 +27,7 @@ import br.com.sankhya.ws.ServiceContext;
 public class btn_cadastrarLoja implements AcaoRotinaJava {
 
 	/**
-	 * 24/09/21 vs 1.6 Ajustado o método cadastrarTelaInstalacoes estava inserindo um campo que não existe mais.
+	 * 24/09/21 vs 1.7 Ajustado o método cadastrarTelaInstalacoes estava inserindo um campo que não existe mais.
 	 */
 	String erro = "";
 

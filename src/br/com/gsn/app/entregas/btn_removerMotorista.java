@@ -22,16 +22,23 @@ public class btn_removerMotorista implements AcaoRotinaJava {
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
 
-		boolean confirmarSimNao = arg0.confirmarSimNao("Atenção", "O vinculo entre Motorista/Veiculo/O.C será desfeito, continuar?", 0);
-		if(confirmarSimNao) {
+		boolean confirmarSimNao = arg0.confirmarSimNao("Atenção",
+				"O vinculo entre Motorista/Veiculo/O.C será desfeito, continuar?", 0);
+		if (confirmarSimNao) {
 
 			for (int i = 0; i < linhas.length; i++) {
 				removerMotorista(linhas[i]);
 			}
 		}
+		
+		if(linhas.length>0) {
+			arg0.setMensagemRetorno("Motorista/Veiculo removidos!");
+		}else {
+			throw new Error("<br/><br/><b>Selecione uma ou mais Ordens de carga!</b><br/></b><br/>");
+		}
 
-		arg0.setMensagemRetorno("Motorista/Veiculo removidos!");
-		chamaPentaho();	
+		
+		chamaPentaho();
 	}
 
 	private void removerMotorista(Registro linhas) {
@@ -56,7 +63,7 @@ public class btn_removerMotorista implements AcaoRotinaJava {
 			throw new Error("ops " + e.getCause());
 		}
 	}
-	
+
 	private void chamaPentaho() {
 
 		try {
