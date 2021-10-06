@@ -43,6 +43,11 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 		BigDecimal produto = (BigDecimal) linhas.getCampo("CODPROD");
 		String controle = (String) linhas.getCampo("CONTROLE");
 		BigDecimal quantidade = (BigDecimal) linhas.getCampo("QUANTIDADE");
+		String volume = (String) linhas.getCampo("CODVOL");
+		String tipo = (String) linhas.getCampo("TIPO");
+		BigDecimal parceiro = (BigDecimal) linhas.getCampo("CODPARC");
+		Timestamp dataValidade = (Timestamp) linhas.getCampo("DTVAL");
+		Timestamp dataFabricacao = (Timestamp) linhas.getCampo("DTFABRICACAO");
 		
 		boolean copia = validaSeExisteCopiaDeEstoque(data,empresa,local,produto,controle);
 		
@@ -53,10 +58,57 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 			if(contagem) { //Atualizar
 				atualizarContagem(data,empresa,local,produto,controle,quantidade, linhas);
 			}else { //Inserir
-				linhas.setCampo("OBSERVACAO", "Copia");
+				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao);	
+			}	
+		}else {
+			
+			//1° validar se existe na tgfest
+			//2° inserir na Est se não tiver, inserir a copia.
+			// boolean tgfest = validaSeExisteNaTGFEST(empresa,local,produto,controle);
+			
+			linhas.setCampo("OBSERVACAO", "Não existe uma cópia de estoque para este item");
+		}
+	}
+	
+	public void criarLinhaDeContagem(Timestamp data,BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle, 
+			BigDecimal quantidade, Registro linhas, String volume, String tipo, BigDecimal parceiro, Timestamp dataValidade, Timestamp dataFabricacao) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ContagemEstoque");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("CODPROD", produto);
+			VO.setProperty("CODVOL", volume);
+			VO.setProperty("QTDEST", quantidade);
+			VO.setProperty("DTCONTAGEM", data);
+			VO.setProperty("CONTROLE", controle);
+			VO.setProperty("CODLOCAL", local);
+			VO.setProperty("TIPO", tipo);
+			
+			if(parceiro==null) {
+				VO.setProperty("CODPARC", new BigDecimal(0));
+			}else {
+				VO.setProperty("CODPARC", parceiro);
 			}
 			
+			VO.setProperty("CODEMP", empresa);		
 			
+			if(dataValidade!=null) {
+				VO.setProperty("DTVAL", dataValidade);
+			}
+			
+			VO.setProperty("SEQUENCIA", new BigDecimal(2));
+			VO.setProperty("QTDESTUNCAD", quantidade);
+			
+			if(dataFabricacao!=null) {
+				VO.setProperty("DTFABRICACAO", dataFabricacao);
+			}
+			
+			dwfFacade.createEntity("ContagemEstoque", (EntityVO) VO);
+			
+			linhas.setCampo("OBSERVACAO", "Inserido com Sucesso");
+		} catch (Exception e) {
+			salvarException("[criarLinhaDeContagem] nao foi possível criar a linha na contagem! data "+data+" empresa "+empresa+" produto "+produto+" controle "+controle+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -80,6 +132,34 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 		} catch (Exception e) {
 			salvarException("[atualizarContagem] nao foi possível atualizar a contagem! data "+data+" empresa "+empresa+" produto "+produto+" controle "+controle+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
+	}
+	
+	public boolean validaSeExisteNaTGFEST(BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle) {
+		
+		boolean valida=false;
+		try {
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT COUNT(*) FROM TGFEST WHERE CODEMP="+empresa+" AND CODLOCAL="+local+" AND CONTROLE='"+controle+"' AND CODPROD="+produto);
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("COUNT(*)");
+				if (count >= 1) {
+					valida = true;
+				}
+			}
+
+			
+		} catch (Exception e) {
+			salvarException("[validaSeExisteCopiaDeEstoque] nao foi possível validar se a cópia de estoque existe! empresa "+empresa+" produto "+produto+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+		
+		return valida;
 	}
 	
 	public boolean validaSeExisteCopiaDeEstoque(Timestamp data,BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle) {
