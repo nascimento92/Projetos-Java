@@ -32,6 +32,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 	
 	/**
 	 * 23/09/21 vs 3.0 Inserido o método validaSeAhMaquinaEstaNaRota que valida se a máquina esta em uma rota, se não estiver ele impede a geração da visita.
+	 * 30/09/21 vs 3.1 Inserido no método agendarAbastecimento o preenchimento dos campos relacionados ao código do parceiro e código do contrato.
 	 */
 	
 	String retornoNegativo="";
@@ -382,6 +383,8 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			VO.setProperty("IDABASTECIMENTO", idAbastecimento);
 			VO.setProperty("REABASTECIMENTO", "S");
 			VO.setProperty("APENASVISITA", "N");
+			VO.setProperty("AD_NUMCONTRATO", getContrato(patrimonio));
+			VO.setProperty("AD_CODPARC", getParceiro(patrimonio));
 			
 			if("S".equals(seco)) {
 				VO.setProperty("AD_TIPOPRODUTOS", "1");

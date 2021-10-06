@@ -12,8 +12,13 @@ import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.MGECoreParameter;
 
 public class evento_valida_os_recorrente implements EventoProgramavelJava {
+	
+	/**
+	 * 01/10/21 vs 1.0 inserção da obtenção do parametro DIASOSREC que diz a quantidade de dias que devem ser considerados para as OS recorrentes.
+	 */
 
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -61,12 +66,16 @@ public class evento_valida_os_recorrente implements EventoProgramavelJava {
 			corsla = new BigDecimal(0);
 		}
 		
+		//cor roxa prevalece sobre a amarela
 		if(patrimonio!=null) {
 			if(motivo.intValue()==4) {
 				if(verificaSeExisteOsAbertasNosUltimosQuinzeDias(patrimonio,dtAbertura,numos)) {
-					if(corsla.intValue()!=16776960) {
-						VO.setProperty("CORSLA", new BigDecimal(10027161));
-					}
+					/*
+					 * if(corsla.intValue()!=16776960) { //não afetava luz amarela.
+					 * 
+					 * }
+					 */
+					VO.setProperty("CORSLA", new BigDecimal(10027161));
 				}
 			}
 		}
@@ -75,6 +84,8 @@ public class evento_valida_os_recorrente implements EventoProgramavelJava {
 	// 1.1
 	private boolean verificaSeExisteOsAbertasNosUltimosQuinzeDias(String patrimonio, Timestamp dtAbertura,
 			BigDecimal numos) throws Exception {
+		
+		BigDecimal diasRecorrente = (BigDecimal) MGECoreParameter.getParameter("DIASOSREC");
 		
 		boolean valida = false;
 		String formatTimestamp = StringUtils.formatTimestamp(dtAbertura, "dd/MM/YYYY");
@@ -86,7 +97,7 @@ public class evento_valida_os_recorrente implements EventoProgramavelJava {
 		ResultSet contagem;
 		NativeSql nativeSql = new NativeSql(jdbcWrapper);
 		nativeSql.resetSqlBuf();
-		nativeSql.appendSql("SELECT COUNT(*) AS QTD FROM TCSITE WHERE SERIE='"+patrimonio+"' AND DHENTRADA >=TO_DATE('"+formatTimestamp+"')-15 AND DHENTRADA<=TO_DATE('"+formatTimestamp+"') AND HRFINAL IS NULL AND NUMOS NOT IN("+numos+")");
+		nativeSql.appendSql("SELECT COUNT(*) AS QTD FROM TCSITE WHERE SERIE='"+patrimonio+"' AND DHENTRADA >=TO_DATE('"+formatTimestamp+"')-"+diasRecorrente.toString()+" AND DHENTRADA<=TO_DATE('"+formatTimestamp+"') AND NUMOS NOT IN("+numos+") AND CODOCOROS=4 AND NUMITEM=1");
 		contagem = nativeSql.executeQuery();
 
 		while (contagem.next()) {

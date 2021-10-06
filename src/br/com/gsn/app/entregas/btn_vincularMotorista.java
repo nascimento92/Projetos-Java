@@ -20,8 +20,13 @@ public class btn_vincularMotorista implements AcaoRotinaJava {
 			registrarMotorista(linhas[i], new BigDecimal(idMotorista), new BigDecimal(veiculo));
 		}
 		
-		arg0.setMensagemRetorno("Motorista / Veículo vinculados!");
-		chamaPentaho();
+		if(linhas.length>0) {
+			arg0.setMensagemRetorno("Motorista / Veículo vinculados!");
+			chamaPentaho();
+		}else {
+			throw new Error("<br/><br/><b>Selecione uma ou mais Ordens de carga!</b><br/></b><br/>");
+		}
+		
 	}
 	
 	private void registrarMotorista(Registro linhas, BigDecimal idMotorista, BigDecimal veiculo) {
