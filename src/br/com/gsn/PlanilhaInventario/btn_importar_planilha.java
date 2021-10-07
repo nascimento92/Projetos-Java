@@ -59,6 +59,8 @@ public class btn_importar_planilha implements AcaoRotinaJava{
 		});
 		timer.setRepeats(false);
 		timer.start();
+		
+		arg0.setMensagemRetorno("<br/><br/> <b>Atenção !</b> <br/><br/> A rotina demora alguns segundos para realizar a importação ! <br/> Atualize a página para visualizar os dados ! <br/><br/><br/>");
 	}
 	
 	private void chamaPentaho() {

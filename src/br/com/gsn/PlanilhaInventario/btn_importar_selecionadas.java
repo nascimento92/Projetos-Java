@@ -32,6 +32,9 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 		
 		for(int i=0; i<linhas.length; i++) {
 			start(linhas[i]);
+			
+			linhas[i].setCampo("USUARIOATUALIZACAO", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			linhas[i].setCampo("DTATUALIZACAO", TimeUtils.getNow());
 		}
 		
 	}
@@ -49,6 +52,9 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 		Timestamp dataValidade = (Timestamp) linhas.getCampo("DTVAL");
 		Timestamp dataFabricacao = (Timestamp) linhas.getCampo("DTFABRICACAO");
 		
+		String observacao = (String) linhas.getCampo("OBSERVACAO");
+		observacao = "";
+		
 		boolean copia = validaSeExisteCopiaDeEstoque(data,empresa,local,produto,controle);
 		
 		if(copia) {
@@ -58,20 +64,52 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 			if(contagem) { //Atualizar
 				atualizarContagem(data,empresa,local,produto,controle,quantidade, linhas);
 			}else { //Inserir
-				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao);	
+				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao, new BigDecimal(2));
+				observacao+="Inserido com Sucesso.\n";
+				linhas.setCampo("OBSERVACAO", observacao);
 			}	
 		}else {
 			
-			//1° validar se existe na tgfest
-			//2° inserir na Est se não tiver, inserir a copia.
+			//1° validar se existe na tgfest 
+			//2° inserir na Est se não tiver, (Quantidade Zerada)
+			//3° insere a cópia.
+			//4° Insere a contagem
 			// boolean tgfest = validaSeExisteNaTGFEST(empresa,local,produto,controle);
 			
-			linhas.setCampo("OBSERVACAO", "Não existe uma cópia de estoque para este item");
+			boolean tgfest = validaSeExisteNaTGFEST(empresa,local,produto,controle);
+			
+			if(tgfest) { //existe na EST
+				
+				//copia
+				criarLinhaDeContagem(data,empresa,local,produto,controle,new BigDecimal(0),linhas,volume,tipo,parceiro,dataValidade,dataFabricacao,new BigDecimal(1));
+				observacao+="Inserido a cópia.\n";
+				
+				//contagem
+				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao,new BigDecimal(2));
+				observacao+="Inserido a contagem.\n";
+				
+				linhas.setCampo("OBSERVACAO", observacao);
+				
+			}else { // Não existe
+				inserirNaTGFEST(empresa,local,produto,controle,tipo,parceiro,dataFabricacao,dataValidade);
+				observacao+="Produto inserido no estoque.\n";
+				
+				//copia
+				criarLinhaDeContagem(data,empresa,local,produto,controle,new BigDecimal(0),linhas,volume,tipo,parceiro,dataValidade,dataFabricacao,new BigDecimal(1));
+				observacao+="Inserido a cópia.\n";
+				
+				//contagem
+				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao,new BigDecimal(2));
+				observacao+="Inserido a contagem.\n";
+				
+				linhas.setCampo("OBSERVACAO", observacao);
+			}
+			
 		}
 	}
 	
 	public void criarLinhaDeContagem(Timestamp data,BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle, 
-			BigDecimal quantidade, Registro linhas, String volume, String tipo, BigDecimal parceiro, Timestamp dataValidade, Timestamp dataFabricacao) {
+			BigDecimal quantidade, Registro linhas, String volume, String tipo, BigDecimal parceiro, Timestamp dataValidade, Timestamp dataFabricacao, BigDecimal sequencia) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ContagemEstoque");
@@ -97,7 +135,7 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 				VO.setProperty("DTVAL", dataValidade);
 			}
 			
-			VO.setProperty("SEQUENCIA", new BigDecimal(2));
+			VO.setProperty("SEQUENCIA", sequencia);
 			VO.setProperty("QTDESTUNCAD", quantidade);
 			
 			if(dataFabricacao!=null) {
@@ -106,12 +144,11 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 			
 			dwfFacade.createEntity("ContagemEstoque", (EntityVO) VO);
 			
-			linhas.setCampo("OBSERVACAO", "Inserido com Sucesso");
 		} catch (Exception e) {
 			salvarException("[criarLinhaDeContagem] nao foi possível criar a linha na contagem! data "+data+" empresa "+empresa+" produto "+produto+" controle "+controle+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
-	
+
 	public void atualizarContagem(Timestamp data,BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle, BigDecimal quantidade, Registro linhas) {
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -131,6 +168,45 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 			}
 		} catch (Exception e) {
 			salvarException("[atualizarContagem] nao foi possível atualizar a contagem! data "+data+" empresa "+empresa+" produto "+produto+" controle "+controle+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	public void inserirNaTGFEST(BigDecimal empresa, BigDecimal local, BigDecimal produto, String controle, String tipo, BigDecimal parceiro, Timestamp dataFabricacao, Timestamp dataValidade) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("Estoque");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("CODEMP", empresa);
+			VO.setProperty("CODLOCAL", local);
+			VO.setProperty("CODPROD", produto);
+			VO.setProperty("CONTROLE", controle);
+			VO.setProperty("RESERVADO", new BigDecimal(0));
+			VO.setProperty("ESTMIN", new BigDecimal(0));
+			VO.setProperty("ESTMAX", new BigDecimal(0));
+			VO.setProperty("ATIVO", "S");
+			
+			if(dataValidade!=null) {
+				VO.setProperty("DTVAL", dataValidade);
+			}
+			
+			VO.setProperty("TIPO", tipo);
+			
+			if(parceiro!=null) {
+				VO.setProperty("CODPARC", parceiro);
+			}
+			
+			if(dataFabricacao!=null) {
+				VO.setProperty("DTFABRICACAO", dataFabricacao);
+			}
+			
+			VO.setProperty("STATUSLOTE", "N");
+			VO.setProperty("ESTOQUE", new BigDecimal(0));
+			VO.setProperty("AD_DTULTMOV", TimeUtils.getNow().toString());
+			
+			dwfFacade.createEntity("Estoque", (EntityVO) VO);
+		} catch (Exception e) {
+			salvarException("[inserirNaTGFEST] nao foi possível inserir na TGFEST! empresa "+empresa+" produto "+produto+" controle "+controle+" local "+local+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -161,6 +237,7 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 		
 		return valida;
 	}
+	
 	
 	public boolean validaSeExisteCopiaDeEstoque(Timestamp data,BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle) {
 		
