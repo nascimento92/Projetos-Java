@@ -26,6 +26,12 @@ import br.com.sankhya.ws.ServiceContext;
 
 public class btn_importar_selecionadas implements AcaoRotinaJava {
 
+	/**
+	 * 10/10/21 vs 1.0 Objeto que pega os dados da AD_PLANINVENT e insira na TGFEST e TGFCTE
+	 */
+	
+	int importados = 0;
+	int atualizados = 0;
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
@@ -36,6 +42,8 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 			linhas[i].setCampo("USUARIOATUALIZACAO", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
 			linhas[i].setCampo("DTATUALIZACAO", TimeUtils.getNow());
 		}
+		
+		arg0.setMensagemRetorno("<br/>Verifique as quantidades: <br/><br/> - Registros importados: <b>"+importados+"</b><br/> - Registros atualizados: <b>"+atualizados+"</b><br/><br/>");;
 		
 	}
 	
@@ -63,10 +71,13 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 			
 			if(contagem) { //Atualizar
 				atualizarContagem(data,empresa,local,produto,controle,quantidade, linhas);
+				atualizados++;
 			}else { //Inserir
 				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao, new BigDecimal(2));
 				observacao+="Inserido com Sucesso.\n";
 				linhas.setCampo("OBSERVACAO", observacao);
+				
+				importados++;
 			}	
 		}else {
 			
@@ -89,6 +100,7 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 				observacao+="Inserido a contagem.\n";
 				
 				linhas.setCampo("OBSERVACAO", observacao);
+				importados++;
 				
 			}else { // Não existe
 				inserirNaTGFEST(empresa,local,produto,controle,tipo,parceiro,dataFabricacao,dataValidade);
@@ -103,6 +115,7 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 				observacao+="Inserido a contagem.\n";
 				
 				linhas.setCampo("OBSERVACAO", observacao);
+				importados++;
 			}
 			
 		}
@@ -286,7 +299,7 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT COUNT(*) FROM TGFCTE WHERE DTCONTAGEM='"+dataFormatada+"' AND CODEMP="+empresa+" AND CODLOCAL="+local+" AND CODPROD="+produto+" AND CONTROLE='"+controle+"' AND SEQUENCIA=1");
+			nativeSql.appendSql("SELECT COUNT(*) FROM TGFCTE WHERE DTCONTAGEM='"+dataFormatada+"' AND CODEMP="+empresa+" AND CODLOCAL="+local+" AND CODPROD="+produto+" AND CONTROLE='"+controle+"' AND SEQUENCIA=2");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				int count = contagem.getInt("COUNT(*)");

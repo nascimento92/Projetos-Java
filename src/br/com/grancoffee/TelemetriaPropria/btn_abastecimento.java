@@ -33,6 +33,7 @@ public class btn_abastecimento implements AcaoRotinaJava{
 	/**
 	 * 23/09/21 vs 3.0 Inserido o método validaSeAhMaquinaEstaNaRota que valida se a máquina esta em uma rota, se não estiver ele impede a geração da visita.
 	 * 30/09/21 vs 3.1 Inserido no método agendarAbastecimento o preenchimento dos campos relacionados ao código do parceiro e código do contrato.
+	 * 30/09/21 vs 3.2 Muda o objeto que o pentaho chama.
 	 */
 	
 	String retornoNegativo="";
@@ -473,8 +474,8 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
-			String path = "home/GC_New/Transformation/Sankhya-Pedido/";
-			String objName = "J-Loop_visitas_pendentes";
+			String path = "home/GC_New/Transformation/Sankhya-Visitas/";
+			String objName = "J-Gera_visita_abastecimento";
 
 			si.runJob(path, objName);
 
