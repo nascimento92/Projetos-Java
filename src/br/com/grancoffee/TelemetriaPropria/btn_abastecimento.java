@@ -474,8 +474,8 @@ public class btn_abastecimento implements AcaoRotinaJava{
 			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
-			String path = "home/GC_New/Transformation/Sankhya-Visitas/";
-			String objName = "J-Gera_visita_abastecimento";
+			String path = "home/GC_New/Transformation/Sankhya-Pedido/";
+			String objName = "J-Loop_visitas_pendentes";
 
 			si.runJob(path, objName);
 
