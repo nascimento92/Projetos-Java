@@ -64,6 +64,8 @@ public class eventoProdutosNFCE implements EventoProgramavelJava{
 			BigDecimal top = tgfcab.asBigDecimal("CODTIPOPER");
 			BigDecimal codvend = tgfcab.asBigDecimal("CODVEND");
 			
+			BigDecimal produto = iteVO.asBigDecimal("CODPROD");
+			
 			if(top.equals(new BigDecimal(1108)) && codvend.equals(new BigDecimal(280))){
 				
 				if(vlrAdicional!=null){
@@ -71,7 +73,11 @@ public class eventoProdutosNFCE implements EventoProgramavelJava{
 					
 					iteVO.setProperty("VLRUNIT", vlrAdicional);
 					iteVO.setProperty("VLRTOT", total);
-				}		
+				}
+				
+				if(produto.intValue()==999999) {
+					iteVO.setProperty("CODPROD", new BigDecimal(2551));
+				}
 			}
 			
 			

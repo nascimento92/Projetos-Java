@@ -13,12 +13,11 @@ import javax.swing.Timer;
 import com.sankhya.util.TimeUtils;
 
 import Helpers.WSPentaho;
-import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
+import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
+import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.dao.JdbcWrapper;
-import br.com.sankhya.jape.event.PersistenceEvent;
-import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
@@ -30,78 +29,17 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
-public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
+public class btn_encerrarVisita implements AcaoRotinaJava{
+
+	@Override
+	public void doAction(ContextoAcao arg0) throws Exception {
+		Integer n = (Integer) arg0.getParam("NUMOS");
 		
-	/**
-	 * 17/10/2021 vs 1.4 reformulação do evento, realiza os calculos do encerramento da OS.
-	 */
-	@Override
-	public void afterDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void afterInsert(PersistenceEvent arg0) throws Exception {
+		BigDecimal numos = new BigDecimal(n);
 		
-	}
-
-	@Override
-	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		
-	}
-
-	@Override
-	public void beforeCommit(TransactionContext arg0) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		start(arg0);
-	}
-
-	private void start(PersistenceEvent arg0) throws Exception {
-
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
-		
-		BigDecimal numos = VO.asBigDecimal("NUMOS");
-		
-		String newSituacao = VO.asString("SITUACAO");
-		String oldSituacao = oldVO.asString("SITUACAO");
-				
-		if("P".equals(oldSituacao) && "F".equals(newSituacao)) {
-					
-			if(validaSeEhDaTelemetriaPropria(numos)) {
-				atualizaCamposInicial(numos);
-				realizaValidacoes(numos);
-				atualizaCamposFinal(numos);
-				
-				Timer timer = new Timer(1000, new ActionListener() {	
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						chamaPentaho2();				
-					}
-				});
-				timer.setRepeats(false);
-				timer.start();
-			}
-		}
-		
+		atualizaCamposInicial(numos);
+		realizaValidacoes(numos);
+		atualizaCamposFinal(numos);
 	}
 	
 	private void atualizaCamposInicial(BigDecimal numos) throws Exception {
