@@ -1,12 +1,20 @@
 package br.com.gsn.app.entregas;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 
 import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.modelcore.util.MGECoreParameter;
+
+/**
+ * 
+ * @author fernando.silva
+ * @version 1.3 
+ * 20/10/2021 - Adicionado campos a ser inseridos na tabela (DTEXP, NOMEROTA);
+ */
 
 public class btn_vincularMotorista implements AcaoRotinaJava {
 
@@ -15,9 +23,11 @@ public class btn_vincularMotorista implements AcaoRotinaJava {
 		Registro[] linhas = arg0.getLinhas();
 		String idMotorista = (String) arg0.getParam("ID");
 		String veiculo = (String) arg0.getParam("VEICULO");
+		Timestamp dtExp =  (Timestamp) arg0.getParam("DTEXP");
+		String rota = (String) arg0.getParam("NOMEROTA");
 		
 		for(int i=0; i<linhas.length; i++) {
-			registrarMotorista(linhas[i], new BigDecimal(idMotorista), new BigDecimal(veiculo));
+			registrarMotorista(linhas[i], new BigDecimal(idMotorista), new BigDecimal(veiculo), dtExp, rota);
 		}
 		
 		if(linhas.length>0) {
@@ -29,10 +39,12 @@ public class btn_vincularMotorista implements AcaoRotinaJava {
 		
 	}
 	
-	private void registrarMotorista(Registro linhas, BigDecimal idMotorista, BigDecimal veiculo) {
+	private void registrarMotorista(Registro linhas, BigDecimal idMotorista, BigDecimal veiculo, Timestamp dtExp, String rota) {
 		try {
 			linhas.setCampo("AD_APPMOTO", idMotorista);
 			linhas.setCampo("CODVEICULO", veiculo);
+			linhas.setCampo("AD_DTEXP", dtExp);
+			linhas.setCampo("AD_NOMEROTA", rota);
 		} catch (Exception e) {
 			throw new Error("ops "+ e.getCause());
 		}
