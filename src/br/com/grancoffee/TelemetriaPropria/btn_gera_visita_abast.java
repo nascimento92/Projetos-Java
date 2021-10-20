@@ -118,46 +118,32 @@ public class btn_gera_visita_abast implements AcaoRotinaJava{
 				validaAD_TROCADEGRADE(patrimonio, numos, nunota);
 				validaItensDaTrocaDeGrade(patrimonio, numos);
 			}
+			
+			salvaUsuario(nunota);
 
 		}
 	}
 	
-	/*
-	 * private int verificaQuantidade() { int quantidade = 0; try {
-	 * 
-	 * JdbcWrapper jdbcWrapper = null; EntityFacade dwfEntityFacade =
-	 * EntityFacadeFactory.getDWFFacade(); jdbcWrapper =
-	 * dwfEntityFacade.getJdbcWrapper(); ResultSet contagem; NativeSql nativeSql =
-	 * new NativeSql(jdbcWrapper); nativeSql.resetSqlBuf(); nativeSql.appendSql(
-	 * "select count(*) as QTD from gc_solicitabast where status='1' and numos is null and dtagendamento < sysdate"
-	 * ); contagem = nativeSql.executeQuery(); while (contagem.next()) { int count =
-	 * contagem.getInt("QTD"); if(count>0) { quantidade=count; } }
-	 * 
-	 * } catch (Exception e) { // TODO: handle exception }
-	 * 
-	 * return quantidade; }
-	 */
-	
-	/*
-	 * private String verificaPrimeiraMaquinaParaGerar() {
-	 * 
-	 * String maquina = null;
-	 * 
-	 * try {
-	 * 
-	 * JdbcWrapper jdbcWrapper = null; EntityFacade dwfEntityFacade =
-	 * EntityFacadeFactory.getDWFFacade(); jdbcWrapper =
-	 * dwfEntityFacade.getJdbcWrapper(); ResultSet contagem; NativeSql nativeSql =
-	 * new NativeSql(jdbcWrapper); nativeSql.resetSqlBuf(); nativeSql.
-	 * appendSql("select IDABASTECIMENTO from gc_solicitabast where status='1' and numos is null and dtagendamento < sysdate and rownum=1"
-	 * ); contagem = nativeSql.executeQuery(); while (contagem.next()) { String
-	 * patrimonio = contagem.getString("CODBEM"); if(patrimonio!=null) {
-	 * maquina=patrimonio; } }
-	 * 
-	 * } catch (Exception e) { // TODO: handle exception }
-	 * 
-	 * return maquina; }
-	 */
+	private void salvaUsuario(BigDecimal nunota) {
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("CabecalhoNota",
+					"this.NUNOTA=?", new Object[] { nunota }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("CODUSUINC", new BigDecimal(3082));
+
+				itemEntity.setValueObject(NVO);
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+	}
 	
 	private void insertAD_TROCADEGRADE(String patrimonio, BigDecimal numos, BigDecimal produto, String tecla, BigDecimal valorFinal, BigDecimal capacidade, BigDecimal nivelpar, 
 			BigDecimal qtdabast, String statuspar, String statusvalor, BigDecimal nivelalerta, BigDecimal vlrpar, BigDecimal vlrfun) {

@@ -11,13 +11,64 @@ import org.json.simple.JSONValue;
 public class Leitura_json {
 	
 	public static void main(String[] args){
+		//String realizarLogin = RealizarLogin();
+		//System.out.println(realizarLogin);
 		
-	
+		String jsession = RealizarLogin();
 		
+		String nunota = criaNota(jsession);
 		
+		System.out.println(nunota);
+		
+		RealizaLogout(jsession);
 	}
 	
-	private String RealizarLogin() {
+	private static String criaNota(String jsession) {
+		String nunota = null;
+		
+		String url="http://sankhya.grancoffee.com.br:8180/grancoffee-labsx/service.sbr?application=Place&outputType=json&serviceName=SacSP.newOS&mgeSession="+jsession;
+		String body="{\"serviceName\":\"SacSP.newOS\",\"requestBody\":{"+
+		"\"config\":{"+
+		"\"CODPARC\":\"2\","+
+		"\"NUMCONTRATO\":\"21814\","+
+		"\"CODSERV\":\"200000\","+
+		"\"EXECUTANTE\":\"3152\","+
+		"\"PARCEIRONESPRESSO\":\"\","+
+		"\"CODBEM\":\"019109\","+
+		"\"PROBLEMA\":\"ABASTECER BEM: 019109\","+
+		"\"MOTIVO\":\"97\","+
+		"\"EMAIL\":\"\","+
+		"\"BENSVINCULADOS\":[{\"TAREFA\":\"\",\"CODBEM\":\"019109\",\"CODPROD\":\"2676\"}]}}}";
+		
+		StringBuilder post_JSON = Post_JSON(url,body);
+		nunota = getNunota(post_JSON);
+		
+		return nunota;
+	}
+	
+	private static String getNunota(StringBuilder post_JSON) {
+		String nunota=null;
+		try {
+			
+			Object obj2= JSONValue.parse(post_JSON.toString());
+			JSONObject jsonObject2 = (JSONObject) obj2;
+			JSONObject b = (JSONObject) jsonObject2.get("responseBody");
+			
+			if(b!=null) {
+				JSONObject c = (JSONObject) b.get("row");
+				JSONObject d = (JSONObject) c.get("NUMOS");
+				String string = d.values().toString();
+				nunota = string.replace("[", "").replace("]", "");
+			}
+			
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return nunota;
+	}
+	
+	private static String RealizarLogin() {
 		String url = "http://sankhya.grancoffee.com.br:8180/mge/service.sbr?serviceName=MobileLoginSP.login&outputType=json";
 		String body = "{\"serviceName\": \"MobileLoginSP.login\",\"requestBody\": {"+
 			        "\"NOMUSU\": {"+
@@ -29,6 +80,11 @@ public class Leitura_json {
 		StringBuilder post_JSON = Post_JSON(url,body);
 		String jSession = getJSession(post_JSON);
 		return jSession;
+	}
+	
+	private static void RealizaLogout(String jsession) {
+		String url = "http://sankhya.grancoffee.com.br:8180/mge/service.sbr?serviceName=MobileLoginSP.logout&outputType=json&mgeSession="+jsession;
+		Post_JSON(url,"");
 	}
 	
 	private static String getJSession(StringBuilder post_JSON) {

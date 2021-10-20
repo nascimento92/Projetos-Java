@@ -27,6 +27,7 @@ import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.SPBeanUtils;
 import br.com.sankhya.ws.ServiceContext;
 
 public class acaoAgendada_geraApenasVisita implements ScheduledAction{
@@ -35,7 +36,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 	public void onTime(ScheduledActionContext arg0) {
 		
 		JapeSession.SessionHandle hnd = null;
-
+		
 		try {
 
 			hnd = JapeSession.open();
@@ -50,8 +51,8 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			
 
 		} catch (Exception e) {
-	
-		}
+			arg0.info(" ################### \n\n\n"+e.getMessage()+"\n"+e.getCause()+" \n\n\n ###################");
+		} 
 		
 	}
 	
