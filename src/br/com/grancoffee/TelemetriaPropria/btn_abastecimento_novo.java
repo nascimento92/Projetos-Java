@@ -788,6 +788,8 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					sequencia++;
 					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
 				}
+				
+				//TODO :: se não for pro pedido, tem que ir para a tela de histórico de rupturas.
 			}
 			
 			}
