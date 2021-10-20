@@ -19,6 +19,9 @@ public class btn_montarBodyPlan implements AcaoRotinaJava {
 	/**
 	 * 18/05/21 15:47 No momento que for parar a sincronização das teclas com a aba planograma da tela instaação, será necessário alterar esse objeto
 	 */
+	
+	int varTeste;
+	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Object codbem = arg0.getParam("CODBEM");	
