@@ -35,8 +35,19 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 	@Override
 	public void onTime(ScheduledActionContext arg0) {
 		
+		ServiceContext sctx = new ServiceContext(null); 		
+		sctx.setAutentication(AuthenticationInfo.getCurrent()); 
+		sctx.makeCurrent();
+
+		try {
+			SPBeanUtils.setupContext(sctx);
+		} catch (Exception e) {
+			e.printStackTrace();
+			salvarException("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
+		} 
+				
 		JapeSession.SessionHandle hnd = null;
-		
+
 		try {
 
 			hnd = JapeSession.open();
@@ -51,8 +62,8 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			
 
 		} catch (Exception e) {
-			arg0.info(" ################### \n\n\n"+e.getMessage()+"\n"+e.getCause()+" \n\n\n ###################");
-		} 
+			salvarException("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
+		}
 		
 	}
 	
@@ -254,6 +265,9 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 	}
 	
 	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno) {
+		
+		BigDecimal atendenteRota = getAtendenteRota(patrimonio);
+		
 		try {
 			
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -281,6 +295,10 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			DynamicVO VO = (DynamicVO) NVO;
 
 			VO.setProperty("NUMOS", numos);
+			
+			if(atendenteRota!=null) {
+				VO.setProperty("RESPABAST", atendenteRota);
+			}
 
 			itemEntity.setValueObject(NVO);
 			}
@@ -515,7 +533,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			VO.setProperty("OBJETO", "btn_visita");
 			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
 			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
-			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("ERRO", mensagem);
 			
 			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);

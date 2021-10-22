@@ -31,7 +31,9 @@ import br.com.sankhya.ws.ServiceContext;
 public class btn_visita_novo implements AcaoRotinaJava{
 	
 	/**
+	 * @author Gabriel
 	 * 16/10/2021 vs 1.0 Reacriado botão de visitas, implementado para gerar a OS no aperto do botão.
+	 * 21/10/2021 vs 1.1 Alteração do método carregaTeclasNosItensDeAbast, o preenchimento dos itens estava vindo da gc_planograma e não pode ser, ele tem que pegar da grade atual.
 	 */
 	
 	int cont = 0;
@@ -281,6 +283,9 @@ public class btn_visita_novo implements AcaoRotinaJava{
 	}
 	
 	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno) {
+		
+		BigDecimal atendenteRota = getAtendenteRota(patrimonio);
+		
 		try {
 			
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -308,6 +313,10 @@ public class btn_visita_novo implements AcaoRotinaJava{
 			DynamicVO VO = (DynamicVO) NVO;
 
 			VO.setProperty("NUMOS", numos);
+			
+			if(atendenteRota!=null) {
+				VO.setProperty("RESPABAST", atendenteRota);
+			}
 
 			itemEntity.setValueObject(NVO);
 			}
@@ -568,7 +577,7 @@ public class btn_visita_novo implements AcaoRotinaJava{
 		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
 		Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
-				new FinderWrapper("GCPlanograma", "this.CODBEM = ? ", new Object[] { patrimonio }));
+				new FinderWrapper("AD_PLANOGRAMAATUAL", "this.CODBEM = ? ", new Object[] { patrimonio }));
 
 		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 

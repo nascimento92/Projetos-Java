@@ -111,7 +111,7 @@ public class btn_gera_visita_abast implements AcaoRotinaJava{
 			
 			if(numos!=null) {
 				geraItemOS(numos, patrimonio, gc_solicitabast);
-				salvaNumeroOS(numos, patrimonio, idsolicitacao, idRetorno);
+				salvaNumeroOS(numos, patrimonio, idsolicitacao, idRetorno,gc_solicitabast);
 				
 				verificaPlanogramaPendente(patrimonio, numos, nunota, idsolicitacao, idRetorno);
 				
@@ -470,7 +470,10 @@ public class btn_gera_visita_abast implements AcaoRotinaJava{
 		return estoque;
 	}
 	
-	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno) {
+	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno, DynamicVO gc_solicitabast) {
+		
+		BigDecimal atendenteRota = getAtendenteRota(patrimonio, gc_solicitabast);
+		
 		try {
 			
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -498,6 +501,10 @@ public class btn_gera_visita_abast implements AcaoRotinaJava{
 			DynamicVO VO = (DynamicVO) NVO;
 
 			VO.setProperty("NUMOS", numos);
+			
+			if(atendenteRota!=null) {
+				VO.setProperty("RESPABAST", atendenteRota);
+			}
 
 			itemEntity.setValueObject(NVO);
 			}

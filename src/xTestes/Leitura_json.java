@@ -16,14 +16,14 @@ public class Leitura_json {
 		
 		String jsession = RealizarLogin();
 		
-		String nunota = criaNota(jsession);
+		String numos = criaOS(jsession);
 		
-		System.out.println(nunota);
+		System.out.println(numos);
 		
 		RealizaLogout(jsession);
 	}
 	
-	private static String criaNota(String jsession) {
+	private static String criaOS(String jsession) {
 		String nunota = null;
 		
 		String url="http://sankhya.grancoffee.com.br:8180/grancoffee-labsx/service.sbr?application=Place&outputType=json&serviceName=SacSP.newOS&mgeSession="+jsession;
