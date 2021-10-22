@@ -27,6 +27,7 @@ import br.com.sankhya.modelcore.comercial.ComercialUtils;
 import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.SPBeanUtils;
 import br.com.sankhya.ws.ServiceContext;
 
 public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
@@ -34,6 +35,17 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	@Override
 	public void onTime(ScheduledActionContext arg0) {
 		
+		ServiceContext sctx = new ServiceContext(null); 		
+		sctx.setAutentication(AuthenticationInfo.getCurrent()); 
+		sctx.makeCurrent();
+
+		try {
+			SPBeanUtils.setupContext(sctx);
+		} catch (Exception e) {
+			e.printStackTrace();
+			salvarException("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
+		} 
+				
 		JapeSession.SessionHandle hnd = null;
 
 		try {
@@ -75,6 +87,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				Timestamp data = DynamicVO.asTimestamp("DTAGENDAMENTO");
 				String reabastecimento = DynamicVO.asString("REABASTECIMENTO");
 				String status = DynamicVO.asString("STATUS");
+				BigDecimal nunota = DynamicVO.asBigDecimal("NUNOTA");
 				
 
 				int compareTo = data.compareTo(TimeUtils.getNow()); //comparação das datas
@@ -84,7 +97,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 						if("1".equals(status)) {
 							if("S".equals(reabastecimento)) {
 								//gerarPedidoENota(patrimonio, DynamicVO, idretorno, id);
-								gerarPedidoENota(patrimonio, DynamicVO,idretorno,id);
+								gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota);
 							}
 						}
 					}
@@ -97,23 +110,29 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	}
 
 	
-	private void gerarPedidoENota(String patrimonio, DynamicVO gc_solicitabast, BigDecimal idRetorno, BigDecimal idsolicitacao) throws Exception {
+	private void gerarPedidoENota(String patrimonio, DynamicVO gc_solicitabast, BigDecimal idRetorno, BigDecimal idsolicitacao, BigDecimal nto) throws Exception {
+		
 		BigDecimal nunota = null;
 		
-		nunota = geraCabecalho(patrimonio, gc_solicitabast);
-		
-		System.out.println(" ######################################### \n\n\n\n"+" NUNOTA "+nunota+" \n\n\n\n ######################################### ");
-		
+		if(nto!=null) {
+			nunota = nto;
+		}else {
+			nunota = geraCabecalho(patrimonio, gc_solicitabast);
+		}
+			
 		if(nunota!=null) {
 			
-			identificaItens(nunota,patrimonio,gc_solicitabast);
-			salvaNumeroDaNota(nunota,patrimonio, idsolicitacao, idRetorno);
-			totalizaImpostos(nunota);
+			if(nto==null) {
+				identificaItens(nunota,patrimonio,gc_solicitabast);
+				salvaNumeroDaNota(nunota,patrimonio, idsolicitacao, idRetorno);
+				totalizaImpostos(nunota);
+			}
+
 			BigDecimal numos = gerarCabecalhoOS(patrimonio);
 			
 			if(numos!=null) {
 				geraItemOS(numos, patrimonio, gc_solicitabast);
-				salvaNumeroOS(numos, patrimonio, idsolicitacao, idRetorno);
+				salvaNumeroOS(numos, patrimonio, idsolicitacao, idRetorno, gc_solicitabast);
 				
 				verificaPlanogramaPendente(patrimonio, numos, nunota, idsolicitacao, idRetorno);
 				
@@ -449,7 +468,10 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return estoque;
 	}
 	
-	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno) {
+	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno, DynamicVO gc_solicitabast) {
+		
+		BigDecimal atendenteRota = getAtendenteRota(patrimonio, gc_solicitabast);
+		
 		try {
 			
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -477,6 +499,10 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			DynamicVO VO = (DynamicVO) NVO;
 
 			VO.setProperty("NUMOS", numos);
+			
+			if(atendenteRota!=null) {
+				VO.setProperty("RESPABAST", atendenteRota);
+			}
 
 			itemEntity.setValueObject(NVO);
 			}
@@ -1159,7 +1185,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			VO.setProperty("OBJETO", "acaoAgendada_geravisita");
 			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
 			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
-			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("CODUSU", new BigDecimal(0));
 			VO.setProperty("ERRO", mensagem);
 
 			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);

@@ -215,7 +215,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			
 			if(numos!=null) {
 				geraItemOS(numos, linhas.getCampo("CODBEM").toString(), gc_solicitabast);
-				salvaNumeroOS(numos, linhas.getCampo("CODBEM").toString(), gc_solicitabast.asBigDecimal("ID"), idRetorno);
+				salvaNumeroOS(numos, linhas.getCampo("CODBEM").toString(), gc_solicitabast.asBigDecimal("ID"), idRetorno, gc_solicitabast);
 				
 				verificaPlanogramaPendente(linhas.getCampo("CODBEM").toString(), numos, nunota, gc_solicitabast.asBigDecimal("ID"), idRetorno);
 				
@@ -546,30 +546,32 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	
 	private BigDecimal gerarCabecalhoOS(String patrimonio) throws Exception{
 		
-		String problema = "ABASTECER BEM: "+patrimonio;	
-		BigDecimal parceiro = getParceiro(patrimonio);
-		BigDecimal contrato = getContrato(patrimonio);
-		
 		BigDecimal numos = null;
 		
+		
 		try {
+			
+			String problema = "ABASTECER BEM: "+patrimonio;	
+			BigDecimal parceiro = getParceiro(patrimonio);
+			BigDecimal contrato = getContrato(patrimonio);
+			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("OrdemServico",new BigDecimal(593595));
 			DynamicVO NotaProdVO = ModeloNPVO.buildClone();
 			
-			BigDecimal usuario = getUsuLogado();
+			//BigDecimal usuario = getUsuLogado();
 
 			NotaProdVO.setProperty("DHCHAMADA", TimeUtils.getNow());
 			NotaProdVO.setProperty("DTPREVISTA",addDias(TimeUtils.getNow(),new BigDecimal(7)));
 			NotaProdVO.setProperty("NUMOS",null); 
 			NotaProdVO.setProperty("SITUACAO","P");
-			NotaProdVO.setProperty("CODUSUSOLICITANTE",usuario);
-			NotaProdVO.setProperty("CODUSURESP",usuario);
+			NotaProdVO.setProperty("CODUSUSOLICITANTE",new BigDecimal(3082));
+			NotaProdVO.setProperty("CODUSURESP",new BigDecimal(3082));
 			NotaProdVO.setProperty("DESCRICAO",problema);
 			NotaProdVO.setProperty("AD_MANPREVENTIVA", "N");
 			NotaProdVO.setProperty("AD_CHAMADOTI", "N");
 			NotaProdVO.setProperty("AD_TELPROPRIA", "S");
-			NotaProdVO.setProperty("CODATEND", usuario);
+			NotaProdVO.setProperty("CODATEND", new BigDecimal(3082));
 			NotaProdVO.setProperty("TEMPOSLA", new BigDecimal(7000));
 			NotaProdVO.setProperty("AD_TELASAC", "S");
 			NotaProdVO.setProperty("CODCOS", new BigDecimal(1));
@@ -591,8 +593,71 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 		
+		/*
+		try {
+			
+			String problema = "ABASTECER BEM: "+patrimonio;	
+			BigDecimal parceiro = getParceiro(patrimonio);
+			BigDecimal contrato = getContrato(patrimonio);
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("OrdemServico");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("DHCHAMADA", TimeUtils.getNow());
+			VO.setProperty("DTPREVISTA",addDias(TimeUtils.getNow(),new BigDecimal(7)));
+			VO.setProperty("NUMOS",getUltimoCod().add(new BigDecimal(1))); 
+			VO.setProperty("SITUACAO","P");
+			VO.setProperty("CODUSUSOLICITANTE",new BigDecimal(3082));
+			VO.setProperty("CODUSURESP",new BigDecimal(3082));
+			VO.setProperty("DESCRICAO",problema);
+			VO.setProperty("AD_MANPREVENTIVA", "N");
+			VO.setProperty("AD_CHAMADOTI", "N");
+			VO.setProperty("AD_TELPROPRIA", "S");
+			VO.setProperty("CODATEND", new BigDecimal(3082));
+			VO.setProperty("TEMPOSLA", new BigDecimal(7000));
+			VO.setProperty("AD_TELASAC", "S");
+			VO.setProperty("CODCOS", new BigDecimal(1));
+			VO.setProperty("CODPARC", parceiro);
+			VO.setProperty("NUMCONTRATO", contrato);
+			VO.setProperty("CODCONTATO", new BigDecimal(1));
+			VO.setProperty("CODUSUFECH", null);
+			VO.setProperty("DTFECHAMENTO", null);
+			VO.setProperty("DTALTER", null);
+			VO.setProperty("CODBEM", patrimonio);
+			VO.setProperty("SERIE", patrimonio);
+			
+			dwfFacade.createEntity("OrdemServico", (EntityVO) VO);
+			
+			numos = VO.asBigDecimal("NUMOS");
+			
+		} catch (Exception e) {
+			salvarException(
+					"[gerarCabecalhoOS] Nao foi possivel Gerar o cabeçalho da OS! Patrimonio "+patrimonio
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		*/
 		return numos;
 		
+	}
+	
+	private BigDecimal getUltimoCod() {
+		BigDecimal ultimo = null;
+		try {
+			JapeWrapper DAO = JapeFactory.dao("ControleNumeracao");
+			DynamicVO VO = DAO.findOne("ARQUIVO=?",new Object[] { "TCSOSE" });
+			
+			if(VO!=null) {
+				ultimo = VO.asBigDecimal("ULTCOD");
+			}
+
+		} catch (Exception e) {
+			salvarException(
+					"[getUltimoCod] Nao foi possivel pegar o ultimo código da fila!"
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+		return ultimo;
 	}
 	
 	private void geraItemOS(BigDecimal numos, String patrimonio, DynamicVO gc_solicitabast) throws Exception{
@@ -1063,7 +1128,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 	}
 	
-	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno) {
+	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno, DynamicVO gc_solicitabast) {
+		
+		BigDecimal atendenteRota = getAtendenteRota(patrimonio, gc_solicitabast);
+		
 		try {
 			
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -1079,7 +1147,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			}
 			
 		} catch (Exception e) {
-			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" OS: "+numos+" id solicitação: "+idSolicitacao+" idretorno: "+idRetorno+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 		}
 		
 		try {
@@ -1091,12 +1159,18 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			DynamicVO VO = (DynamicVO) NVO;
 
 			VO.setProperty("NUMOS", numos);
+			
+			if(atendenteRota!=null) {
+				VO.setProperty("RESPABAST", atendenteRota);
+			}
 
 			itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" OS: "+numos+" id solicitação: "+idSolicitacao+" idretorno: "+idRetorno+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 		}
+			
+		
 	}
 	
 	private BigDecimal geraCabecalho(Registro linhas, DynamicVO gc_solicitabast) throws Exception {
@@ -1602,9 +1676,20 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	}
 
 	private BigDecimal getContrato(String patrimonio) throws Exception {
-		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
-		DynamicVO VO = DAO.findOne("CODBEM=?", new Object[] { patrimonio });
-		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		BigDecimal contrato = null;
+		try {
+			JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
+			DynamicVO VO = DAO.findOne("CODBEM=?", new Object[] { patrimonio });
+			contrato = VO.asBigDecimal("NUMCONTRATO");
+		} catch (Exception e) {
+			salvarException("[getContrato] nao foi possivel obter o contrato, patrimonio:" + patrimonio + "\n" + e.getMessage()
+			+ "\n" + e.getCause());
+		}
+		
+		if(contrato==null) {
+			contrato = new BigDecimal(1314);
+		}
+		
 		return contrato;
 	}
 
@@ -1633,13 +1718,31 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	}
 	
 	private BigDecimal getParceiro(String patrimonio) throws Exception {
-		JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
-		DynamicVO VO = DAO.findOne("CODBEM=?", new Object[] { patrimonio });
-		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		BigDecimal parceiro = null;
+		BigDecimal contrato = null;
+		
+		try {
+			JapeWrapper DAO = JapeFactory.dao("PATRIMONIO");
+			DynamicVO VO = DAO.findOne("CODBEM=?", new Object[] { patrimonio });
 
-		DAO = JapeFactory.dao("Contrato");
-		DynamicVO VOS = DAO.findOne("NUMCONTRATO=?", new Object[] { contrato });
-		BigDecimal parceiro = VOS.asBigDecimal("CODPARC");
+			if(VO!=null) {
+				contrato = VO.asBigDecimal("NUMCONTRATO");
+			}
+			
+			if(contrato!=null) {
+				DAO = JapeFactory.dao("Contrato");
+				DynamicVO VOS = DAO.findOne("NUMCONTRATO=?", new Object[] { contrato });
+				parceiro = VOS.asBigDecimal("CODPARC");
+			}
+	
+		} catch (Exception e) {
+			salvarException("[getParceiro] nao foi possivel obter o parceiro:" + patrimonio + "\n" + e.getMessage()
+			+ "\n" + e.getCause());
+		}
+		
+		if(parceiro==null) {
+			parceiro = new BigDecimal(1);
+		}
 
 		return parceiro;
 	}

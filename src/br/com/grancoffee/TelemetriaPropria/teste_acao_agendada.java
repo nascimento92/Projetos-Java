@@ -24,12 +24,24 @@ import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.SPBeanUtils;
 import br.com.sankhya.ws.ServiceContext;
 
 public class teste_acao_agendada implements ScheduledAction {
 
 	@Override
 	public void onTime(ScheduledActionContext arg0) {
+		ServiceContext sctx = new ServiceContext(null); 		
+		sctx.setAutentication(AuthenticationInfo.getCurrent()); 
+		sctx.makeCurrent();
+
+		try {
+			SPBeanUtils.setupContext(sctx);
+		} catch (Exception e) {
+			e.printStackTrace();
+			arg0.info("Error: Não foi Possivel Executar a Chamada SPBeanUtils.setupContext \n" + e.getMessage());
+		} 
+				
 		JapeSession.SessionHandle hnd = null;
 
 		try {
@@ -40,14 +52,13 @@ public class teste_acao_agendada implements ScheduledAction {
 				public void doWithTx() throws Exception {
 
 					getListaPendente();
-					
 				}
 
 			});
 			
 
 		} catch (Exception e) {
-			//salvarException("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
+			salvarException("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
