@@ -255,6 +255,9 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			if(!existeNoPlanogramaPendente) {
 				//TODO :: inserir para retirar
 				insertAD_TROCADEGRADE(patrimonio, numos, produto, tecla, valorFinal, capacidade, nivelpar, new BigDecimal(0), "RETIRAR", "RETIRAR", nivelalerta, vlrpar, vlrfun);
+				
+				//TODO :: Para visita de secos, deve ser retirado apenas os secos e para congelados os congelados.
+				//?? pendente
 			}
 
 			}
