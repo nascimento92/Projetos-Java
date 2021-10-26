@@ -255,6 +255,9 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			if(!existeNoPlanogramaPendente) {
 				//TODO :: inserir para retirar
 				insertAD_TROCADEGRADE(patrimonio, numos, produto, tecla, valorFinal, capacidade, nivelpar, new BigDecimal(0), "RETIRAR", "RETIRAR", nivelalerta, vlrpar, vlrfun);
+				
+				//TODO :: Para visita de secos, deve ser retirado apenas os secos e para congelados os congelados.
+				//?? pendente
 			}
 
 			}
@@ -771,6 +774,8 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					//TODO :: registra itens em ruptura
 					insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio);
 				}
+				
+				//TODO :: se não for pro pedido, tem que ir para a tela de histórico de rupturas.
 			}
 			
 			}
