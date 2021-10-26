@@ -36,7 +36,9 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 	/**
 	 * 17/10/2021 vs 1.4 reformulação do evento, realiza os calculos do encerramento da OS.
 	 * 25/10/2021 vs 1.5 Inserido os métodos validaItensRetAbast e validaItensDaAppContagem para garantir que o sistema vá inserir para ajuste apenas os itens corretos. Métodos calculaDadosDaContagem e verificaDadosSemContagem foram comentados, por não serem mais utilizados nessa nova lógica.
+	 * 26/10/2021 vs 1.6 Insere nos cálculos a retirada dos retornos que não devem entrar nos calculos. Todos onde o campo REDUZESTOQUE da AD_MOTIVOSRETORNO esteja como "N".
 	 */
+	
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -191,10 +193,12 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			BigDecimal saldoapos = null;
 			BigDecimal retorno = null;
 			BigDecimal diferenca = null;
+			BigDecimal retornoParaCalculo = null;
 			BigDecimal estoque = getSaldoEstoque(patrimonio,produto,tecla);
 			BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
 			BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
 			BigDecimal valor = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VALOR"));
+			BigDecimal retornosAhSeremIgnorados = getRetornosAhSeremIgnorados(numos,produto,tecla);
 			
 			DynamicVO linhaDaContagem = getLinhaDaContagem(patrimonio,numos,produto,tecla);
 			DynamicVO linhaDaAdTrocaDeGra = getLinhaDaAdTrocaDeGra(patrimonio,numos,produto,tecla);
@@ -223,18 +227,19 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			}
 			
 			BigDecimal saldoesperado = estoque.add(qtdpedido);
+			retornoParaCalculo = retorno.subtract(retornosAhSeremIgnorados);
 			
 			//verifica se houve contagem ou não, pq isso influcencia nos calculos
 			
 			if(houvecontagem) {
-				BigDecimal conteretorno = contagem.add(retorno);
+				BigDecimal conteretorno = contagem.add(retornoParaCalculo);
 				diferenca = conteretorno.subtract(saldoesperado);
 				
 				atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoesperado, contagem, diferenca, contagem, retorno);
 				
 			}else {
 				diferenca = new BigDecimal(0);
-				saldoapos = saldoesperado.subtract(retorno);
+				saldoapos = saldoesperado.subtract(retornoParaCalculo);
 				
 				atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoesperado,contagem, diferenca, saldoapos, retorno);
 			}
@@ -248,6 +253,37 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 		
+	}
+	
+	private BigDecimal getRetornosAhSeremIgnorados(BigDecimal numos, BigDecimal produto, String tecla) {
+		BigDecimal qtd = null;
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+					"SELECT SUM(QTD) AS QTD from AD_APPRETORNO WHERE NUMOS="+numos+" AND CODPROD="+produto+" AND TECLA='"+tecla+"' AND IDRETORNO IN (SELECT ID FROM AD_MOTIVOSRETORNO WHERE REDUZESTOQUE='N')");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				BigDecimal count = contagem.getBigDecimal("QTD");
+				if(count!=null) {
+					qtd = count;
+				}
+			}
+		} catch (Exception e) {
+			salvarException(
+					"[getRetornosAhSeremIgnorados] não foi possível verificar a quantidade de retornos a serem ignorados. numos " + numos
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+		if(qtd==null) {
+			qtd = new BigDecimal(0);
+		}
+		
+		return qtd;
 	}
 	
 	private void validaItensDaAppContagem(BigDecimal numos, BigDecimal idretorno, String patrimonio, boolean houvecontagem) {
