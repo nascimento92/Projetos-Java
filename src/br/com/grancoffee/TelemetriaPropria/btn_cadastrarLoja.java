@@ -5,7 +5,10 @@ import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.text.DecimalFormat;
+
 import javax.swing.Timer;
+
+import com.sankhya.util.BigDecimalUtil;
 import com.sankhya.util.StringUtils;
 import com.sankhya.util.TimeUtils;
 
@@ -65,7 +68,10 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		} else {
 			arg0.setMensagemRetorno("Loja Cadastrada! - <b>" + totem + "</b>");
 		}
+		
+		
 	}
+	
 
 	private String totem(String tipo) {
 		DecimalFormat df = new DecimalFormat("0000");
@@ -76,7 +82,6 @@ public class btn_cadastrarLoja implements AcaoRotinaJava {
 		novoTotem = tipo + df.format(Integer.parseInt(StringUtils.substr(ultimoTotem, 4, 4)) + 1);
 		
 		return novoTotem;
-		
 	}
 
 	private String getUltimo(String tipo) {
