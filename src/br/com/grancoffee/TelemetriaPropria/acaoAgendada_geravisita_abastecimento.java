@@ -32,6 +32,10 @@ import br.com.sankhya.ws.ServiceContext;
 
 public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
+	/**
+	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para salvar os itens que deveriam ser abastecidos porém não tinha em estoque na filial
+	 */
+	
 	@Override
 	public void onTime(ScheduledActionContext arg0) {
 		
@@ -175,7 +179,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 					+ e.getMessage() + "\n" + e.getCause());	 
 		}
 	}
-	
+		
 	private void validaItensDaTrocaDeGrade(String patrimonio, BigDecimal numos) {
 		
 		//TODO :: verificar itens para retirar
@@ -965,6 +969,9 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				if(falta.intValue() <= estoqueNaEmpresa.intValue()) {
 					sequencia++;
 					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+				}else {
+					//TODO :: insere itens em corte / ruptura
+					insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, falta, valor, tecla, gc_solicitabast, patrimonio);
 				}
 			}
 			
@@ -975,6 +982,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
+	
 	
 	private DynamicVO getTGFGRU(BigDecimal grupo) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("GrupoProduto");
@@ -1046,6 +1054,47 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		} catch (Exception e) {
 			salvarException(
 					"[insereItemNaNota] Nao foi possivel inserir o item na nota! numero nota "+nunota+" produto "+produto
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void insereItemEmRuptura(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
+			BigDecimal qtdneg, BigDecimal vlrunit, String tecla, DynamicVO gc_solicitabast, String patrimonio) {
+		try {
+			
+			String PedidoSecosCongelados = (String) gc_solicitabast.getProperty("AD_TIPOPRODUTOS");
+			String tipoAbastecimento = "";
+			
+			if("1".equals(PedidoSecosCongelados)) {
+				tipoAbastecimento="N";
+			}else {
+				tipoAbastecimento="S";
+			}
+			
+			String validaSeOhItemEhDeCongelados = validaSeOhItemEhDeCongelados(produto);
+			
+			if(tipoAbastecimento.equals(validaSeOhItemEhDeCongelados)) {
+				
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_ITENSCORTE");
+				DynamicVO VO = (DynamicVO) NPVO;
+				
+				VO.setProperty("NUNOTA", nunota);
+				VO.setProperty("CODPROD", produto);
+				VO.setProperty("TECLA", tecla);
+				VO.setProperty("CODBEM", patrimonio);
+				VO.setProperty("CODEMP", empresa);
+				VO.setProperty("CODLOCALORIG", local);
+				VO.setProperty("QTDNEG", qtdneg);
+				VO.setProperty("VLRUNIT", vlrunit);
+
+				dwfFacade.createEntity("AD_ITENSCORTE", (EntityVO) VO);
+			}
+			
+			
+		} catch (Exception e) {
+			salvarException(
+					"[insereItemEmRuptura] Nao foi possivel inserir o item em ruptura! numero nota "+nunota+" produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
