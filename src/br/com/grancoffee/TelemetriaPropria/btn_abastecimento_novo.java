@@ -1,7 +1,6 @@
 package br.com.grancoffee.TelemetriaPropria;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -11,7 +10,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import com.sankhya.util.TimeUtils;
-import Helpers.WSPentaho;
+//import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -30,13 +29,14 @@ import br.com.sankhya.modelcore.comercial.ComercialUtils;
 import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
-import br.com.sankhya.modelcore.util.MGECoreParameter;
+//import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 	/**
 	 * 15/10/2021 vs 1.0 Botao para gerar o abastecimento, além disso realizará a geração da nota e da OS de visita.
+	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para inserir os itens que precisavam ser abastecidos porém não tinha a quantidade em estoque
 	 */
 	
 	String retornoNegativo = "";
@@ -593,72 +593,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 		
-		/*
-		try {
-			
-			String problema = "ABASTECER BEM: "+patrimonio;	
-			BigDecimal parceiro = getParceiro(patrimonio);
-			BigDecimal contrato = getContrato(patrimonio);
-			
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("OrdemServico");
-			DynamicVO VO = (DynamicVO) NPVO;
-			
-			VO.setProperty("DHCHAMADA", TimeUtils.getNow());
-			VO.setProperty("DTPREVISTA",addDias(TimeUtils.getNow(),new BigDecimal(7)));
-			VO.setProperty("NUMOS",getUltimoCod().add(new BigDecimal(1))); 
-			VO.setProperty("SITUACAO","P");
-			VO.setProperty("CODUSUSOLICITANTE",new BigDecimal(3082));
-			VO.setProperty("CODUSURESP",new BigDecimal(3082));
-			VO.setProperty("DESCRICAO",problema);
-			VO.setProperty("AD_MANPREVENTIVA", "N");
-			VO.setProperty("AD_CHAMADOTI", "N");
-			VO.setProperty("AD_TELPROPRIA", "S");
-			VO.setProperty("CODATEND", new BigDecimal(3082));
-			VO.setProperty("TEMPOSLA", new BigDecimal(7000));
-			VO.setProperty("AD_TELASAC", "S");
-			VO.setProperty("CODCOS", new BigDecimal(1));
-			VO.setProperty("CODPARC", parceiro);
-			VO.setProperty("NUMCONTRATO", contrato);
-			VO.setProperty("CODCONTATO", new BigDecimal(1));
-			VO.setProperty("CODUSUFECH", null);
-			VO.setProperty("DTFECHAMENTO", null);
-			VO.setProperty("DTALTER", null);
-			VO.setProperty("CODBEM", patrimonio);
-			VO.setProperty("SERIE", patrimonio);
-			
-			dwfFacade.createEntity("OrdemServico", (EntityVO) VO);
-			
-			numos = VO.asBigDecimal("NUMOS");
-			
-		} catch (Exception e) {
-			salvarException(
-					"[gerarCabecalhoOS] Nao foi possivel Gerar o cabeçalho da OS! Patrimonio "+patrimonio
-							+ e.getMessage() + "\n" + e.getCause());
-		}
-		*/
 		return numos;
 		
 	}
 	
-	private BigDecimal getUltimoCod() {
-		BigDecimal ultimo = null;
-		try {
-			JapeWrapper DAO = JapeFactory.dao("ControleNumeracao");
-			DynamicVO VO = DAO.findOne("ARQUIVO=?",new Object[] { "TCSOSE" });
-			
-			if(VO!=null) {
-				ultimo = VO.asBigDecimal("ULTCOD");
-			}
-
-		} catch (Exception e) {
-			salvarException(
-					"[getUltimoCod] Nao foi possivel pegar o ultimo código da fila!"
-							+ e.getMessage() + "\n" + e.getCause());
-		}
-		
-		return ultimo;
-	}
 	
 	private void geraItemOS(BigDecimal numos, String patrimonio, DynamicVO gc_solicitabast) throws Exception{
 		
@@ -803,9 +741,6 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-
-			//BigDecimal capacidade = (BigDecimal) DynamicVO.getProperty("CAPACIDADE");
-			//BigDecimal nivelalerta = (BigDecimal) DynamicVO.getProperty("NIVELALERTA");
 			
 			String tecla = (String) DynamicVO.getProperty("TECLA");
 			BigDecimal produto = (BigDecimal) DynamicVO.getProperty("CODPROD");
@@ -827,31 +762,14 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			//valor total
 			BigDecimal valorTotal = falta.multiply(valor);
 			
-			/*
-			System.out.println("###########################"+
-					"Tecla: "+tecla+
-					"\nProduto: "+produto+
-					"\nNivelpar: "+nivelpar+
-					"\nValor Par: "+vlrpar+
-					"\nValor Fun: "+vlrfun+
-					"\nVolume: "+volume+
-					"\nEstoque: "+estoque+
-					"\nFalta: "+falta+
-					"\nValor: "+valor+
-					"\nEstoque na empresa: "+estoqueNaEmpresa+
-					"\nQuantidade minima: "+qtdMinima+
-					"\nValor Total: "+valorTotal+
-					"\nLocal Abast: "+localAbast+
-					"\nEmpresa Abast: "+empresaAbast+
-					"\nTop: "+top
-					);
-			
-			*/
 			//validacao
 			if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()>0) {
 				if(falta.intValue() <= estoqueNaEmpresa.intValue()) {
 					sequencia++;
 					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+				}else {
+					//TODO :: registra itens em ruptura
+					insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio);
 				}
 			}
 			
@@ -904,6 +822,47 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		} catch (Exception e) {
 			salvarException(
 					"[insereItemNaNota] Nao foi possivel inserir o item na nota! numero nota "+nunota+" produto "+produto
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void insereItemEmRuptura(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
+			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast, String patrimonio) {
+		try {
+			
+			String PedidoSecosCongelados = (String) gc_solicitabast.getProperty("AD_TIPOPRODUTOS");
+			String tipoAbastecimento = "";
+			
+			if("1".equals(PedidoSecosCongelados)) {
+				tipoAbastecimento="N";
+			}else {
+				tipoAbastecimento="S";
+			}
+			
+			String validaSeOhItemEhDeCongelados = validaSeOhItemEhDeCongelados(produto);
+			
+			if(tipoAbastecimento.equals(validaSeOhItemEhDeCongelados)) {
+				
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_ITENSCORTE");
+				DynamicVO VO = (DynamicVO) NPVO;
+				
+				VO.setProperty("NUNOTA", nunota);
+				VO.setProperty("CODPROD", produto);
+				VO.setProperty("TECLA", tecla);
+				VO.setProperty("CODBEM", patrimonio);
+				VO.setProperty("CODEMP", empresa);
+				VO.setProperty("CODLOCALORIG", local);
+				VO.setProperty("QTDNEG", qtdneg);
+				VO.setProperty("VLRUNIT", vlrunit);
+
+				dwfFacade.createEntity("AD_ITENSCORTE", (EntityVO) VO);
+			}
+			
+			
+		} catch (Exception e) {
+			salvarException(
+					"[insereItemEmRuptura] Nao foi possivel inserir o item em ruptura! numero nota "+nunota+" produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
@@ -1765,6 +1724,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		return VO;
 	}
 	
+	/*
 	private void chamaPentaho() {
 
 		try {
@@ -1784,7 +1744,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					"[chamaPentaho] nao foi possivel chamar o pentaho! " + e.getMessage() + "\n" + e.getCause());
 		}
 	}
-
+*/
 	public String montarBody(Object codbem) {
 
 		int cont = 1;

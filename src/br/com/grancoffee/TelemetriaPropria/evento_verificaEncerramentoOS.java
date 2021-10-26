@@ -10,6 +10,7 @@ import java.util.Iterator;
 
 import javax.swing.Timer;
 
+import com.sankhya.util.BigDecimalUtil;
 import com.sankhya.util.TimeUtils;
 
 import Helpers.WSPentaho;
@@ -34,6 +35,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		
 	/**
 	 * 17/10/2021 vs 1.4 reformulação do evento, realiza os calculos do encerramento da OS.
+	 * 25/10/2021 vs 1.5 Inserido os métodos validaItensRetAbast e validaItensDaAppContagem para garantir que o sistema vá inserir para ajuste apenas os itens corretos. Métodos calculaDadosDaContagem e verificaDadosSemContagem foram comentados, por não serem mais utilizados nessa nova lógica.
 	 */
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
@@ -125,6 +127,9 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			
 			if(gc_SOLICITABAST!=null) {
 				
+				String patrimonio = gc_SOLICITABAST.asString("CODBEM");
+				BigDecimal idretorno = gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO");
+				
 				// TODO :: verificar se houve retorno.
 				boolean houveretorno = validaSeHouveRetornos(numos, "QTDRET");
 				// TODO :: verificar se houve contagem.
@@ -136,26 +141,25 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 				//TODO :: Pegar o saldo do estoque via API
 				
 				if(houveretorno) {
-					atualizaDadosRetorno(gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO"), "S");
+					atualizaDadosRetorno(idretorno, "S");
 				}else {
-					atualizaDadosRetorno(gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO"), "N");
+					atualizaDadosRetorno(idretorno, "N");
 				}
 				
 				if(houvecontagem) {
-					
-					atualizaOutrosDadosContagem(gc_SOLICITABAST.asString("CODBEM"), gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO"), TimeUtils.getNow(), "S");
-					calculaDadosDaContagem(numos, gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO"));
-					
+					atualizaOutrosDadosContagem(patrimonio, idretorno, TimeUtils.getNow(), "S");	
 				}else {
-					
-					atualizaOutrosDadosContagem(gc_SOLICITABAST.asString("CODBEM"), gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO"), null, "N");
-					verificaDadosSemContagem(numos, gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO"));
-					
+					atualizaOutrosDadosContagem(patrimonio, idretorno, null, "N");	
 				}
 				
+				//calculaDadosDaContagem(numos, idretorno);
+				//verificaDadosSemContagem(numos, idretorno);
+				
+				validaItensRetAbast(idretorno, patrimonio,numos,houvecontagem);
+				validaItensDaAppContagem(numos, idretorno, patrimonio, houvecontagem);
 				
 				if(houveabastecimento) {
-					atualizaDadosAbastecimento(gc_SOLICITABAST.asString("CODBEM"));
+					atualizaDadosAbastecimento(patrimonio);
 					//TODO :: planograma pendente para atual
 					validaDadosAbastecimento(numos, gc_SOLICITABAST);
 				}
@@ -166,6 +170,180 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			salvarException("[realizaValidacoes] nao foi possivel calcular realizar as validações " + numos
 					+ e.getMessage() + "\n" + e.getCause());
 		}
+	}
+	
+	private void validaItensRetAbast(BigDecimal idretorno, String patrimonio, BigDecimal numos, boolean houvecontagem) {
+		
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_ITENSRETABAST","this.ID = ? ", new Object[] { idretorno }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+
+			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+			String tecla = DynamicVO.asString("TECLA");
+			BigDecimal qtdpedido = null;
+			BigDecimal contagem = null;
+			BigDecimal saldoapos = null;
+			BigDecimal retorno = null;
+			BigDecimal diferenca = null;
+			BigDecimal estoque = getSaldoEstoque(patrimonio,produto,tecla);
+			BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
+			BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
+			BigDecimal valor = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VALOR"));
+			
+			DynamicVO linhaDaContagem = getLinhaDaContagem(patrimonio,numos,produto,tecla);
+			DynamicVO linhaDaAdTrocaDeGra = getLinhaDaAdTrocaDeGra(patrimonio,numos,produto,tecla);
+			
+			if(linhaDaContagem!=null) {
+				//TODO :: preenche dados com os valores da tela
+				qtdpedido = linhaDaContagem.asBigDecimal("QTDABAST");
+				contagem = linhaDaContagem.asBigDecimal("QTDCONTAGEM");
+			}else {
+				
+				//TODO :: preenche os dados vazios
+				if(linhaDaAdTrocaDeGra!=null) {
+					qtdpedido = linhaDaAdTrocaDeGra.asBigDecimal("QTDABAST");
+					contagem = linhaDaAdTrocaDeGra.asBigDecimal("QTDCONTAGEM");
+				}else {
+					qtdpedido = new BigDecimal(0);
+					contagem = new BigDecimal(0);
+				}	
+			
+			}
+			
+			if(linhaDaAdTrocaDeGra!=null) {
+				retorno = linhaDaAdTrocaDeGra.asBigDecimal("QTDRET");
+			}else {
+				retorno = new BigDecimal(0);
+			}
+			
+			BigDecimal saldoesperado = estoque.add(qtdpedido);
+			
+			//verifica se houve contagem ou não, pq isso influcencia nos calculos
+			
+			if(houvecontagem) {
+				BigDecimal conteretorno = contagem.add(retorno);
+				diferenca = conteretorno.subtract(saldoesperado);
+				
+				atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoesperado, contagem, diferenca, contagem, retorno);
+				
+			}else {
+				diferenca = new BigDecimal(0);
+				saldoapos = saldoesperado.subtract(retorno);
+				
+				atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoesperado,contagem, diferenca, saldoapos, retorno);
+			}
+			
+			insereAD_HISTRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoesperado,contagem,diferenca,saldoapos,retorno,valor);
+
+			}
+		} catch (Exception e) {
+			salvarException(
+					"[validaItensRetAbast] nao foi possivel verificar os dados do encerramento. numos " + numos
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+	}
+	
+	private void validaItensDaAppContagem(BigDecimal numos, BigDecimal idretorno, String patrimonio, boolean houvecontagem) {
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
+					new FinderWrapper("AD_APPCONTAGEM", "this.NUMOS = ? ", new Object[] { numos }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+				String tecla = DynamicVO.asString("TECLA");
+				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+				BigDecimal estoque = getSaldoEstoque(patrimonio, produto, tecla);
+				BigDecimal qtdpedido = DynamicVO.asBigDecimal("QTDABAST");
+				BigDecimal saldoesperado = estoque.add(qtdpedido);
+				BigDecimal valor = DynamicVO.asBigDecimal("VALOR");
+				BigDecimal contagem = null;
+				BigDecimal diferenca = null;
+				BigDecimal retorno = null;
+				BigDecimal saldoapos = null;
+
+				DynamicVO linhaDaAdTrocaDeGra = getLinhaDaAdTrocaDeGra(patrimonio, numos, produto, tecla);
+
+				if (linhaDaAdTrocaDeGra != null) {
+					retorno = linhaDaAdTrocaDeGra.asBigDecimal("QTDRET");
+				} else {
+					retorno = new BigDecimal(0);
+				}
+
+				if (houvecontagem) {
+					contagem = DynamicVO.asBigDecimal("QTDCONTAGEM");
+					BigDecimal conteretorno = contagem.add(retorno);
+					diferenca = conteretorno.subtract(saldoesperado);
+					saldoapos = contagem;
+				} else {
+					contagem = new BigDecimal(0);
+					diferenca = new BigDecimal(0);
+					saldoapos = saldoesperado.subtract(retorno);
+				}
+
+				boolean existe = validaSeExisteAhTeclaNaTelaDeRetorno(idretorno, patrimonio, produto, tecla);
+
+				if (!existe) {
+					insereAD_ITENSRETABAST(idretorno, patrimonio, tecla, produto, capacidade, nivelpar, estoque,
+							qtdpedido, saldoesperado, contagem, diferenca, saldoapos, retorno, valor);
+					
+					insereAD_HISTRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoesperado,contagem,diferenca,saldoapos,retorno,valor);
+				}
+
+			}
+			
+		} catch (Exception e) {
+			salvarException(
+					"[validaItensDaAppContagem] nao foi possivel validar todos os itens da contagem. numos " + numos
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private DynamicVO getLinhaDaContagem(String patrimonio, BigDecimal numos, BigDecimal produto, String tecla) {
+		DynamicVO item = null;
+		try {
+			
+			JapeWrapper DAO = JapeFactory.dao("AD_APPCONTAGEM");
+			DynamicVO VO = DAO.findOne("NUMOS=? AND CODPROD=? AND TECLA=?",new Object[] { numos, produto, tecla });
+
+			item = VO;
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return item;
+	}
+	
+	private DynamicVO getLinhaDaAdTrocaDeGra(String patrimonio, BigDecimal numos, BigDecimal produto, String tecla) {
+		DynamicVO item = null;
+		try {
+			
+			JapeWrapper DAO = JapeFactory.dao("AD_TROCADEGRADE");
+			DynamicVO VO = DAO.findOne("NUMOS=? AND CODPROD=? AND TECLA=? AND CODBEM=?",new Object[] { numos, produto, tecla, patrimonio });
+
+			item = VO;
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return item;
 	}
 	
 	private void atualizaCampoParaFinalizacaoDaVisitaNoPentaho(String patrimonio, BigDecimal numos) {
@@ -342,72 +520,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
-	
-	
-	private void verificaDadosSemContagem(BigDecimal numos, BigDecimal idretorno) {
-		try {
 
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-
-			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
-					new FinderWrapper("AD_TROCADEGRADE", "this.NUMOS = ? ", new Object[] { numos }));
-
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
-
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
-						.wrapInterface(DynamicVO.class);
-				
-				BigDecimal retorno = null;
-				String patrimonio = DynamicVO.asString("CODBEM");
-				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal qtdpedido = DynamicVO.asBigDecimal("QTDABAST");
-				BigDecimal contagem = DynamicVO.asBigDecimal("QTDCONTAGEM");
-				BigDecimal ret = DynamicVO.asBigDecimal("QTDRET");
-				
-				if(ret!=null) {
-					retorno = ret;
-				}else {
-					retorno = new BigDecimal(0);
-				}
-				
-				BigDecimal valor = DynamicVO.asBigDecimal("VALOR");
-				BigDecimal estoque = getSaldoEstoque(patrimonio, produto, tecla);
-				BigDecimal saldoEsperado = estoque.add(qtdpedido);
-				BigDecimal diferenca = new BigDecimal(0);
-				BigDecimal saldoapos = saldoEsperado.subtract(retorno);
-
-				boolean existe = validaSeExisteAhTeclaNaTelaDeRetorno(idretorno, patrimonio, produto, tecla);
-
-				if (existe) {
-					atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoEsperado,
-							contagem, diferenca, saldoapos, retorno);
-				} else {
-					insereAD_ITENSRETABAST(idretorno, patrimonio, tecla, produto, capacidade, nivelpar, estoque,
-							qtdpedido, saldoEsperado, contagem, diferenca, saldoapos, retorno, valor);
-				}
-
-				boolean existeHistorico = validaSeExisteNaTelaDeHistorico(idretorno, patrimonio, produto, tecla);
-				
-				if(existeHistorico) {
-					atualizaAD_HISTRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoEsperado, contagem, diferenca, contagem, retorno);
-				}else {
-					insereAD_HISTRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoEsperado,contagem,diferenca,contagem,retorno,valor);
-				}
-				
-				
-			}
-
-		} catch (Exception e) {
-			salvarException("[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
-					+ e.getMessage() + "\n" + e.getCause());
-		}
-	}
-	
-	
 	private void atualizaOutrosDadosContagem(String patrimonio, BigDecimal idretorno, Timestamp ultimacontagem, String contagem) {
 		
 		if(ultimacontagem!=null) {
@@ -445,7 +558,6 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		}
 	}
 	
-	
 	private void AtualizaSaldoDeEstoque(String patrimonio) {
 		
 		try {
@@ -473,120 +585,6 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		
 	}
 	
-	
-	private void calculaDadosDaContagem(BigDecimal numos, BigDecimal idretorno) {
-		try {
-			
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-
-			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("AD_TROCADEGRADE", "this.NUMOS = ? ", new Object[] { numos }));
-
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
-
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
-						.wrapInterface(DynamicVO.class);
-
-				BigDecimal retorno = null;
-				String patrimonio = DynamicVO.asString("CODBEM");
-				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal qtdpedido = DynamicVO.asBigDecimal("QTDABAST");
-				BigDecimal contagem = DynamicVO.asBigDecimal("QTDCONTAGEM");
-				BigDecimal ret = DynamicVO.asBigDecimal("QTDRET");
-				
-				if(ret!=null) {
-					retorno = ret;
-				}else {
-					retorno = new BigDecimal(0);
-				}
-				
-				BigDecimal valor = DynamicVO.asBigDecimal("VALOR");
-				BigDecimal estoque = getSaldoEstoque(patrimonio,produto,tecla);
-				BigDecimal saldoEsperado = estoque.add(qtdpedido);
-				BigDecimal conteretorno = contagem.add(retorno);
-				BigDecimal diferenca = conteretorno.subtract(saldoEsperado);
-				
-				boolean existe = validaSeExisteAhTeclaNaTelaDeRetorno(idretorno, patrimonio, produto, tecla);
-				
-				if(existe) {
-					atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoEsperado, contagem, diferenca, contagem, retorno);
-				}else {
-					insereAD_ITENSRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoEsperado,contagem,diferenca,contagem,retorno,valor);
-				}
-				
-				boolean existeHistorico = validaSeExisteNaTelaDeHistorico(idretorno, patrimonio, produto, tecla);
-				
-				if(existeHistorico) {
-					atualizaAD_HISTRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoEsperado, contagem, diferenca, contagem, retorno);
-				}else {
-					insereAD_HISTRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoEsperado,contagem,diferenca,contagem,retorno,valor);
-				}
-				
-				
-			}
-			
-		} catch (Exception e) {
-			salvarException(
-					"[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
-							+ e.getMessage() + "\n" + e.getCause());
-		}
-	}
-	
-	private boolean validaSeExisteNaTelaDeHistorico(BigDecimal idretorno, String patrimonio, BigDecimal produto, String tecla) {
-		boolean valida = false;
-
-		try {
-			
-			JapeWrapper DAO = JapeFactory.dao("AD_HISTRETABAST");
-			DynamicVO VO = DAO.findOne("ID=? AND CODBEM=? AND CODPROD=? AND TECLA=?",new Object[] { idretorno, patrimonio, produto, tecla });
-			
-			if(VO!=null) {
-				valida=true;
-			}
-
-
-		} catch (Exception e) {
-			salvarException(
-					"[validaSeExisteAhTeclaNaTelaDeRetorno] nao foi possivel validar se a tecla existe na tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
-							+ e.getMessage() + "\n" + e.getCause());
-		}
-
-		return valida;
-	}
-	
-	private void atualizaAD_HISTRETABAST(BigDecimal idretorno, String patrimonio, BigDecimal produto, String tecla,
-			BigDecimal saldoanterior, BigDecimal qtdpedido, BigDecimal saldoesperado, BigDecimal contagem, BigDecimal diferenca, BigDecimal saldoapos, BigDecimal qtdretorno) {
-		try {
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_HISTRETABAST",
-					"this.ID=? AND this.CODBEM=? AND this.CODPROD=? AND this.TECLA=? ", new Object[] { idretorno, patrimonio,produto,tecla }));
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-				DynamicVO VO = (DynamicVO) NVO;
-
-				VO.setProperty("SALDOANTERIOR", saldoanterior);
-				VO.setProperty("QTDPEDIDO", qtdpedido);
-				VO.setProperty("SALDOESPERADO", saldoesperado);
-				VO.setProperty("CONTAGEM", contagem);
-				VO.setProperty("DIFERENCA", diferenca);
-				VO.setProperty("SALDOAPOS", saldoapos);
-				VO.setProperty("QTDRETORNO", qtdretorno);
-
-				itemEntity.setValueObject(NVO);
-			}
-		} catch (Exception e) {
-			salvarException(
-					"[atualizaAD_ITENSRETABAST] nao foi possivel atualizar a tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
-							+ e.getMessage() + "\n" + e.getCause());
-		}
-	}
-	
-	
 	private void insereAD_HISTRETABAST(BigDecimal idretorno, String patrimonio, String tecla, BigDecimal produto, BigDecimal capacidade, BigDecimal nivelpar,
 			BigDecimal saldoanterior, BigDecimal qtdpedido, BigDecimal saldoesperado, BigDecimal contagem, BigDecimal diferenca, BigDecimal saldoapos, BigDecimal qtdretorno, BigDecimal valor) {
 		try {
@@ -609,14 +607,13 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			VO.setProperty("QTDRETORNO", qtdretorno);
 			VO.setProperty("VALOR", valor);
 
-			dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
+			dwfFacade.createEntity("AD_HISTRETABAST", (EntityVO) VO);
 		} catch (Exception e) {
 			salvarException(
 					"[insereAD_HISTRETABAST] nao foi possivel inserir a tela de retorno no histórico "+patrimonio+" retorno "+idretorno+ " produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
-	
 	
 	private void insereAD_ITENSRETABAST(BigDecimal idretorno, String patrimonio, String tecla, BigDecimal produto, BigDecimal capacidade, BigDecimal nivelpar,
 			BigDecimal saldoanterior, BigDecimal qtdpedido, BigDecimal saldoesperado, BigDecimal contagem, BigDecimal diferenca, BigDecimal saldoapos, BigDecimal qtdretorno, BigDecimal valor) {
@@ -648,7 +645,6 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		}
 	}
 	
-	
 	private boolean validaSeExisteAhTeclaNaTelaDeRetorno(BigDecimal idretorno, String patrimonio, BigDecimal produto, String tecla) {
 		boolean valida = false;
 
@@ -678,7 +674,6 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		return valida;
 	}
 	
-	
 	private void atualizaAD_ITENSRETABAST(BigDecimal idretorno, String patrimonio, BigDecimal produto, String tecla,
 			BigDecimal saldoanterior, BigDecimal qtdpedido, BigDecimal saldoesperado, BigDecimal contagem, BigDecimal diferenca, BigDecimal saldoapos, BigDecimal qtdretorno) {
 		try {
@@ -707,9 +702,6 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		}
 	}
 	
-	
-	
-	
 	private BigDecimal getSaldoEstoque(String patrimonio, BigDecimal produto, String tecla) throws Exception {
 		BigDecimal estoque = null;
 		JapeWrapper DAO = JapeFactory.dao("AD_ESTOQUE");
@@ -725,14 +717,11 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		return estoque;
 	}
 	
-	
-	
 	private DynamicVO getGC_SOLICITABAST(BigDecimal numos) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("GCSolicitacoesAbastecimento");
 		DynamicVO VO = DAO.findOne("NUMOS=?",new Object[] { numos });
 		return VO;
 	}
-	
 	
 	private void identificaPentaho() {
 		Timer timer = new Timer(1000, new ActionListener() {	
@@ -744,7 +733,6 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		timer.setRepeats(false);
 		timer.start();
 	}
-	
 	
 	private void chamaPentaho() {
 
@@ -811,7 +799,6 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		}
 	}
 	
-
 	private boolean validaSeEhDaTelemetriaPropria(BigDecimal numos) {
 		boolean valida = false;
 		
@@ -862,5 +849,182 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		}
 	}
 	
+	/*
+	 * private void calculaDadosDaContagem(BigDecimal numos, BigDecimal idretorno) {
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade
+					.findByDynamicFinder(new FinderWrapper("AD_TROCADEGRADE", "this.NUMOS = ? ", new Object[] { numos }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				BigDecimal retorno = null;
+				String patrimonio = DynamicVO.asString("CODBEM");
+				String tecla = DynamicVO.asString("TECLA");
+				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+				BigDecimal qtdpedido = DynamicVO.asBigDecimal("QTDABAST");
+				BigDecimal contagem = DynamicVO.asBigDecimal("QTDCONTAGEM");
+				BigDecimal ret = DynamicVO.asBigDecimal("QTDRET");
+				
+				if(ret!=null) {
+					retorno = ret;
+				}else {
+					retorno = new BigDecimal(0);
+				}
+				
+				BigDecimal valor = DynamicVO.asBigDecimal("VALOR");
+				BigDecimal estoque = getSaldoEstoque(patrimonio,produto,tecla);
+				BigDecimal saldoEsperado = estoque.add(qtdpedido);
+				BigDecimal conteretorno = contagem.add(retorno);
+				BigDecimal diferenca = conteretorno.subtract(saldoEsperado);
+				
+				boolean existe = validaSeExisteAhTeclaNaTelaDeRetorno(idretorno, patrimonio, produto, tecla);
+				
+				if(existe) {
+					atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoEsperado, contagem, diferenca, contagem, retorno);
+				}else {
+					insereAD_ITENSRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoEsperado,contagem,diferenca,contagem,retorno,valor);
+				}
+				
+				boolean existeHistorico = validaSeExisteNaTelaDeHistorico(idretorno, patrimonio, produto, tecla);
+				
+				if(existeHistorico) {
+					atualizaAD_HISTRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoEsperado, contagem, diferenca, contagem, retorno);
+				}else {
+					insereAD_HISTRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoEsperado,contagem,diferenca,contagem,retorno,valor);
+				}
+				
+				
+			}
+			
+		} catch (Exception e) {
+			salvarException(
+					"[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
 	
+	private void atualizaAD_HISTRETABAST(BigDecimal idretorno, String patrimonio, BigDecimal produto, String tecla,
+			BigDecimal saldoanterior, BigDecimal qtdpedido, BigDecimal saldoesperado, BigDecimal contagem, BigDecimal diferenca, BigDecimal saldoapos, BigDecimal qtdretorno) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_HISTRETABAST",
+					"this.ID=? AND this.CODBEM=? AND this.CODPROD=? AND this.TECLA=? ", new Object[] { idretorno, patrimonio,produto,tecla }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("SALDOANTERIOR", saldoanterior);
+				VO.setProperty("QTDPEDIDO", qtdpedido);
+				VO.setProperty("SALDOESPERADO", saldoesperado);
+				VO.setProperty("CONTAGEM", contagem);
+				VO.setProperty("DIFERENCA", diferenca);
+				VO.setProperty("SALDOAPOS", saldoapos);
+				VO.setProperty("QTDRETORNO", qtdretorno);
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			salvarException(
+					"[atualizaAD_ITENSRETABAST] nao foi possivel atualizar a tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private boolean validaSeExisteNaTelaDeHistorico(BigDecimal idretorno, String patrimonio, BigDecimal produto, String tecla) {
+		boolean valida = false;
+
+		try {
+			
+			JapeWrapper DAO = JapeFactory.dao("AD_HISTRETABAST");
+			DynamicVO VO = DAO.findOne("ID=? AND CODBEM=? AND CODPROD=? AND TECLA=?",new Object[] { idretorno, patrimonio, produto, tecla });
+			
+			if(VO!=null) {
+				valida=true;
+			}
+
+
+		} catch (Exception e) {
+			salvarException(
+					"[validaSeExisteAhTeclaNaTelaDeRetorno] nao foi possivel validar se a tecla existe na tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+
+		return valida;
+	}
+	
+	private void verificaDadosSemContagem(BigDecimal numos, BigDecimal idretorno) {
+		try {
+
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
+					new FinderWrapper("AD_TROCADEGRADE", "this.NUMOS = ? ", new Object[] { numos }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+				
+				BigDecimal retorno = null;
+				String patrimonio = DynamicVO.asString("CODBEM");
+				String tecla = DynamicVO.asString("TECLA");
+				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+				BigDecimal qtdpedido = DynamicVO.asBigDecimal("QTDABAST");
+				BigDecimal contagem = DynamicVO.asBigDecimal("QTDCONTAGEM");
+				BigDecimal ret = DynamicVO.asBigDecimal("QTDRET");
+				
+				if(ret!=null) {
+					retorno = ret;
+				}else {
+					retorno = new BigDecimal(0);
+				}
+				
+				BigDecimal valor = DynamicVO.asBigDecimal("VALOR");
+				BigDecimal estoque = getSaldoEstoque(patrimonio, produto, tecla);
+				BigDecimal saldoEsperado = estoque.add(qtdpedido);
+				BigDecimal diferenca = new BigDecimal(0);
+				BigDecimal saldoapos = saldoEsperado.subtract(retorno);
+
+				boolean existe = validaSeExisteAhTeclaNaTelaDeRetorno(idretorno, patrimonio, produto, tecla);
+
+				if (existe) {
+					atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoEsperado,
+							contagem, diferenca, saldoapos, retorno);
+				} else {
+					insereAD_ITENSRETABAST(idretorno, patrimonio, tecla, produto, capacidade, nivelpar, estoque,
+							qtdpedido, saldoEsperado, contagem, diferenca, saldoapos, retorno, valor);
+				}
+
+				boolean existeHistorico = validaSeExisteNaTelaDeHistorico(idretorno, patrimonio, produto, tecla);
+				
+				if(existeHistorico) {
+					atualizaAD_HISTRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoEsperado, contagem, diferenca, contagem, retorno);
+				}else {
+					insereAD_HISTRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoEsperado,contagem,diferenca,contagem,retorno,valor);
+				}
+				
+				
+			}
+
+		} catch (Exception e) {
+			salvarException("[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
+					+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	
+	 */
 }
