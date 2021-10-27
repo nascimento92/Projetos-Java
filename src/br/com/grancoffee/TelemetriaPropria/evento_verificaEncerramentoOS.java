@@ -233,14 +233,14 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			
 			if(houvecontagem) {
 				BigDecimal conteretorno = contagem.add(retornoParaCalculo);
-				diferenca = conteretorno.subtract(saldoesperado);
+				diferenca = BigDecimalUtil.getValueOrZero(conteretorno.subtract(saldoesperado));
 				
 				atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoesperado, contagem, diferenca, contagem, retorno);
 				
 			}else {
 				diferenca = new BigDecimal(0);
-				saldoapos = saldoesperado.subtract(retornoParaCalculo);
-				
+				saldoapos = BigDecimalUtil.getValueOrZero(saldoesperado.subtract(retornoParaCalculo));
+								
 				atualizaAD_ITENSRETABAST(idretorno, patrimonio, produto, tecla, estoque, qtdpedido, saldoesperado,contagem, diferenca, saldoapos, retorno);
 			}
 			

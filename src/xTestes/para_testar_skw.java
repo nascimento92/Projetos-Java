@@ -12,9 +12,9 @@ public class para_testar_skw implements AcaoRotinaJava{
 
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
-		BigDecimal azul;
-		BigDecimal diasCorridos = BigDecimalUtil.getValueOrZero(NativeSql.getBigDecimal("CAST ((DBDATE() - DTNEG) AS INT)", "TGFCAB", "NUNOTA = ?", nota));
-		BigDecimal codUsuLogado = (azul != null) ? azul : BigDecimal.ZERO;
+		//BigDecimal azul;
+		//BigDecimal diasCorridos = BigDecimalUtil.getValueOrZero(NativeSql.getBigDecimal("CAST ((DBDATE() - DTNEG) AS INT)", "TGFCAB", "NUNOTA = ?", nota));
+		//BigDecimal codUsuLogado = (azul != null) ? azul : BigDecimal.ZERO;
 		
 	}
 

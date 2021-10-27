@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.Iterator;
 
+import com.sankhya.util.BigDecimalUtil;
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
@@ -81,37 +82,21 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 		
 		BigDecimal produto = newVO.asBigDecimal("CODPROD");
 		String tecla = newVO.asString("TECLA");
-		BigDecimal contagem = newVO.asBigDecimal("CONTAGEM");
-		BigDecimal retorno = newVO.asBigDecimal("QTDRETORNO");
+		BigDecimal contagem = BigDecimalUtil.getValueOrZero(newVO.asBigDecimal("CONTAGEM"));
+		BigDecimal retorno = BigDecimalUtil.getValueOrZero(newVO.asBigDecimal("QTDRETORNO"));
 		BigDecimal id = newVO.asBigDecimal("ID");
 		BigDecimal diferenca = null;
 		BigDecimal saldoAntes = newVO.asBigDecimal("SALDOANTERIOR");
-		BigDecimal qtdpedido = newVO.asBigDecimal("QTDPEDIDO");
-		BigDecimal numos = null;
+		BigDecimal qtdpedido = BigDecimalUtil.getValueOrZero(newVO.asBigDecimal("QTDPEDIDO"));
+		BigDecimal numos = BigDecimalUtil.getValueOrZero((BigDecimal) NativeSql.getColumnValue("NUMOS", "AD_RETABAST", "ID ="+id));
 		BigDecimal retornoParaCalculo = null;
 		BigDecimal saldoapos = null;
-		
-		DynamicVO ad_RETABAST = getAD_RETABAST(id);
-		if(ad_RETABAST!=null) {
-			numos = ad_RETABAST.asBigDecimal("NUMOS");
-		}
-				
-		if(numos!=null && saldoAntes!=null) {
-			
-			if(contagem==null) {
-				contagem = new BigDecimal(0);
-			}
-			
-			if(retorno==null) {
-				retorno = new BigDecimal(0);
-			}
-			
-			if(qtdpedido==null) {
-				qtdpedido = new BigDecimal(0);
-			}
+		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
+	
+		if(numos!=null && numos.intValue()>0 && oldVO.asBigDecimal("SALDOANTERIOR") !=null) {
 			
 			BigDecimal saldoesperado = saldoAntes.add(qtdpedido);
-			BigDecimal retornosAhSeremIgnorados = getRetornosAhSeremIgnorados(numos,produto,tecla);
+			BigDecimal retornosAhSeremIgnorados = getRetornosAhSeremIgnorados(id,produto,tecla);
 			retornoParaCalculo = retorno.subtract(retornosAhSeremIgnorados);
 			
 			if(validaSeHouveContagem(id)) { //houve contagem
@@ -122,7 +107,6 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 				
 			}else { //não houve contagem
 				
-				DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
 				if (newVO.asBigDecimal("CONTAGEM") != oldVO.asBigDecimal("CONTAGEM")) { //se a contagem for alterada
 					if(newVO.asBigDecimal("CONTAGEM").intValue()>0) { //se for maior que zero
 						
@@ -144,10 +128,26 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 			newVO.setProperty("SALDOAPOS", saldoapos);
 			
 		}
-
+		
+		/*
+		 * if(numos!=null && numos.intValue()>0 && saldoAntes!=null) {
+			throw new Error("\nProduto: "+produto+
+					"\ntecla: "+tecla+
+					"\ncontagem: "+contagem+
+					"\nretorno: "+retorno+
+					"\nid: "+id+
+					"\ndiferenca: "+diferenca+
+					"\nsaldoAntes: "+saldoAntes+
+					"\nqtdpedido: "+qtdpedido+
+					"\nnumos: "+numos+
+					"\nretornoParaCalculo: "+retornoParaCalculo+
+					"\nsaldoapos: "+saldoapos);
+		}
+		 */
+		 
 	}
 	
-	private BigDecimal getRetornosAhSeremIgnorados(BigDecimal numos, BigDecimal produto, String tecla) {
+	private BigDecimal getRetornosAhSeremIgnorados(BigDecimal id, BigDecimal produto, String tecla) {
 		BigDecimal qtd = null;
 		try {
 			JdbcWrapper jdbcWrapper = null;
@@ -157,7 +157,7 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
 			nativeSql.appendSql(
-					"SELECT SUM(QTD) AS QTD from AD_APPRETORNO WHERE NUMOS="+numos+" AND CODPROD="+produto+" AND TECLA='"+tecla+"' AND IDRETORNO IN (SELECT ID FROM AD_MOTIVOSRETORNO WHERE REDUZESTOQUE='N')");
+					"SELECT NVL(SUM(QTD),0) AS QTD FROM AD_PRODRETABAST WHERE ID="+id+" AND CODPROD="+produto+" AND TECLA='"+tecla+"' AND IDRETORNO IN (SELECT ID FROM AD_MOTIVOSRETORNO WHERE REDUZESTOQUE='N')");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				BigDecimal count = contagem.getBigDecimal("QTD");
@@ -167,7 +167,7 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 			}
 		} catch (Exception e) {
 			salvarException(
-					"[getRetornosAhSeremIgnorados] não foi possível verificar a quantidade de retornos a serem ignorados. numos " + numos
+					"[getRetornosAhSeremIgnorados] não foi possível verificar a quantidade de retornos a serem ignorados. id " + id + "produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 		
@@ -178,19 +178,6 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 		return qtd;
 	}
 	
-	private DynamicVO getAD_RETABAST(BigDecimal id) {
-		DynamicVO ret = null;
-		try {
-			JapeWrapper DAO = JapeFactory.dao("AD_RETABAST");
-			DynamicVO VO = DAO.findOne("ID=?",new Object[] { id });
-			if(VO!=null) {
-				VO = ret;
-			}
-		} catch (Exception e) {
-			salvarException("[getAD_RETABAST] não foi possível verificar a AD_RETABAST ID: "+id+"\n"+e.getMessage()+e.getCause());
-		}
-		return ret;
-	}
 	
 	private void marcaVisitaComoTendoContagem(BigDecimal id){
 		try {
