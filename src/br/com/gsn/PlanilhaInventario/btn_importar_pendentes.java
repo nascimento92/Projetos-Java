@@ -25,6 +25,7 @@ public class btn_importar_pendentes implements AcaoRotinaJava {
 	
 	/**
 	 * 15/10/21 vs 1.0 Importar todos os registros pendentes da tela Inventário importado para a Contagem de estoque
+	 * 30/10/21 vs 1.1 Inserido os métodos criarLinhaDeContagem e atualizaOuInsereContagem, refatoração do código.
 	 */
 	
 	int importados = 0;
@@ -33,6 +34,8 @@ public class btn_importar_pendentes implements AcaoRotinaJava {
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		verificaPendentes(arg0);
+		arg0.setMensagemRetorno("<br/>Foram importados <b>"+importados+"</b> registrados.<br/>"
+				+ "Foram atualizados <b>"+atualizados+"</b> registros.<br/>");
 	}
 	
 	public void verificaPendentes(ContextoAcao arg0) {
@@ -67,50 +70,28 @@ public class btn_importar_pendentes implements AcaoRotinaJava {
 			
 			if (copia) {
 
-				boolean contagem = validaSeExisteAhContagem(data, empresa, local, produto, controle);
-
-				if (contagem) { // Atualizar
-					atualizarContagem(data, empresa, local, produto, controle, quantidade);
-					observacao += "Atualizado com Sucesso. \n";
-					atualizados++;
-				} else { // Inserir
-					criarLinhaDeContagem(data, empresa, local, produto, controle, quantidade, volume, tipo, parc,
-							dataValidade, dataFabricacao, new BigDecimal(2));
-					observacao += "Inserido com Sucesso.\n";
-					importados++;
-				}
+				observacao = atualizaOuInsereContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);	
+				
 			} else {
 				boolean tgfest = validaSeExisteNaTGFEST(empresa, local, produto, controle);
 
 				if (tgfest) { // existe na EST
 
 					// copia
-					criarLinhaDeContagem(data, empresa, local, produto, controle, new BigDecimal(0), volume, tipo, parc,
-							dataValidade, dataFabricacao, new BigDecimal(1));
-					observacao += "Inserido a cópia.\n";
-
+					observacao = criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);
+					
 					// contagem
-					criarLinhaDeContagem(data, empresa, local, produto, controle, quantidade, volume, tipo, parc,
-							dataValidade, dataFabricacao, new BigDecimal(2));
-					observacao += "Inserido a contagem.\n";
-
-					importados++;
+					observacao = atualizaOuInsereContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);		
 
 				} else { // Não existe
 					inserirNaTGFEST(empresa, local, produto, controle, tipo, parc, dataFabricacao, dataValidade);
 					observacao += "Produto inserido no estoque.\n";
 
 					// copia
-					criarLinhaDeContagem(data, empresa, local, produto, controle, new BigDecimal(0), volume, tipo, parc,
-							dataValidade, dataFabricacao, new BigDecimal(1));
-					observacao += "Inserido a cópia.\n";
+					observacao = criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);
 
 					// contagem
-					criarLinhaDeContagem(data, empresa, local, produto, controle, quantidade, volume, tipo, parc,
-							dataValidade, dataFabricacao, new BigDecimal(2));
-					observacao += "Inserido a contagem.\n";
-					
-					importados++;
+					observacao = atualizaOuInsereContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);	
 				}
 			}
 			
@@ -122,6 +103,52 @@ public class btn_importar_pendentes implements AcaoRotinaJava {
 			salvarException("[verificaPendentes] nao foi possível verificar os pendentes. data "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
+	
+	private String criarLinhaDeContagem(Timestamp data, BigDecimal empresa, BigDecimal local, BigDecimal produto, String controle, BigDecimal quantidade, String volume, String tipo,
+			BigDecimal parc, Timestamp dataValidade, Timestamp dataFabricacao) {
+		String observacao = "";
+		
+		try {
+			
+			criarLinhaDeContagem(data, empresa, local, produto, controle, new BigDecimal(0), volume, tipo, parc,
+					dataValidade, dataFabricacao, new BigDecimal(1));
+			observacao += "Inserido a cópia.\n";
+			
+		} catch (Exception e) {
+			salvarException("[criarLinhaDeContagem] nao foi possível inserir a linha da contagem. data "+data+" produto "+produto+" empresa "+empresa+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+		
+		return observacao;
+	}
+	
+	private String atualizaOuInsereContagem(Timestamp data, BigDecimal empresa, BigDecimal local, BigDecimal produto, String controle, BigDecimal quantidade, String volume, String tipo,
+			BigDecimal parc, Timestamp dataValidade, Timestamp dataFabricacao) {
+		
+		String observacao = "";
+		
+		try {
+			
+			boolean contagem = validaSeExisteAhContagem(data, empresa, local, produto, controle);
+			
+			if(contagem) {
+				atualizarContagem(data, empresa, local, produto, controle, quantidade);
+				observacao += "Atualizado com Sucesso. \n";
+				atualizados++;
+			}else {
+				criarLinhaDeContagem(data, empresa, local, produto, controle, quantidade, volume, tipo, parc,
+						dataValidade, dataFabricacao, new BigDecimal(2));
+				observacao += "Inserido a contagem.\n";
+
+				importados++;
+			}	
+			
+		} catch (Exception e) {
+			salvarException("[atualizaOuInsereContagem] nao foi possível alterar ou inserir a contagem. data "+data+" produto "+produto+" empresa "+empresa+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+		
+		return observacao;
+	}
+	
 	
 	public void inserirNaTGFEST(BigDecimal empresa, BigDecimal local, BigDecimal produto, String controle, String tipo, BigDecimal parceiro, Timestamp dataFabricacao, Timestamp dataValidade) {
 		try {

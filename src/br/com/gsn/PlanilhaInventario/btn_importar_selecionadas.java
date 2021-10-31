@@ -28,6 +28,7 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 
 	/**
 	 * 10/10/21 vs 1.0 Objeto que pega os dados da AD_PLANINVENT e insira na TGFEST e TGFCTE
+	 * 30/10/21 vs 1.1 Inserido os métodos criarLinhaDeContagem e atualizaOuInsereContagem, refatoração do código.
 	 */
 	
 	int importados = 0;
@@ -56,7 +57,7 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 		BigDecimal quantidade = (BigDecimal) linhas.getCampo("QUANTIDADE");
 		String volume = (String) linhas.getCampo("CODVOL");
 		String tipo = (String) linhas.getCampo("TIPO");
-		BigDecimal parceiro = (BigDecimal) linhas.getCampo("CODPARC");
+		BigDecimal parc = (BigDecimal) linhas.getCampo("CODPARC");
 		Timestamp dataValidade = (Timestamp) linhas.getCampo("DTVAL");
 		Timestamp dataFabricacao = (Timestamp) linhas.getCampo("DTFABRICACAO");
 		
@@ -67,62 +68,82 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 		
 		if(copia) {
 			
-			boolean contagem = validaSeExisteAhContagem(data,empresa,local,produto,controle);
+			observacao = atualizaOuInsereContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);	
 			
-			if(contagem) { //Atualizar
-				atualizarContagem(data,empresa,local,produto,controle,quantidade, linhas);
-				atualizados++;
-			}else { //Inserir
-				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao, new BigDecimal(2));
-				observacao+="Inserido com Sucesso.\n";
-				linhas.setCampo("OBSERVACAO", observacao);
-				
-				importados++;
-			}	
 		}else {
-			
-			//1° validar se existe na tgfest 
-			//2° inserir na Est se não tiver, (Quantidade Zerada)
-			//3° insere a cópia.
-			//4° Insere a contagem
-			// boolean tgfest = validaSeExisteNaTGFEST(empresa,local,produto,controle);
 			
 			boolean tgfest = validaSeExisteNaTGFEST(empresa,local,produto,controle);
 			
 			if(tgfest) { //existe na EST
 				
 				//copia
-				criarLinhaDeContagem(data,empresa,local,produto,controle,new BigDecimal(0),linhas,volume,tipo,parceiro,dataValidade,dataFabricacao,new BigDecimal(1));
-				observacao+="Inserido a cópia.\n";
+				observacao = criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);
 				
 				//contagem
-				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao,new BigDecimal(2));
-				observacao+="Inserido a contagem.\n";
-				
-				linhas.setCampo("OBSERVACAO", observacao);
-				importados++;
+				observacao = atualizaOuInsereContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);
 				
 			}else { // Não existe
-				inserirNaTGFEST(empresa,local,produto,controle,tipo,parceiro,dataFabricacao,dataValidade);
+				inserirNaTGFEST(empresa,local,produto,controle,tipo,parc,dataFabricacao,dataValidade);
 				observacao+="Produto inserido no estoque.\n";
 				
 				//copia
-				criarLinhaDeContagem(data,empresa,local,produto,controle,new BigDecimal(0),linhas,volume,tipo,parceiro,dataValidade,dataFabricacao,new BigDecimal(1));
-				observacao+="Inserido a cópia.\n";
+				observacao = criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);
 				
 				//contagem
-				criarLinhaDeContagem(data,empresa,local,produto,controle,quantidade,linhas,volume,tipo,parceiro,dataValidade,dataFabricacao,new BigDecimal(2));
-				observacao+="Inserido a contagem.\n";
-				
-				linhas.setCampo("OBSERVACAO", observacao);
-				importados++;
+				observacao = atualizaOuInsereContagem(data,empresa,local,produto,controle,quantidade,volume,tipo,parc,dataValidade,dataFabricacao);
 			}
-			
 		}
+		
+		linhas.setCampo("OBSERVACAO", observacao);
+		linhas.setCampo("PENDENTE", "N");
+	}
+	
+	private String atualizaOuInsereContagem(Timestamp data, BigDecimal empresa, BigDecimal local, BigDecimal produto, String controle, BigDecimal quantidade, String volume, String tipo,
+			BigDecimal parc, Timestamp dataValidade, Timestamp dataFabricacao) {
+		
+		String observacao = "";
+		
+		try {
+			
+			boolean contagem = validaSeExisteAhContagem(data, empresa, local, produto, controle);
+			
+			if(contagem) {
+				atualizarContagem(data, empresa, local, produto, controle, quantidade);
+				observacao += "Atualizado com Sucesso. \n";
+				atualizados++;
+			}else {
+				criarLinhaDeContagem(data, empresa, local, produto, controle, quantidade, volume, tipo, parc,
+						dataValidade, dataFabricacao, new BigDecimal(2));
+				observacao += "Inserido a contagem.\n";
+				importados++;
+			}	
+			
+		} catch (Exception e) {
+			salvarException("[atualizaOuInsereContagem] nao foi possível alterar ou inserir a contagem. data "+data+" produto "+produto+" empresa "+empresa+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+		
+		return observacao;
+	}
+	
+	private String criarLinhaDeContagem(Timestamp data, BigDecimal empresa, BigDecimal local, BigDecimal produto, String controle, BigDecimal quantidade, String volume, String tipo,
+			BigDecimal parc, Timestamp dataValidade, Timestamp dataFabricacao) {
+		String observacao = "";
+		
+		try {
+			
+			criarLinhaDeContagem(data, empresa, local, produto, controle, new BigDecimal(0), volume, tipo, parc,
+					dataValidade, dataFabricacao, new BigDecimal(1));
+			observacao += "Inserido a cópia.\n";
+			
+		} catch (Exception e) {
+			salvarException("[criarLinhaDeContagem] nao foi possível inserir a linha da contagem. data "+data+" produto "+produto+" empresa "+empresa+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+		
+		return observacao;
 	}
 	
 	public void criarLinhaDeContagem(Timestamp data,BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle, 
-			BigDecimal quantidade, Registro linhas, String volume, String tipo, BigDecimal parceiro, Timestamp dataValidade, Timestamp dataFabricacao, BigDecimal sequencia) {
+			BigDecimal quantidade, String volume, String tipo, BigDecimal parceiro, Timestamp dataValidade, Timestamp dataFabricacao, BigDecimal sequencia) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ContagemEstoque");
@@ -162,7 +183,7 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 		}
 	}
 
-	public void atualizarContagem(Timestamp data,BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle, BigDecimal quantidade, Registro linhas) {
+	public void atualizarContagem(Timestamp data,BigDecimal empresa,BigDecimal local,BigDecimal produto,String controle, BigDecimal quantidade) {
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("ContagemEstoque",
@@ -175,7 +196,6 @@ public class btn_importar_selecionadas implements AcaoRotinaJava {
 
 				VO.setProperty("QTDEST", quantidade);
 				VO.setProperty("QTDESTUNCAD", quantidade);
-				linhas.setCampo("OBSERVACAO", "Atualizado com Sucesso");
 
 				itemEntity.setValueObject(NVO);
 			}
