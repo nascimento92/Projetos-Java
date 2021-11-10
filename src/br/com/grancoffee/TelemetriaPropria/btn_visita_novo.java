@@ -34,6 +34,7 @@ public class btn_visita_novo implements AcaoRotinaJava{
 	 * @author Gabriel
 	 * 16/10/2021 vs 1.0 Reacriado botão de visitas, implementado para gerar a OS no aperto do botão.
 	 * 21/10/2021 vs 1.1 Alteração do método carregaTeclasNosItensDeAbast, o preenchimento dos itens estava vindo da gc_planograma e não pode ser, ele tem que pegar da grade atual.
+	 * 04/11/2021 vs 1.2 Inserido o método carregaTeclasNosItensDeAbastPrimeiraVisita onde insere os itens da visita caso seja a primeira visita.
 	 */
 	
 	int cont = 0;
@@ -62,7 +63,13 @@ public class btn_visita_novo implements AcaoRotinaJava{
 				}else {
 					BigDecimal idretorno = cadastrarNovaVisita(linhas[i].getCampo("CODBEM").toString());
 					if(idretorno!=null) {
-						carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idretorno);
+						
+						if(validaSeEhAhPrimeiraVisita(linhas[i].getCampo("CODBEM").toString())) {
+							//TODO :: carrega itens da grade
+							carregaTeclasNosItensDeAbastPrimeiraVisita(linhas[i].getCampo("CODBEM").toString(),idretorno);
+						}else {
+							carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idretorno);
+						}
 						
 						DynamicVO gc_solicitabast = agendarVisita(linhas[i].getCampo("CODBEM").toString(), dtVisita, motivo,idretorno);
 						cont++;
@@ -578,6 +585,49 @@ public class btn_visita_novo implements AcaoRotinaJava{
 
 		Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
 				new FinderWrapper("AD_PLANOGRAMAATUAL", "this.CODBEM = ? ", new Object[] { patrimonio }));
+
+		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+
+			String tecla = DynamicVO.asString("TECLA");
+			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+			BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+			BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+			BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
+			BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
+			BigDecimal valorFinal = vlrpar.add(vlrfun);
+			
+			try {
+
+				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+				EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_ITENSRETABAST");
+				DynamicVO VO = (DynamicVO) NPVO;
+
+				VO.setProperty("ID", idAbastecimento);
+				VO.setProperty("CODBEM", patrimonio);
+				VO.setProperty("TECLA", tecla);
+				VO.setProperty("CODPROD", produto);
+				VO.setProperty("CAPACIDADE", capacidade);
+				VO.setProperty("NIVELPAR", nivelpar);
+				VO.setProperty("VALOR", valorFinal);
+
+				dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
+
+			} catch (Exception e) {
+				salvarException("[carregaTeclasNosItensDeAbast] Nao foi possivel salvar as teclas na tela Retornos! "+e.getMessage()+"\n"+e.getCause());
+			}
+
+		}
+	}
+	
+	private void carregaTeclasNosItensDeAbastPrimeiraVisita(String patrimonio, BigDecimal idAbastecimento) throws Exception {
+
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+		Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
+				new FinderWrapper("GCPlanograma", "this.CODBEM = ? ", new Object[] { patrimonio }));
 
 		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
