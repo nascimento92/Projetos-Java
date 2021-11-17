@@ -687,8 +687,32 @@ public class flow_t_grade_evento_gradeFurura implements EventoProgramavelJava {
 		BigDecimal idflow = newVO.asBigDecimal("IDINSTPRN");
 		BigDecimal produto = newVO.asBigDecimal("CODPROD");
 		String tecla = newVO.asString("TECLA");
+		
+		if(validaSeExiste(idflow,tecla,produto)) {
+			deletaDadoAnterior(idflow, tecla, produto);
+		}
+		
+		//TODO :: Registrar produto para ser retirado.
+		salvaDadosAlterados(newVO, idflow,produto,tecla,"Retirar Produto.");
 
-		deletaDadoAnterior(idflow, tecla, produto);
+	}
+	
+	public boolean validaSeExiste(BigDecimal idflow, String tecla, BigDecimal produto) {
+		boolean valida = false;
+		
+		try {
+			JapeWrapper DAO = JapeFactory.dao("AD_PRODUTOSALTERADOS");
+			DynamicVO VO = DAO.findOne("IDINSTPRN=? AND TECLA=? AND CODPROD=?",new Object[] { idflow,tecla,produto });
+
+			if(VO!=null) {
+				valida = true;
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return valida;
 	}
 
 	private void salvarException(String mensagem) {
