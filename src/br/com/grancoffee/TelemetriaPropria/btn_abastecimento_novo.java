@@ -38,6 +38,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 15/10/2021 vs 1.0 Botao para gerar o abastecimento, além disso realizará a geração da nota e da OS de visita.
 	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para inserir os itens que precisavam ser abastecidos porém não tinha a quantidade em estoque
 	 * 03/11/2021 vs 1.2 Ajustado o método validaPedido estava permitindo a criação de 2 pedidos de congelados, estava errado o Where da segunda validação ANTES: NVL(AD_TIPOPRODUTOS,'1')='1' DEPOIS: NVL(AD_TIPOPRODUTOS,'1')='2'
+	 * 08/11/2021 vs 1.3 Inserido a validação para não gerar o pedido se a máquina esta totalmente vazia e houve um pedido de abastecimento nos últimos 15 dias.
 	 */
 	
 	String retornoNegativo = "";
@@ -60,144 +61,105 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		String secosCongelados = (String) arg0.getParam("SECOSECONGELADOS");// 1=Abastecer Apenas Secos.2=Abastecer Apenas Congelados.3=Abastecer Secos e Congelados
 		DynamicVO gc_solicitabast = null;
 		BigDecimal idRetorno = null;
-		
-		String tp = "";
-		
-		if("1".equals(secosCongelados)) {
-			tp="Secos";
-		}else {
-			tp="Congelados";
-		}
 
 		for (int i = 0; i < linhas.length; i++) {
-
-			boolean maquinaNaRota = validaSeAhMaquinaEstaNaRota(linhas[i].getCampo("CODBEM").toString());
-
-			if (!maquinaNaRota) {
-				throw new Error("O patrimônio " + linhas[i].getCampo("CODBEM").toString()
-						+ " não está em rota, não pode ser gerado o abastecimento!");
+			
+			//TODO :: Verificar se o estoque está todo zerado, se tiver fazer a pergunta para o usuário, se ele quer de fato continuar...
+			boolean maquinaDesabastecida = verificarSeAhMaquinaEstaTotalmenteDesabastecida(linhas[i].getCampo("CODBEM").toString());
+			boolean confirmarSimNao = true;
+			
+			if(maquinaDesabastecida) {
+				confirmarSimNao = arg0.confirmarSimNao("Atenção", "A máquina está totalmente desabastecida, talvez seja necessário aguardar um pouco até a rotina atualizar o estoque! caso não normalize nos próximos 10 minutos, acionar o setor de T.I, </br> deseja abastecer mesmo assim ?", 1);
 			}
 			
-			if("3".equals(secosCongelados)) {
+			if(confirmarSimNao) {
 				
-				String valid="";
-				
-				for(int x=1; x<=2; x++) {
-					
-					if(x==1) {
-						valid = "1";
-					}else {
-						valid = "2";
-					}
-					
-					if(!validaSeOhPedidoDeAbastecimentoPoderaSerGerado(valid,linhas[i].getCampo("CODBEM").toString())) {
-						throw new Error("<b> Atenção </b><br/><br/>"+
-					" O pedido de <b>Secos</b> ou <b>Congelados</b> não pode ser gerado !<br/>"+
-					" causas possíveis: <br/>"+
-					"- A máquina esta totalmente abastecida.<br/>"+
-					"- Os itens estão marcados para não abastecer.<br/>"+
-					"- Os itens estão em ruptura.<br/>"+
-					"- Os itens tem uma quantidade mínima para abastecimento, e essa quantidade não foi atingida. </br><br/>");
-					}
-				}
-			}else {
-				if(!validaSeOhPedidoDeAbastecimentoPoderaSerGerado(secosCongelados,linhas[i].getCampo("CODBEM").toString())) {
-					throw new Error("<b> Atenção </b><br/><br/>"+
-				" O pedido de <b>"+tp+"</b> não pode ser gerado !<br/>"+
-				" causas possíveis: <br/>"+
-				"- A máquina esta totalmente abastecida.<br/>"+
-				"- Os itens estão marcados para não abastecer.<br/>"+
-				"- Os itens estão em ruptura.<br/>"+
-				"- Os itens tem uma quantidade mínima para abastecimento, e essa quantidade não foi atingida. </br><br/>");
-				}
-			}
-			
-			
+				BigDecimal idflow = (BigDecimal) linhas[i].getCampo("AD_IDFLOW");
+				Timestamp dtAbastecimento = validacoes(linhas[i], arg0, tipoAbastecimento, secosCongelados);
 
-			BigDecimal idflow = (BigDecimal) linhas[i].getCampo("AD_IDFLOW");
-			Timestamp dtAbastecimento = validacoes(linhas[i], arg0, tipoAbastecimento, secosCongelados);
+				if ("1".equals(secosCongelados)) { // apenas secos
+					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S",
+							"N", idflow);// salva tela Abastecimento
 
-			if ("1".equals(secosCongelados)) { // apenas secos
-				idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S",
-						"N", idflow);// salva tela Abastecimento
-
-				if (idRetorno != null) {
-					apenasSecos(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());// carrega
-																											// itens
-
-					if (dtAbastecimento != null) {// agendado
-						gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-								dtAbastecimento, idRetorno, "S", "N");
-					} else {// agora
-						gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-								TimeUtils.getNow(), idRetorno, "S", "N");
-						
-						gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
-					}
-					cont++;
-					
-				}	
-			}
-
-			else if ("2".equals(secosCongelados)) {// apenas congelados
-				idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N",
-						"S", idflow);
-
-				if (idRetorno != null) {
-					apenasCongelados(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());// carrega
+					if (idRetorno != null) {
+						apenasSecos(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());// carrega
 																												// itens
 
-					if (dtAbastecimento != null) {// agendado
-						gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-								dtAbastecimento, idRetorno, "N", "S");
-					} else {// agora
-						gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-								TimeUtils.getNow(), idRetorno, "N", "S");
+						if (dtAbastecimento != null) {// agendado
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									dtAbastecimento, idRetorno, "S", "N");
+						} else {// agora
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									TimeUtils.getNow(), idRetorno, "S", "N");
+							
+							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
+						}
+						cont++;
 						
-						gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
-					}
-					cont++;
-					
+					}	
 				}
+
+				else if ("2".equals(secosCongelados)) {// apenas congelados
+					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N",
+							"S", idflow);
+
+					if (idRetorno != null) {
+						apenasCongelados(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());// carrega
+																													// itens
+
+						if (dtAbastecimento != null) {// agendado
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									dtAbastecimento, idRetorno, "N", "S");
+						} else {// agora
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									TimeUtils.getNow(), idRetorno, "N", "S");
+							
+							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
+						}
+						cont++;
+						
+					}
+				}
+
+				else { // secos e congelados
+					BigDecimal idSecos = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N",
+							idflow);
+					if (idSecos != null) {
+						apenasSecos(idSecos, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
+						if (dtAbastecimento != null) {// agendado
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									dtAbastecimento, idSecos, "S", "N");
+						} else {// agora
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									TimeUtils.getNow(), idSecos, "S", "N");
+							
+							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idSecos);
+						}
+						cont++;
+						
+					}
+
+					BigDecimal idcongelados = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S",
+							idflow);
+					if (idcongelados != null) {
+						apenasCongelados(idcongelados, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
+						if (dtAbastecimento != null) {// agendado
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									dtAbastecimento, idcongelados, "N", "S");
+						} else {// agora
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									TimeUtils.getNow(), idcongelados, "N", "S");
+							
+							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idcongelados);
+						}
+						cont++;
+						
+					}
+				}
+
+				linhas[i].setCampo("AD_IDFLOW", null);
+				
 			}
-
-			else { // secos e congelados
-				BigDecimal idSecos = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N",
-						idflow);
-				if (idSecos != null) {
-					apenasSecos(idSecos, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
-					if (dtAbastecimento != null) {// agendado
-						gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-								dtAbastecimento, idSecos, "S", "N");
-					} else {// agora
-						gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-								TimeUtils.getNow(), idSecos, "S", "N");
-						
-						gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idSecos);
-					}
-					cont++;
-					
-				}
-
-				BigDecimal idcongelados = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S",
-						idflow);
-				if (idcongelados != null) {
-					apenasCongelados(idcongelados, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
-					if (dtAbastecimento != null) {// agendado
-						gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-								dtAbastecimento, idcongelados, "N", "S");
-					} else {// agora
-						gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-								TimeUtils.getNow(), idcongelados, "N", "S");
-						
-						gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idcongelados);
-					}
-					cont++;
-					
-				}
-			}
-
-			linhas[i].setCampo("AD_IDFLOW", null);
 			
 		}
 		//chamaPentaho();
@@ -1266,8 +1228,57 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	}
 
 	private Timestamp validacoes(Registro linhas, ContextoAcao arg0, String tipoAbastecimento, String secosCongelados)
-			throws PersistenceException {
+			throws Exception {
+		
+		boolean maquinaNaRota = validaSeAhMaquinaEstaNaRota(linhas.getCampo("CODBEM").toString());
 
+		if (!maquinaNaRota) {
+			throw new Error("O patrimônio " + linhas.getCampo("CODBEM").toString()
+					+ " não está em rota, não pode ser gerado o abastecimento!");
+		}
+		
+		String tp = "";
+		
+		if("1".equals(secosCongelados)) {
+			tp="Secos";
+		}else {
+			tp="Congelados";
+		}
+		
+		if("3".equals(secosCongelados)) {
+			
+			String valid="";
+			
+			for(int x=1; x<=2; x++) {
+				
+				if(x==1) {
+					valid = "1";
+				}else {
+					valid = "2";
+				}
+				
+				if(!validaSeOhPedidoDeAbastecimentoPoderaSerGerado(valid,linhas.getCampo("CODBEM").toString())) {
+					throw new Error("<b> Atenção </b><br/><br/>"+
+				" O pedido de <b>Secos</b> ou <b>Congelados</b> não pode ser gerado !<br/>"+
+				" causas possíveis: <br/>"+
+				"- A máquina esta totalmente abastecida.<br/>"+
+				"- Os itens estão marcados para não abastecer.<br/>"+
+				"- Os itens estão em ruptura.<br/>"+
+				"- Os itens tem uma quantidade mínima para abastecimento, e essa quantidade não foi atingida. </br><br/>");
+				}
+			}
+		}else {
+			if(!validaSeOhPedidoDeAbastecimentoPoderaSerGerado(secosCongelados,linhas.getCampo("CODBEM").toString())) {
+				throw new Error("<b> Atenção </b><br/><br/>"+
+			" O pedido de <b>"+tp+"</b> não pode ser gerado !<br/>"+
+			" causas possíveis: <br/>"+
+			"- A máquina esta totalmente abastecida.<br/>"+
+			"- Os itens estão marcados para não abastecer.<br/>"+
+			"- Os itens estão em ruptura.<br/>"+
+			"- Os itens tem uma quantidade mínima para abastecimento, e essa quantidade não foi atingida. </br><br/>");
+			}
+		}
+		
 		Timestamp dtAbastecimento = (Timestamp) arg0.getParam("DTABAST");
 		Timestamp dtSolicitacao = null;
 
@@ -1306,6 +1317,42 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 
 		return dtAbastecimento;
+	}
+	
+	private boolean verificarSeAhMaquinaEstaTotalmenteDesabastecida(String patrimonio) {
+		boolean valida = false;
+		
+		try {
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+							"SELECT CASE WHEN QTD_VISITAS > 0 AND QTD_VAZIAS = QTD_PLANOGRAMA THEN 'S' ELSE 'N' END AS VALIDACAO "+ 
+							"FROM(" + 
+							"SELECT "+
+							"I.CODBEM, "+
+							"(SELECT COUNT(*) FROM GC_PLANOGRAMA WHERE CODBEM=I.CODBEM) AS QTD_PLANOGRAMA, "+
+							"(SELECT COUNT(*) FROM GC_PLANOGRAMA WHERE CODBEM=I.CODBEM AND ESTOQUE=0) AS QTD_VAZIAS, "+
+							"(SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM=I.CODBEM AND STATUS='3' AND REABASTECIMENTO='S' AND DTABAST > SYSDATE-15) AS QTD_VISITAS "+
+							"FROM GC_INSTALACAO I) WHERE CODBEM='"+patrimonio+"'");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				String validacao = contagem.getString("VALIDACAO");
+				if ("S".equals(validacao)) {
+					valida = true;
+				}
+			}
+			
+		} catch (Exception e) {
+			salvarException("[verificarSeAhMaquinaEstaTotalmenteDesabastecida] Nao foi possivel verificar se a máquina esta totalmente desabastecida! patrimonio " + patrimonio 
+					+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+		return valida;
 	}
 
 	private BigDecimal cadastrarNovoAbastecimento(String patrimonio, String secos, String congelados,
