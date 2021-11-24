@@ -1,16 +1,29 @@
 package xTestes;
 
-import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
-import br.com.sankhya.extensions.actionbutton.ContextoAcao;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
-public class teste implements AcaoRotinaJava{
+public class teste{
 
-	@Override
-	public void doAction(ContextoAcao arg0) throws Exception {
-		boolean confirmarSimNao = arg0.confirmarSimNao("Atenção", "Teste", 1);
-		arg0.mostraErro(""+confirmarSimNao);
+	public static void main(String[] args) {
 		
-	}
-
-	
+		BigDecimal qtdMinima = new BigDecimal(1);
+		BigDecimal falta = new BigDecimal(3);
+		
+		/*
+		 * if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()==1) {
+		 * System.out.println("pode"); }else { System.out.println("nao pode"); }
+		 */
+		
+		if(falta.doubleValue()%qtdMinima.doubleValue()==0) {
+			System.out.println("numero inteiro");
+		}else {
+			System.out.println("numero quebrado");
+		}
+		
+		/*
+		 * System.out.println("Qtd minima: "+qtdMinima+ "\nfalta: "+falta);
+		 */
+		
+	}	
 }

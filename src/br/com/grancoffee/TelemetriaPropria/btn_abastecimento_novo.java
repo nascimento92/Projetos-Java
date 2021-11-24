@@ -39,6 +39,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para inserir os itens que precisavam ser abastecidos porém não tinha a quantidade em estoque
 	 * 03/11/2021 vs 1.2 Ajustado o método validaPedido estava permitindo a criação de 2 pedidos de congelados, estava errado o Where da segunda validação ANTES: NVL(AD_TIPOPRODUTOS,'1')='1' DEPOIS: NVL(AD_TIPOPRODUTOS,'1')='2'
 	 * 08/11/2021 vs 1.3 Inserido a validação para não gerar o pedido se a máquina esta totalmente vazia e houve um pedido de abastecimento nos últimos 15 dias.
+	 * 24/11/2021 vs 1.5 Ajustado a geração dos pedidos considerando a quantidade mínima.
 	 */
 	
 	String retornoNegativo = "";
@@ -157,15 +158,13 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					}
 				}
 
-<<<<<<< HEAD
 				linhas[i].setCampo("AD_IDFLOW", null);
 				
 			}
-=======
+
 			linhas[i].setCampo("AD_IDFLOW", null);
 			linhas[i].setCampo("PLANOGRAMAPENDENTE", "S");
->>>>>>> Work
-			
+
 		}
 		//chamaPentaho();
 	}
@@ -734,10 +733,13 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			BigDecimal valorTotal = falta.multiply(valor);
 			
 			//validacao
-			if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()>0) {
+			//if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()>0) {
+			if(falta.doubleValue() % qtdMinima.doubleValue() == 0) {
 				if(falta.intValue() <= estoqueNaEmpresa.intValue()) {
-					sequencia++;
-					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+					if(falta.intValue()>0) {
+						sequencia++;
+						insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+					}	
 				}else {
 					//TODO :: registra itens em ruptura
 					insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio);

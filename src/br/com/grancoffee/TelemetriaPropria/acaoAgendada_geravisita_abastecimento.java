@@ -34,6 +34,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 	/**
 	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para salvar os itens que deveriam ser abastecidos porém não tinha em estoque na filial
+	 * 24/11/2021 vs 1.2 Ajustado a geração dos pedidos considerando a quantidade mínima.
 	 */
 	
 	@Override
@@ -944,31 +945,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			//valor total
 			BigDecimal valorTotal = falta.multiply(valor);
 			
-			/*
-			System.out.println("###########################"+
-					"Tecla: "+tecla+
-					"\nProduto: "+produto+
-					"\nNivelpar: "+nivelpar+
-					"\nValor Par: "+vlrpar+
-					"\nValor Fun: "+vlrfun+
-					"\nVolume: "+volume+
-					"\nEstoque: "+estoque+
-					"\nFalta: "+falta+
-					"\nValor: "+valor+
-					"\nEstoque na empresa: "+estoqueNaEmpresa+
-					"\nQuantidade minima: "+qtdMinima+
-					"\nValor Total: "+valorTotal+
-					"\nLocal Abast: "+localAbast+
-					"\nEmpresa Abast: "+empresaAbast+
-					"\nTop: "+top
-					);
-			
-			*/
 			//validacao
-			if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()>0) {
+			if(falta.doubleValue() % qtdMinima.doubleValue() == 0) {
 				if(falta.intValue() <= estoqueNaEmpresa.intValue()) {
-					sequencia++;
-					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+					if(falta.intValue()>0) {
+						sequencia++;
+						insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+					}
 				}else {
 					//TODO :: insere itens em corte / ruptura
 					insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, falta, valor, tecla, gc_solicitabast, patrimonio);
