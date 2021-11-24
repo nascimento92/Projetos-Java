@@ -1427,7 +1427,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
 				BigDecimal valorFinal = vlrpar.add(vlrfun);
 				
-				if (!congelado(produto)) {
+				//if (!congelado(produto)) {
 					try {
 
 						EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -1449,7 +1449,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 								"[carregaTeclasNosItensDeAbast] Nao foi possivel salvar as teclas na tela Retornos Abastecimento! "
 										+ e.getMessage() + "\n" + e.getCause());
 					}
-				}
+				//}
 			}
 		}
 	}
