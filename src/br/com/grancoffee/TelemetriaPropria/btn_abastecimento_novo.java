@@ -157,9 +157,14 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					}
 				}
 
+<<<<<<< HEAD
 				linhas[i].setCampo("AD_IDFLOW", null);
 				
 			}
+=======
+			linhas[i].setCampo("AD_IDFLOW", null);
+			linhas[i].setCampo("PLANOGRAMAPENDENTE", "S");
+>>>>>>> Work
 			
 		}
 		//chamaPentaho();

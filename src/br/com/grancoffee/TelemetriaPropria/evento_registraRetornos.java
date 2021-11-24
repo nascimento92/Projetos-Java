@@ -25,6 +25,8 @@ import br.com.sankhya.ws.ServiceContext;
 
 public class evento_registraRetornos implements EventoProgramavelJava {
 
+	String validador = null;
+	
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -33,12 +35,14 @@ public class evento_registraRetornos implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		insert(arg0);
+		validador = "afterInsert";
+		start(arg0,validador);
 	}
 
 	@Override
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		update(arg0);
+		validador = "afterUpdate";
+		start(arg0,validador);
 	}
 
 	@Override
@@ -49,7 +53,8 @@ public class evento_registraRetornos implements EventoProgramavelJava {
 
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		delete(arg0);
+		validador = "beforeDelete";
+		start(arg0,validador);
 	}
 
 	@Override
@@ -63,42 +68,34 @@ public class evento_registraRetornos implements EventoProgramavelJava {
 		
 
 	}
-
-	private void update(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal numos = VO.asBigDecimal("NUMOS");
-		BigDecimal idTelaRetorno = getIdTelaRetorno(numos);
-		BigDecimal codprod = VO.asBigDecimal("CODPROD");
-		BigDecimal qtd = VO.asBigDecimal("QTD");
-		BigDecimal idretorno = VO.asBigDecimal("IDRETORNO");
-		String tecla = VO.asString("TECLA");
-		
-		alterarRetorno(codprod,idTelaRetorno,idretorno,tecla,qtd, numos);
-	}
-
-	private void insert(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal numos = VO.asBigDecimal("NUMOS");
-		BigDecimal idTelaRetorno = getIdTelaRetorno(numos);
-		BigDecimal codprod = VO.asBigDecimal("CODPROD");
-		BigDecimal qtd = VO.asBigDecimal("QTD");
-		BigDecimal idretorno = VO.asBigDecimal("IDRETORNO");
-		String tecla = VO.asString("TECLA");
-
-		cadastrarRetorno(codprod, idretorno, idTelaRetorno, qtd, tecla, numos);
+	
+	public void start(PersistenceEvent arg0, String validador) {
+		try {
+			DynamicVO VO = (DynamicVO) arg0.getVo();
+			BigDecimal numos = VO.asBigDecimal("NUMOS");
+			BigDecimal idTelaRetorno = getIdTelaRetorno(numos);
+			BigDecimal codprod = VO.asBigDecimal("CODPROD");
+			BigDecimal qtd = VO.asBigDecimal("QTD");
+			BigDecimal idretorno = VO.asBigDecimal("IDRETORNO");
+			String tecla = VO.asString("TECLA");
+			
+			if("afterInsert".equals(validador)) {
+				cadastrarRetorno(codprod, idretorno, idTelaRetorno, qtd, tecla, numos);
+			}
+			
+			if("afterUpdate".equals(validador)) {
+				alterarRetorno(codprod,idTelaRetorno,idretorno,tecla,qtd, numos);
+			}
+			
+			if("beforeDelete".equals(validador)) {
+				deletaRetorno(idTelaRetorno,codprod,tecla,idretorno, numos);
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
 	}
 	
-	private void delete(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal numos = VO.asBigDecimal("NUMOS");
-		BigDecimal idTelaRetorno = getIdTelaRetorno(numos);
-		BigDecimal codprod = VO.asBigDecimal("CODPROD");
-		BigDecimal idretorno = VO.asBigDecimal("IDRETORNO");
-		String tecla = VO.asString("TECLA");
-		
-		deletaRetorno(idTelaRetorno,codprod,tecla,idretorno, numos);
-	}
-
 	private BigDecimal getIdTelaRetorno(BigDecimal numos) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("AD_RETABAST");
 		DynamicVO VO = DAO.findOne("NUMOS=?", new Object[] { numos });
