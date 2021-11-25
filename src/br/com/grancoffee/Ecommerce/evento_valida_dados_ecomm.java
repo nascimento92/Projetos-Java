@@ -56,13 +56,22 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal nunota = VO.asBigDecimal("NUNOTA");
 		BigDecimal produto = VO.asBigDecimal("CODPROD");
+		String volume = VO.asString("CODVOL");
+		BigDecimal quantidade = VO.asBigDecimal("QTDNEG");
 		
 		boolean validaSeEhUmPedidoDoEcomm = validaSeEhUmPedidoDoEcomm(nunota);
 		
 		if(validaSeEhUmPedidoDoEcomm) {
 			String unidadeEcomm = getUnidadeEcomm(produto);
 			if(unidadeEcomm!=null) {
-				VO.setProperty("CODVOL", unidadeEcomm);
+				
+				if(unidadeEcomm!=volume) {
+					
+					BigDecimal qtdUnidadeAlternativa = getQuantidade(produto,unidadeEcomm);
+					
+					VO.setProperty("QTDNEG", quantidade.multiply(qtdUnidadeAlternativa));
+				}
+				
 			}
 		}
 	}
@@ -109,6 +118,27 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 			// TODO: handle exception
 		}
 		return retorno;
+	}
+	
+	public BigDecimal getQuantidade(BigDecimal produto, String unidade) {
+		BigDecimal qtd = null;
+		try {
+			JapeWrapper DAO = JapeFactory.dao("VolumeAlternativo");
+			DynamicVO VO = DAO.findOne("CODPROD=? AND CODVOL=?",new Object[] { produto,unidade });
+			
+			if(VO!=null) {
+				BigDecimal quantidade = VO.asBigDecimal("QUANTIDADE");
+				
+				if(unidade!=null) {
+					qtd = quantidade;
+				}
+				
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return qtd;
 	}
 
 }
