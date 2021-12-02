@@ -74,9 +74,22 @@ public class flow_t_grade_evento_gradeAtual implements EventoProgramavelJava {
 		
 		if (patrimonio != null) {
 			VO.setProperty("NUMCONTRATO", getNumcontrato(patrimonio));
-			VO.setProperty("CODPARC", getParceiro(getNumcontrato(patrimonio)));
-			VO.setProperty("ROTA", getRota(patrimonio));
-			VO.setProperty("FILIAL", getFilial(patrimonio));
+			
+			BigDecimal parceiro = getParceiro(getNumcontrato(patrimonio));
+			if(parceiro!=null) {
+				VO.setProperty("CODPARC", parceiro);
+			}
+			
+			BigDecimal rota = getRota(patrimonio);
+			if(rota.intValue()!=0) {
+				VO.setProperty("ROTA", rota);
+			}
+			
+			BigDecimal filial = getFilial(patrimonio);
+			if(filial!=null) {
+				VO.setProperty("FILIAL", filial);
+			}
+			
 		}
 	}
 	
