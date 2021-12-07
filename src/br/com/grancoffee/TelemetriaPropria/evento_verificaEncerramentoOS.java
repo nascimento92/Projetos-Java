@@ -160,6 +160,9 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 				validaItensRetAbast(idretorno, patrimonio,numos,houvecontagem);
 				validaItensDaAppContagem(numos, idretorno, patrimonio, houvecontagem);
 				
+				//TODO :: valida itens AD_TROCADEGRADE onde o status = Retirar
+				
+				
 				if(houveabastecimento) {
 					atualizaDadosAbastecimento(patrimonio);
 					//TODO :: planograma pendente para atual
