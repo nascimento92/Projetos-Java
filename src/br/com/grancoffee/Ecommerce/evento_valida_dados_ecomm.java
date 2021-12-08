@@ -56,22 +56,27 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal nunota = VO.asBigDecimal("NUNOTA");
 		BigDecimal produto = VO.asBigDecimal("CODPROD");
-		String volume = VO.asString("CODVOL");
+		//String volume = VO.asString("CODVOL");
 		BigDecimal quantidade = VO.asBigDecimal("QTDNEG");
 		
 		boolean validaSeEhUmPedidoDoEcomm = validaSeEhUmPedidoDoEcomm(nunota);
 		
 		if(validaSeEhUmPedidoDoEcomm) {
 			String unidadeEcomm = getUnidadeEcomm(produto);
+			String volume = getUnidadeProduto(produto);
+			
 			if(unidadeEcomm!=null) {
 				
-				if(unidadeEcomm!=volume) {
+				if(volume!=null) {
 					
-					BigDecimal qtdUnidadeAlternativa = getQuantidade(produto,unidadeEcomm);
+					if(unidadeEcomm!=volume) {
+						
+						BigDecimal qtdUnidadeAlternativa = getQuantidade(produto,unidadeEcomm);
+						
+						VO.setProperty("QTDNEG", quantidade.multiply(qtdUnidadeAlternativa));
+					}
 					
-					VO.setProperty("QTDNEG", quantidade.multiply(qtdUnidadeAlternativa));
 				}
-				
 			}
 		}
 	}
@@ -107,6 +112,27 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 			
 			if(VO!=null) {
 				String unidade = VO.asString("AD_UNIDADELV");
+				
+				if(unidade!=null) {
+					retorno = unidade;
+				}
+				
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return retorno;
+	}
+	
+	public String getUnidadeProduto(BigDecimal produto) {
+		String retorno = null;
+		try {
+			JapeWrapper DAO = JapeFactory.dao("Produto");
+			DynamicVO VO = DAO.findOne("CODPROD=?",new Object[] { produto });
+			
+			if(VO!=null) {
+				String unidade = VO.asString("CODVOL");
 				
 				if(unidade!=null) {
 					retorno = unidade;
