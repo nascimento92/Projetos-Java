@@ -161,6 +161,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 				validaItensDaAppContagem(numos, idretorno, patrimonio, houvecontagem);
 				
 				//TODO :: valida itens AD_TROCADEGRADE onde o status = Retirar
+				validaItensTrocaDeGrade(numos,idretorno,patrimonio,houvecontagem);
 				
 				
 				if(houveabastecimento) {
@@ -349,6 +350,63 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		} catch (Exception e) {
 			salvarException(
 					"[validaItensDaAppContagem] nao foi possivel validar todos os itens da contagem. numos " + numos
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void validaItensTrocaDeGrade(BigDecimal numos, BigDecimal idretorno, String patrimonio, boolean houvecontagem) {
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
+					new FinderWrapper("AD_TROCADEGRADE", "this.NUMOS = ? AND this.STATUS_PAR=? ", new Object[] { numos, "RETIRAR" }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+				String tecla = DynamicVO.asString("TECLA");
+				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+				BigDecimal estoque = getSaldoEstoque(patrimonio, produto, tecla);
+				BigDecimal qtdpedido = DynamicVO.asBigDecimal("QTDABAST");
+				BigDecimal saldoesperado = estoque.add(qtdpedido);
+				BigDecimal valor = DynamicVO.asBigDecimal("VALOR");
+				BigDecimal contagem = null;
+				BigDecimal diferenca = null;
+				BigDecimal retorno = DynamicVO.asBigDecimal("QTDRET");
+				BigDecimal saldoapos = null;
+
+				if (houvecontagem) {
+					contagem = DynamicVO.asBigDecimal("QTDCONTAGEM");
+					BigDecimal conteretorno = contagem.add(retorno);
+					diferenca = conteretorno.subtract(saldoesperado);
+					saldoapos = contagem;
+				} else {
+					contagem = new BigDecimal(0);
+					diferenca = new BigDecimal(0);
+					saldoapos = saldoesperado.subtract(retorno);
+				}
+
+				boolean existe = validaSeExisteAhTeclaNaTelaDeRetorno(idretorno, patrimonio, produto, tecla);
+
+				if (!existe) {
+					insereAD_ITENSRETABAST(idretorno, patrimonio, tecla, produto, capacidade, nivelpar, estoque,
+							qtdpedido, saldoesperado, contagem, diferenca, saldoapos, retorno, valor);
+					
+					insereAD_HISTRETABAST(idretorno,patrimonio,tecla,produto,capacidade,nivelpar,estoque,qtdpedido,saldoesperado,contagem,diferenca,saldoapos,retorno,valor);
+				}
+
+			}
+			
+			
+		} catch (Exception e) {
+			salvarException(
+					"[validaItensTrocaDeGrade] nao foi possivel validar todos os itens da troca de grade. numos " + numos
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 	}

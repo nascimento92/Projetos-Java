@@ -1,12 +1,20 @@
 package xTestes;
 
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import com.sankhya.util.TimeUtils;
+
 public class Main {
-	public static void main(String[] args) {
-		try {
-			//listarCidade();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public static void main(String[] args) throws ParseException {
+		Timestamp data = TimeUtils.getNow();
+		
+		Timestamp buildPrintableTimestamp = TimeUtils.buildPrintableTimestamp(data.getTime(), "dd/MM/yyyy HH:mm:ss");
+		
+		
+		System.out.println(buildPrintableTimestamp);
 	}
 	
 	/*

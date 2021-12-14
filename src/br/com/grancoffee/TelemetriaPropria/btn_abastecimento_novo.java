@@ -673,7 +673,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					"CASE WHEN NVL(EO.CODEMPABAST,C.CODEMP)=1 AND '"+secosCongelados+"'='1' THEN 6 WHEN NVL(EO.CODEMPABAST,C.CODEMP) IN (1,6) AND '"+secosCongelados+"'='2' THEN 2 WHEN NVL(EO.CODEMPABAST,C.CODEMP)<>1 THEN NVL(EO.CODEMPABAST,C.CODEMP) END AS EMP_ABAST, "+
 					"NVL(EO.CODLOCALABAST,1110) AS LOCAL_ABAST, NVL(GRU.AD_CONGELADOS,'N') AS AD_CONGELADOS, NVL(PRO.AD_QTDMIN,1) AS AD_QTDMIN FROM GC_INSTALACAO T "+
 					"JOIN GC_PLANOGRAMA P ON (P.CODBEM=T.CODBEM) JOIN AD_ENDERECAMENTO EO ON (EO.CODBEM=T.CODBEM) JOIN TCSCON C ON (C.NUMCONTRATO=EO.NUMCONTRATO) JOIN TGFPRO PRO ON (PRO.CODPROD=P.CODPROD) JOIN TGFGRU GRU ON (GRU.CODGRUPOPROD=PRO.CODGRUPOPROD) "+
-					"WHERE T.CODBEM='GCETESTE' AND P.AD_ABASTECER='S' AND (P.NIVELPAR - P.ESTOQUE)> 0 "+
+					"WHERE T.CODBEM='"+codbem+"' AND P.AD_ABASTECER='S' AND (P.NIVELPAR - P.ESTOQUE)> 0 "+
 				") X "+
 				"LEFT JOIN TGFEST E ON (E.CODEMP=X.EMP_ABAST AND E.CODLOCAL=X.LOCAL_ABAST AND E.CODPROD=X.CODPROD AND E.CONTROLE=' ' AND E.ATIVO='S' AND E.CODPARC=0) "+
 				"WHERE (E.ESTOQUE - E.RESERVADO) >= FALTA AND '"+tipoAbastecimento+"' = AD_CONGELADOS AND TRUNC(FALTA/AD_QTDMIN)>0 "+
@@ -734,19 +734,49 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			
 			//validacao
 			//if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()>0) {
-			if(falta.doubleValue() % qtdMinima.doubleValue() == 0) {
-				if(falta.intValue() <= estoqueNaEmpresa.intValue()) {
-					if(falta.intValue()>0) {
-						sequencia++;
-						insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
-					}	
-				}else {
-					//TODO :: registra itens em ruptura
-					insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio);
+			
+			if(falta.doubleValue() <= estoqueNaEmpresa.doubleValue() && falta.doubleValue()>0) {
+				
+				if(qtdMinima.doubleValue()>1) { //possui qtd minima
+					
+					if(falta.doubleValue()>qtdMinima.intValue()) {
+						BigDecimal qtdVezes = falta.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
+						BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
+						
+						if(qtdParaNota.doubleValue()<=nivelpar.doubleValue()) {
+							sequencia++;
+							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+						}else { //quantidade para nota, a cima do nível par.
+							//cortado
+							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Falta "+falta+" quantidade para nota "+qtdParaNota+" nível par "+nivelpar+", quantidade para a nota superior ao nível par.");
+						}
+								
+					}else { //n atingiu a qtd minima
+						//cortado
+						insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.");
+					}
+					
+				}else { //não possui qtd mínima, pode inserir direto
+					sequencia++;
+					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
 				}
 				
-				//TODO :: se não for pro pedido, tem que ir para a tela de histórico de rupturas.
+			}else {
+				//cortado
+				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial");
 			}
+			
+			
+			/*
+			 * if(falta.doubleValue() % qtdMinima.doubleValue() == 0) { if(falta.intValue()
+			 * <= estoqueNaEmpresa.intValue()) { if(falta.intValue()>0) { sequencia++;
+			 * insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta,
+			 * new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast); }
+			 * }else { //TODO :: registra itens em ruptura insereItemEmRuptura(nunota,
+			 * empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia),
+			 * valorTotal, valor, tecla, top, gc_solicitabast, patrimonio); } }
+			 */
+			
 			
 			}
 		} catch (Exception e) {
@@ -802,7 +832,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	}
 	
 	private void insereItemEmRuptura(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
-			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast, String patrimonio) {
+			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast, String patrimonio, String motivo) {
 		try {
 			
 			String PedidoSecosCongelados = (String) gc_solicitabast.getProperty("AD_TIPOPRODUTOS");
@@ -830,6 +860,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				VO.setProperty("CODLOCALORIG", local);
 				VO.setProperty("QTDNEG", qtdneg);
 				VO.setProperty("VLRUNIT", vlrunit);
+				VO.setProperty("MOTIVO", motivo);
 
 				dwfFacade.createEntity("AD_ITENSCORTE", (EntityVO) VO);
 			}
