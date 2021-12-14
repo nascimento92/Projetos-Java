@@ -1,6 +1,7 @@
 package br.com.grancoffee.Ecommerce;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.event.PersistenceEvent;
@@ -52,10 +53,44 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 		
 	}
 	
-	public void start(PersistenceEvent arg0) {
+	public void start(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal nunota = VO.asBigDecimal("NUNOTA");
 		BigDecimal produto = VO.asBigDecimal("CODPROD");
+		String codvol = VO.asString("CODVOL");
+		BigDecimal quantidadeOriginal = VO.asBigDecimal("QTDNEG");
+		BigDecimal valorOriginal = VO.asBigDecimal("VLRUNIT");
+		
+		if(nunota!=null) {
+			DynamicVO tgfcab = getTGFCAB(nunota);
+			if(tgfcab!=null) {
+				BigDecimal usuarioInclusao = tgfcab.asBigDecimal("CODUSUINC");
+				if(usuarioInclusao.intValue()==3538) {
+				//if(usuarioInclusao.intValue()==648) {
+					
+					DynamicVO tgfpro = getTGFPRO(produto);
+					if(tgfpro!=null) {
+						String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
+						
+						if(!codvol.equals(unidadeVtex)) {
+							BigDecimal quantidade = getQuantidade(produto,unidadeVtex);
+							
+							if(quantidade!=null) {
+								VO.setProperty("QTDNEG", quantidadeOriginal.multiply(quantidade));
+								VO.setProperty("CODVOL", unidadeVtex);
+								VO.setProperty("VLRUNIT", valorOriginal.divide(quantidade,2,RoundingMode.HALF_EVEN));
+							}	
+							
+						}
+							
+					}
+					
+				}
+			}
+		}
+		
+		
+		/*
 		//String volume = VO.asString("CODVOL");
 		BigDecimal quantidade = VO.asBigDecimal("QTDNEG");
 		
@@ -79,73 +114,21 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 				}
 			}
 		}
+		*/
 	}
 	
+	private DynamicVO getTGFCAB(BigDecimal nunota) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
+		DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
+		return VO;
+	}
 	
-	public boolean validaSeEhUmPedidoDoEcomm(BigDecimal nunota) {
-		boolean valida = false;
+	private DynamicVO getTGFPRO(BigDecimal produto) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("Produto");
+		DynamicVO VO = DAO.findOne("CODPROD=?",new Object[] { produto });
+		return VO;
+	}
 		
-		try {
-			JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
-			DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
-			
-			if(VO!=null) {
-				BigDecimal usuarioInclusao = VO.asBigDecimal("CODUSUINC");
-				
-				if(usuarioInclusao.intValue()==3538) { //usuário 3538 = wevo
-					valida=true;
-				}
-			}
-
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		
-		return valida;
-	}
-	
-	public String getUnidadeEcomm(BigDecimal produto) {
-		String retorno = null;
-		try {
-			JapeWrapper DAO = JapeFactory.dao("Produto");
-			DynamicVO VO = DAO.findOne("CODPROD=?",new Object[] { produto });
-			
-			if(VO!=null) {
-				String unidade = VO.asString("AD_UNIDADELV");
-				
-				if(unidade!=null) {
-					retorno = unidade;
-				}
-				
-			}
-			
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		return retorno;
-	}
-	
-	public String getUnidadeProduto(BigDecimal produto) {
-		String retorno = null;
-		try {
-			JapeWrapper DAO = JapeFactory.dao("Produto");
-			DynamicVO VO = DAO.findOne("CODPROD=?",new Object[] { produto });
-			
-			if(VO!=null) {
-				String unidade = VO.asString("CODVOL");
-				
-				if(unidade!=null) {
-					retorno = unidade;
-				}
-				
-			}
-			
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		return retorno;
-	}
-	
 	public BigDecimal getQuantidade(BigDecimal produto, String unidade) {
 		BigDecimal qtd = null;
 		try {

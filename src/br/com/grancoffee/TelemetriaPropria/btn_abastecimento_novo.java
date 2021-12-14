@@ -734,19 +734,49 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			
 			//validacao
 			//if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()>0) {
-			if(falta.doubleValue() % qtdMinima.doubleValue() == 0) {
-				if(falta.intValue() <= estoqueNaEmpresa.intValue()) {
-					if(falta.intValue()>0) {
-						sequencia++;
-						insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
-					}	
-				}else {
-					//TODO :: registra itens em ruptura
-					insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio);
+			
+			if(falta.doubleValue() <= estoqueNaEmpresa.doubleValue() && falta.doubleValue()>0) {
+				
+				if(qtdMinima.doubleValue()>1) { //possui qtd minima
+					
+					if(falta.doubleValue()>qtdMinima.intValue()) {
+						BigDecimal qtdVezes = falta.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
+						BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
+						
+						if(qtdParaNota.doubleValue()<=nivelpar.doubleValue()) {
+							sequencia++;
+							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+						}else { //quantidade para nota, a cima do nível par.
+							//cortado
+							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Falta "+falta+" quantidade para nota "+qtdParaNota+" nível par "+nivelpar+", quantidade para a nota superior ao nível par.");
+						}
+								
+					}else { //n atingiu a qtd minima
+						//cortado
+						insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.");
+					}
+					
+				}else { //não possui qtd mínima, pode inserir direto
+					sequencia++;
+					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
 				}
 				
-				//TODO :: se não for pro pedido, tem que ir para a tela de histórico de rupturas.
+			}else {
+				//cortado
+				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial");
 			}
+			
+			
+			/*
+			 * if(falta.doubleValue() % qtdMinima.doubleValue() == 0) { if(falta.intValue()
+			 * <= estoqueNaEmpresa.intValue()) { if(falta.intValue()>0) { sequencia++;
+			 * insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta,
+			 * new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast); }
+			 * }else { //TODO :: registra itens em ruptura insereItemEmRuptura(nunota,
+			 * empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia),
+			 * valorTotal, valor, tecla, top, gc_solicitabast, patrimonio); } }
+			 */
+			
 			
 			}
 		} catch (Exception e) {
@@ -802,7 +832,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	}
 	
 	private void insereItemEmRuptura(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
-			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast, String patrimonio) {
+			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast, String patrimonio, String motivo) {
 		try {
 			
 			String PedidoSecosCongelados = (String) gc_solicitabast.getProperty("AD_TIPOPRODUTOS");
@@ -830,6 +860,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				VO.setProperty("CODLOCALORIG", local);
 				VO.setProperty("QTDNEG", qtdneg);
 				VO.setProperty("VLRUNIT", vlrunit);
+				VO.setProperty("MOTIVO", motivo);
 
 				dwfFacade.createEntity("AD_ITENSCORTE", (EntityVO) VO);
 			}
