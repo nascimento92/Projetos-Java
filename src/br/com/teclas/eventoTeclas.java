@@ -34,6 +34,7 @@ public class eventoTeclas implements EventoProgramavelJava {
 	 * Objeto tem o objeto de facilitar o cadastro de teclas/produtos
 	 * ele verifica se o produto da tecla já existe na produtos/serviços se existe ele atualiza o preço se n ele cadastra
 	 * 02/09/2019 - teste da função com as áreas interessadas
+	 * 21/12/2021 - vs 1.3 método start, inserida a alteração para desconsiderar teclas 0
 	 */
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -79,19 +80,23 @@ public class eventoTeclas implements EventoProgramavelJava {
 		BigDecimal contrato = teclasVo.asBigDecimal("NUMCONTRATO");
 		BigDecimal vlrpar = teclasVo.asBigDecimal("VLRPAR");
 		BigDecimal vlrfuncionario = teclasVo.asBigDecimal("VLRFUN");
-		BigDecimal contratoPatrimonio = null;
+		//BigDecimal contratoPatrimonio = null;
 		
+		/*
 		if(codbem!=null) {
 			contratoPatrimonio = getNumContrato(codbem);
 		}
+		*/
 		
 		try {
 			
-			if(contrato!=null && contratoPatrimonio!=null) {
-				if(contrato.equals(contratoPatrimonio)) {
+			if(contrato!=null) {
 					if(codbem!=null && tecla!=null && produto!=null && vlrfuncionario!=null && vlrpar!=null) {
 						//valida se já existe esta tecla para este patrimonio
-						validaSeTeclaJaExiste(contrato,codbem,tecla);
+						
+						if(tecla.intValue()!=0) {
+							validaSeTeclaJaExiste(contrato,codbem,tecla);
+						}
 						
 						if(validaSeExisteNaTCSPSC(produto,contrato)){
 							alteraProdutoQueJaExiste(arg0);
@@ -100,7 +105,6 @@ public class eventoTeclas implements EventoProgramavelJava {
 							alteraProdutoQueJaExiste(arg0);
 						}
 					}
-				}
 			}
 			
 			//valida se o patrimonio está no contrato
