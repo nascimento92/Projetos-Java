@@ -8,13 +8,16 @@ import java.util.Date;
 import com.sankhya.util.TimeUtils;
 
 public class Main {
-	public static void main(String[] args) throws ParseException {
+	public static void main(String[] args) throws Exception {
 		Timestamp data = TimeUtils.getNow();
 		
 		Timestamp buildPrintableTimestamp = TimeUtils.buildPrintableTimestamp(data.getTime(), "dd/MM/yyyy HH:mm:ss");
 		
+		Timestamp buildPrintableTimestamp2 = TimeUtils.buildPrintableTimestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 3), "dd/MM/yyyy HH:mm:ss");
 		
-		System.out.println(buildPrintableTimestamp);
+		Timestamp dataA = new Timestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 3));
+		
+		System.out.println(dataA);
 	}
 	
 	/*
