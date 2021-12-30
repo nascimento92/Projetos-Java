@@ -108,40 +108,55 @@ public class eventoGeraLog implements EventoProgramavelJava {
 	private void pegaOsCamposDaTabela(String tabela, PersistenceEvent arg0, Object pk) throws Exception{
 		
 		//Collection<String> campos = new ArrayList();
-		
-		JdbcWrapper jdbcWrapper = null;
-		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-		jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
-
-		ResultSet contagem;
-		NativeSql nativeSql = new NativeSql(jdbcWrapper);
-		nativeSql.resetSqlBuf();
-		nativeSql.appendSql("SELECT NOMECAMPO FROM TDDCAM WHERE NOMETAB='"+tabela+"'");
-		contagem = nativeSql.executeQuery();
-
-		while (contagem.next()) {
+		try {
 			
-			if(arg0.getModifingFields().isModifing(contagem.getString(1))){
-				
-				if(verificaSeOhCampoGeraLog(tabela,contagem.getString(1))){
-					
-					String campo = contagem.getString(1);
-					Object oldValue = arg0.getModifingFields().getOldValue(contagem.getString(1));
-					Object newValue = arg0.getModifingFields().getNewValue(contagem.getString(1));
-					BigDecimal usuLogado = getUsuLogado();
-					
-					salvaAlteracoes(tabela,campo,oldValue,newValue,usuLogado,pk);
-				}
-				
-			}
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
 
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT NOMECAMPO FROM TDDCAM WHERE NOMETAB='"+tabela+"'");
+			contagem = nativeSql.executeQuery();
+
+			while (contagem.next()) {
+				
+				if(arg0.getModifingFields().isModifing(contagem.getString(1))){
+					
+					if(verificaSeOhCampoGeraLog(tabela,contagem.getString(1))){
+						
+						String campo = contagem.getString(1);
+						Object oldValue = arg0.getModifingFields().getOldValue(contagem.getString(1));
+						Object newValue = arg0.getModifingFields().getNewValue(contagem.getString(1));
+						BigDecimal usuLogado = getUsuLogado();
+						
+						salvaAlteracoes(tabela,campo,oldValue,newValue,usuLogado,pk);
+					}
+					
+				}
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
 		}
+		
 	}
 	
 	private BigDecimal getUsuLogado() {
-		BigDecimal codUsuLogado = BigDecimal.ZERO;
-	    codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
-	    return codUsuLogado;    	
+		BigDecimal usuario = BigDecimal.ZERO;
+		try {
+			
+		    BigDecimal codUsuLogado = ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID();
+		    if(codUsuLogado!=null) {
+		    	usuario = codUsuLogado;
+		    }
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+	    return usuario;    	
 	}
 	
 	private boolean verificaSeOhCampoGeraLog(String tabela, Object campo) throws Exception{
