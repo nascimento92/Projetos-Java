@@ -37,6 +37,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 	 * 17/10/2021 vs 1.4 reformulação do evento, realiza os calculos do encerramento da OS.
 	 * 25/10/2021 vs 1.5 Inserido os métodos validaItensRetAbast e validaItensDaAppContagem para garantir que o sistema vá inserir para ajuste apenas os itens corretos. Métodos calculaDadosDaContagem e verificaDadosSemContagem foram comentados, por não serem mais utilizados nessa nova lógica.
 	 * 26/10/2021 vs 1.6 Insere nos cálculos a retirada dos retornos que não devem entrar nos calculos. Todos onde o campo REDUZESTOQUE da AD_MOTIVOSRETORNO esteja como "N".
+	 * 30/12/2021 vs 1.8 Ajuste do objeto que passa o planograma pendente para o planograma atual
 	 */
 	
 	@Override
@@ -198,7 +199,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			BigDecimal retorno = null;
 			BigDecimal diferenca = null;
 			BigDecimal retornoParaCalculo = null;
-			BigDecimal estoque = getSaldoEstoque(patrimonio,produto,tecla);
+			BigDecimal estoque = BigDecimalUtil.getValueOrZero(getSaldoEstoque(patrimonio,produto,tecla));
 			BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
 			BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
 			BigDecimal valor = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VALOR"));
@@ -372,7 +373,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 				String tecla = DynamicVO.asString("TECLA");
 				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
 				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal estoque = getSaldoEstoque(patrimonio, produto, tecla);
+				BigDecimal estoque = BigDecimalUtil.getValueOrZero(getSaldoEstoque(patrimonio, produto, tecla));
 				BigDecimal qtdpedido = DynamicVO.asBigDecimal("QTDABAST");
 				BigDecimal saldoesperado = estoque.add(qtdpedido);
 				BigDecimal valor = DynamicVO.asBigDecimal("VALOR");
@@ -496,16 +497,11 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 				
 				if("RETIRAR".equals(statuspar)) {
 					retirarTecla(patrimonio,tecla,produto);
-				}
-				
-				if("NOVO".equals(statuspar)) {
+				}else if("NOVO".equals(statuspar)) {
 					insereTecla(capacidade, patrimonio, produto, estoque, gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO"), gc_SOLICITABAST.asBigDecimal("ID"), nivelalerta,nivelpar,numos,gc_SOLICITABAST.asBigDecimal("NUNOTA"),tecla,vlrfun,vlrpar);
-				}
-				
-				if("IGUAL".equals(statuspar)) {
+				}else {
 					atualizaTecla(capacidade, patrimonio, produto, estoque, gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO"), gc_SOLICITABAST.asBigDecimal("ID"), nivelalerta,nivelpar,numos,gc_SOLICITABAST.asBigDecimal("NUNOTA"),tecla,vlrfun,vlrpar);
 				}
-				
 			}
 			
 		} catch (Exception e) {
