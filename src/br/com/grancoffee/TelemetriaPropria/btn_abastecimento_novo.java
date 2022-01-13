@@ -1248,8 +1248,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT CASE WHEN EXISTS(SELECT CODBEM FROM AD_ROTATELINS WHERE CODBEM='" + patrimonio
-					+ "') THEN 'S' ELSE 'N' END AS VALIDA FROM DUAL");
+			nativeSql.appendSql("SELECT CASE WHEN EXISTS(SELECT CODBEM FROM AD_ROTATELINS I JOIN AD_ROTATEL R ON (R.ID=I.ID) WHERE I.CODBEM='"+patrimonio+"' AND R.ROTATELPROPRIA='S') THEN 'S' ELSE 'N' END AS VALIDA FROM DUAL" );
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				String verifica = contagem.getString("VALIDA");
