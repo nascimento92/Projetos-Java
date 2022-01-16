@@ -68,40 +68,48 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 			if(tgfcab!=null) {
 				BigDecimal usuarioInclusao = tgfcab.asBigDecimal("CODUSUINC");
 				//if(usuarioInclusao.intValue()==3538) {
-				if(usuarioInclusao.intValue()==648) {	
-					if(descobreSeEhUmKit(produto)) { //para produto que é um kit
-						DynamicVO itemDoKit = getItemDoKit(produto);
-						if(itemDoKit!=null) {
-							produtoParaNota = itemDoKit.asBigDecimal("CODMATPRIMA");
-							qtdKit = itemDoKit.asBigDecimal("QTDMISTURA");
-							
-							if(produtoParaNota!=null && qtdKit!=null) {
-								DynamicVO tgfpro = getTGFPRO(produtoParaNota);
-								if(tgfpro!=null) {
-									VO.setProperty("CODPROD", produtoParaNota);
-									VO.setProperty("QTDNEG", quantidadeOriginal.multiply(qtdKit));
-									VO.setProperty("CODVOL", tgfpro.asString("CODVOL"));
-								}
-							}
-							
-						}
+				if(usuarioInclusao.intValue()==648) {
+					
+					/*
+					 * if(descobreSeEhUmKit(produto)) { //para produto que é um kit DynamicVO
+					 * itemDoKit = getItemDoKit(produto); if(itemDoKit!=null) { produtoParaNota =
+					 * itemDoKit.asBigDecimal("CODMATPRIMA"); qtdKit =
+					 * itemDoKit.asBigDecimal("QTDMISTURA");
+					 * 
+					 * if(produtoParaNota!=null && qtdKit!=null) { DynamicVO tgfpro =
+					 * getTGFPRO(produtoParaNota); if(tgfpro!=null) { VO.setProperty("CODPROD",
+					 * produtoParaNota); VO.setProperty("QTDNEG",
+					 * quantidadeOriginal.multiply(qtdKit)); VO.setProperty("CODVOL",
+					 * tgfpro.asString("CODVOL")); } }
+					 * 
+					 * }
+					 * 
+					 * }else { //para produto que não é kit DynamicVO tgfpro = getTGFPRO(produto);
+					 * if(tgfpro!=null) { String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
+					 * 
+					 * if(!codvol.equals(unidadeVtex)) { BigDecimal quantidade =
+					 * getQuantidade(produto,unidadeVtex);
+					 * 
+					 * if(quantidade!=null) { VO.setProperty("QTDNEG",
+					 * quantidadeOriginal.multiply(quantidade)); VO.setProperty("CODVOL",
+					 * unidadeVtex); VO.setProperty("VLRUNIT",
+					 * valorOriginal.divide(quantidade,2,RoundingMode.HALF_EVEN)); } } } }
+					 */
+					
+					DynamicVO tgfpro = getTGFPRO(produto);
+					if(tgfpro!=null) {
+						String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
 						
-					}else { //para produto que não é kit
-						DynamicVO tgfpro = getTGFPRO(produto);
-						if(tgfpro!=null) {
-							String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
+						if(!codvol.equals(unidadeVtex)) {
+							BigDecimal quantidade = getQuantidade(produto,unidadeVtex);
 							
-							if(!codvol.equals(unidadeVtex)) {
-								BigDecimal quantidade = getQuantidade(produto,unidadeVtex);
-								
-								if(quantidade!=null) {
-									VO.setProperty("QTDNEG", quantidadeOriginal.multiply(quantidade));
-									VO.setProperty("CODVOL", unidadeVtex);
-									VO.setProperty("VLRUNIT", valorOriginal.divide(quantidade,2,RoundingMode.HALF_EVEN));
-								}	
-							}		
-						}
-					}	
+							if(quantidade!=null) {
+								VO.setProperty("QTDNEG", quantidadeOriginal.multiply(quantidade));
+								VO.setProperty("CODVOL", unidadeVtex);
+								VO.setProperty("VLRUNIT", valorOriginal.divide(quantidade,2,RoundingMode.HALF_EVEN));
+							}	
+						}		
+					}
 				}
 			}
 		}
