@@ -45,20 +45,27 @@ public class evento_calculaPrazo implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
+	
 		start(arg0);		
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		start(arg0);		
+
+		start(arg0);	
 	}
 	
 	private void start(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		Timestamp dtinicial = VO.asTimestamp("DTINT");
+		BigDecimal dias = VO.asBigDecimal("PRAZO");
 		
-		BigDecimal dias = (BigDecimal) MGECoreParameter.getParameter("PRAZOINTEGRACAO");
+		if(dias == null) {
+			dias = (BigDecimal) MGECoreParameter.getParameter("PRAZOINTEGRACAO");
+			VO.setProperty("PRAZO", dias);
+		}
 		
+		  
 		if(dtinicial!=null) {
 			Timestamp newData = TimeUtils.dataAddDay(dtinicial, dias.intValue());
 			VO.setProperty("DTVAL", newData);
