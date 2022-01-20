@@ -54,115 +54,48 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 	}
 	
 	public void start(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal nunota = VO.asBigDecimal("NUNOTA");
-		BigDecimal produto = VO.asBigDecimal("CODPROD");
-		String codvol = VO.asString("CODVOL");
-		BigDecimal quantidadeOriginal = VO.asBigDecimal("QTDNEG");
-		BigDecimal valorOriginal = VO.asBigDecimal("VLRUNIT");
-		BigDecimal produtoParaNota = null;
-		BigDecimal qtdKit = null;
-		
-		if(nunota!=null) {
-			DynamicVO tgfcab = getTGFCAB(nunota);
-			if(tgfcab!=null) {
-				BigDecimal usuarioInclusao = tgfcab.asBigDecimal("CODUSUINC");
-				//if(usuarioInclusao.intValue()==3538) {
-				if(usuarioInclusao.intValue()==648) {
-					
-					/*
-					 * if(descobreSeEhUmKit(produto)) { //para produto que é um kit DynamicVO
-					 * itemDoKit = getItemDoKit(produto); if(itemDoKit!=null) { produtoParaNota =
-					 * itemDoKit.asBigDecimal("CODMATPRIMA"); qtdKit =
-					 * itemDoKit.asBigDecimal("QTDMISTURA");
-					 * 
-					 * if(produtoParaNota!=null && qtdKit!=null) { DynamicVO tgfpro =
-					 * getTGFPRO(produtoParaNota); if(tgfpro!=null) { VO.setProperty("CODPROD",
-					 * produtoParaNota); VO.setProperty("QTDNEG",
-					 * quantidadeOriginal.multiply(qtdKit)); VO.setProperty("CODVOL",
-					 * tgfpro.asString("CODVOL")); } }
-					 * 
-					 * }
-					 * 
-					 * }else { //para produto que não é kit DynamicVO tgfpro = getTGFPRO(produto);
-					 * if(tgfpro!=null) { String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
-					 * 
-					 * if(!codvol.equals(unidadeVtex)) { BigDecimal quantidade =
-					 * getQuantidade(produto,unidadeVtex);
-					 * 
-					 * if(quantidade!=null) { VO.setProperty("QTDNEG",
-					 * quantidadeOriginal.multiply(quantidade)); VO.setProperty("CODVOL",
-					 * unidadeVtex); VO.setProperty("VLRUNIT",
-					 * valorOriginal.divide(quantidade,2,RoundingMode.HALF_EVEN)); } } } }
-					 */
-					
-					DynamicVO tgfpro = getTGFPRO(produto);
-					if(tgfpro!=null) {
-						String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
-						
-						if(!codvol.equals(unidadeVtex)) {
-							BigDecimal quantidade = getQuantidade(produto,unidadeVtex);
-							
-							if(quantidade!=null) {
-								VO.setProperty("QTDNEG", quantidadeOriginal.multiply(quantidade));
-								VO.setProperty("CODVOL", unidadeVtex);
-								VO.setProperty("VLRUNIT", valorOriginal.divide(quantidade,2,RoundingMode.HALF_EVEN));
-							}	
-						}		
-					}
-				}
-			}
-		}
-		
-		
-		/*
-		//String volume = VO.asString("CODVOL");
-		BigDecimal quantidade = VO.asBigDecimal("QTDNEG");
-		
-		boolean validaSeEhUmPedidoDoEcomm = validaSeEhUmPedidoDoEcomm(nunota);
-		
-		if(validaSeEhUmPedidoDoEcomm) {
-			String unidadeEcomm = getUnidadeEcomm(produto);
-			String volume = getUnidadeProduto(produto);
-			
-			if(unidadeEcomm!=null) {
-				
-				if(volume!=null) {
-					
-					if(unidadeEcomm!=volume) {
-						
-						BigDecimal qtdUnidadeAlternativa = getQuantidade(produto,unidadeEcomm);
-						
-						VO.setProperty("QTDNEG", quantidade.multiply(qtdUnidadeAlternativa));
-					}
-					
-				}
-			}
-		}
-		*/
-	}
-	
-	private boolean descobreSeEhUmKit(BigDecimal produto) throws Exception {
-		boolean valida = false;
-		JapeWrapper DAO = JapeFactory.dao("Produto");
-		DynamicVO VO = DAO.findOne("CODPROD=?",new Object[] { produto });
-		if(VO!=null) {
-			String tipokit = VO.asString("TIPOKIT");
-			if(tipokit!=null) {
-				valida=true;
-			}
-		}
-		return valida;
-	}
-	
-	private DynamicVO getItemDoKit(BigDecimal produto) throws Exception {
-		DynamicVO prod = null;
-		JapeWrapper DAO = JapeFactory.dao("ItemComposicaoProduto");
-		DynamicVO VO = DAO.findOne("CODPROD=?",new Object[] { produto });
-		if(VO!=null) {
-			prod = VO;
-		}
-		return prod;
+		DynamicVO VO = (DynamicVO)arg0.getVo();
+	    BigDecimal nunota = VO.asBigDecimal("NUNOTA");
+	    BigDecimal produto = VO.asBigDecimal("CODPROD");
+	    String codvol = VO.asString("CODVOL");
+	    BigDecimal quantidadeOriginal = VO.asBigDecimal("QTDNEG");
+	    BigDecimal valorOriginal = VO.asBigDecimal("VLRUNIT");
+	    BigDecimal codlocalorig = VO.asBigDecimal("CODLOCALORIG");
+	    BigDecimal novocodlocalorig = new BigDecimal(1117);
+	    
+	    if (nunota != null) {
+	      DynamicVO tgfcab = getTGFCAB(nunota);
+	      if (tgfcab != null) {
+	        BigDecimal usuarioInclusao = tgfcab.asBigDecimal("CODUSUINC");
+	        if (usuarioInclusao.intValue() == 3538) {
+	        //if (usuarioInclusao.intValue() == 648) {
+	          DynamicVO tgfpro = getTGFPRO(produto);
+	          if (tgfpro != null) {
+	        	
+	        	//TODO::Verifica se é uma máquina 
+	        	BigDecimal grupoProduto = tgfpro.asBigDecimal("CODGRUPOPROD");
+	        	if(grupoProduto.intValue()>=500000 && grupoProduto.intValue()<600000) {//é uma máquina
+	        		if(codlocalorig.intValue()!=novocodlocalorig.intValue()) {
+	        			VO.setProperty("CODLOCALORIG", novocodlocalorig);
+	        		}
+	        	}
+	        	  
+	        	//TODO::Verifica a unidade e-commerce.  
+	            String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
+	            if (!codvol.equals(unidadeVtex)) {
+	              BigDecimal quantidade = getQuantidade(produto, unidadeVtex);
+	              if (quantidade != null) {
+	                VO.setProperty("QTDNEG", quantidadeOriginal.multiply(quantidade));
+	                VO.setProperty("CODVOL", unidadeVtex);
+	                VO.setProperty("VLRUNIT", valorOriginal.divide(quantidade, 2, RoundingMode.HALF_EVEN));
+	              } 
+	            }
+	            
+	          } 
+	        } 
+	      } 
+	    }
+	    
 	}
 	
 	private DynamicVO getTGFCAB(BigDecimal nunota) throws Exception {
