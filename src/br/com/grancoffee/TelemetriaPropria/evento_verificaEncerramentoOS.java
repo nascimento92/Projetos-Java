@@ -38,6 +38,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 	 * 25/10/2021 vs 1.5 Inserido os métodos validaItensRetAbast e validaItensDaAppContagem para garantir que o sistema vá inserir para ajuste apenas os itens corretos. Métodos calculaDadosDaContagem e verificaDadosSemContagem foram comentados, por não serem mais utilizados nessa nova lógica.
 	 * 26/10/2021 vs 1.6 Insere nos cálculos a retirada dos retornos que não devem entrar nos calculos. Todos onde o campo REDUZESTOQUE da AD_MOTIVOSRETORNO esteja como "N".
 	 * 30/12/2021 vs 1.8 Ajuste do objeto que passa o planograma pendente para o planograma atual
+	 * 24/01/2022 vs 1.9 Inserida a validação para não realizar as ações se a OS foi cancelada.
 	 */
 	
 	@Override
@@ -88,23 +89,29 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		
 		String newSituacao = VO.asString("SITUACAO");
 		String oldSituacao = oldVO.asString("SITUACAO");
+		
+		BigDecimal tipo = VO.asBigDecimal("CODCOS");
 				
 		if("P".equals(oldSituacao) && "F".equals(newSituacao)) {
-					
-			if(validaSeEhDaTelemetriaPropria(numos)) {
-				atualizaCamposInicial(numos);
-				realizaValidacoes(numos);
-				atualizaCamposFinal(numos);
+			
+			if(tipo.intValue()!=5) { //executa apenas se for diferente de 5 (cancelado)
 				
-				Timer timer = new Timer(1000, new ActionListener() {	
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						chamaPentaho2();				
-					}
-				});
-				timer.setRepeats(false);
-				timer.start();
-			}
+				if(validaSeEhDaTelemetriaPropria(numos)) {
+					atualizaCamposInicial(numos);
+					realizaValidacoes(numos);
+					atualizaCamposFinal(numos);
+					
+					Timer timer = new Timer(1000, new ActionListener() {	
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							chamaPentaho2();				
+						}
+					});
+					timer.setRepeats(false);
+					timer.start();
+				}
+				
+			}	
 		}
 		
 	}

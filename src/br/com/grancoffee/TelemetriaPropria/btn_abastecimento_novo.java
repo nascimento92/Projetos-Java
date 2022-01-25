@@ -40,6 +40,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 03/11/2021 vs 1.2 Ajustado o método validaPedido estava permitindo a criação de 2 pedidos de congelados, estava errado o Where da segunda validação ANTES: NVL(AD_TIPOPRODUTOS,'1')='1' DEPOIS: NVL(AD_TIPOPRODUTOS,'1')='2'
 	 * 08/11/2021 vs 1.3 Inserido a validação para não gerar o pedido se a máquina esta totalmente vazia e houve um pedido de abastecimento nos últimos 15 dias.
 	 * 24/11/2021 vs 1.5 Ajustado a geração dos pedidos considerando a quantidade mínima.
+	 * 21/01/2022 vs 1.9 Ajuste na inserção dos itens de ruptura.
 	 */
 	
 	String retornoNegativo = "";
@@ -748,12 +749,12 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
 						}else { //quantidade para nota, a cima do nível par.
 							//cortado
-							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Falta "+falta+" quantidade para nota "+qtdParaNota+" nível par "+nivelpar+", quantidade para a nota superior ao nível par.");
+							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Falta "+falta+", quantidade para ser abastecida "+qtdParaNota+", nível par "+nivelpar+", quantidade para a nota superior ao nível par.", nivelpar, estoque);
 						}
 								
 					}else { //n atingiu a qtd minima
 						//cortado
-						insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.");
+						insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.", nivelpar, estoque);
 					}
 					
 				}else { //não possui qtd mínima, pode inserir direto
@@ -763,7 +764,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				
 			}else {
 				//cortado
-				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial");
+				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoque);
 			}
 			
 			
@@ -832,7 +833,8 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	}
 	
 	private void insereItemEmRuptura(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
-			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast, String patrimonio, String motivo) {
+			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, 
+			DynamicVO gc_solicitabast, String patrimonio, String motivo, BigDecimal nivelpar, BigDecimal estoque) {
 		try {
 			
 			String PedidoSecosCongelados = (String) gc_solicitabast.getProperty("AD_TIPOPRODUTOS");
@@ -861,6 +863,9 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				VO.setProperty("QTDNEG", qtdneg);
 				VO.setProperty("VLRUNIT", vlrunit);
 				VO.setProperty("MOTIVO", motivo);
+				VO.setProperty("NIVELPAR", nivelpar);
+				VO.setProperty("ESTOQUE", estoque);
+				VO.setProperty("DATA", TimeUtils.getNow());
 
 				dwfFacade.createEntity("AD_ITENSCORTE", (EntityVO) VO);
 			}
