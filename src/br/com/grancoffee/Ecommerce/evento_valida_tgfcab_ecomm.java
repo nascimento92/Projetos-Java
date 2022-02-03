@@ -102,7 +102,7 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 			VO.setProperty("PKTABELA", idVtex);
 			VO.setProperty("OBSERVACAO", "Pedido VTEX "+idVtex+" impedido de ser integrado! Por motivo de duplicidade!");
 
-			dwfFacade.createEntity("CertificacaoRegra", (EntityVO) VO);
+			dwfFacade.createEntity("AD_LOG", (EntityVO) VO);
 
 		} catch (Exception e) {
 			// TODO: handle exception
