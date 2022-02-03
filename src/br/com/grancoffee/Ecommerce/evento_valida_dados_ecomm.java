@@ -3,12 +3,18 @@ package br.com.grancoffee.Ecommerce;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import com.sankhya.util.BigDecimalUtil;
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
+import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.vo.DynamicVO;
+import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 
@@ -63,6 +69,7 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 	    BigDecimal codlocalorig = VO.asBigDecimal("CODLOCALORIG");
 	    BigDecimal novocodlocalorig = new BigDecimal(1117);
 	    
+	    
 	    if (nunota != null) {
 	      DynamicVO tgfcab = getTGFCAB(nunota);
 	      if (tgfcab != null) {
@@ -79,16 +86,32 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 	        			VO.setProperty("CODLOCALORIG", novocodlocalorig);
 	        		}
 	        	}
+	        	
+	        	BigDecimal quantidade = null;
 	        	  
 	        	//TODO::Verifica a unidade e-commerce.  
 	            String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
 	            if (!codvol.equals(unidadeVtex)) {
-	              BigDecimal quantidade = getQuantidade(produto, unidadeVtex);
+	            	quantidade = getQuantidade(produto, unidadeVtex);
 	              if (quantidade != null) {
 	                VO.setProperty("QTDNEG", quantidadeOriginal.multiply(quantidade));
 	                VO.setProperty("CODVOL", unidadeVtex);
 	                VO.setProperty("VLRUNIT", valorOriginal.divide(quantidade, 2, RoundingMode.HALF_EVEN));
 	              } 
+	            }
+	            
+	            //TODO::Registra Log
+	            String idVtex = tgfcab.asString("AD_PEDIDOVTEX");
+	            if(idVtex!=null) {
+	            	
+	            	if(quantidade==null) {
+	            		quantidade = new BigDecimal(1);
+	            	}
+	            	
+	            	BigDecimal quantiLog = BigDecimalUtil.getValueOrZero(quantidadeOriginal.multiply(quantidade));
+	            	BigDecimal valorLog = BigDecimalUtil.getValueOrZero(valorOriginal.divide(quantidade, 2, RoundingMode.HALF_EVEN));
+	            	String obs = "Pro: "+produto+", Vol vx: "+codvol+", Vol pro: "+unidadeVtex+", qtd vx: "+quantidadeOriginal+", qtd n: "+quantiLog+", vlr vx: "+valorOriginal+", vlr n: "+valorLog;
+	            	cadastraLog(idVtex,obs);
 	            }
 	            
 	          } 
@@ -129,6 +152,46 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 			// TODO: handle exception
 		}
 		return qtd;
+	}
+	
+	private void cadastraLog(String idVtex, String obs) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_LOG");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("TABELA", "TGFITE");
+			VO.setProperty("CAMPO", "AD_PEDIDOVTEX");
+			VO.setProperty("DTALTER", TimeUtils.getNow());
+			VO.setProperty("PKTABELA", idVtex);
+			VO.setProperty("OBSERVACAO", obs);
+
+			dwfFacade.createEntity("AD_LOG", (EntityVO) VO);
+
+		} catch (Exception e) {
+			salvarException("[cadastraLog] não foi possível cadastrar! ID Pedido: "+idVtex+"\n"+e.getCause()+"\n"+e.getMessage());
+		}
+	}
+	
+	private void salvarException(String mensagem) {
+		try {
+
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+
+			VO.setProperty("OBJETO", "evento_valida_dados_ecomm");
+			VO.setProperty("PACOTE", "br.com.grancoffee.Ecommerce");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", new BigDecimal(0));
+			VO.setProperty("ERRO", mensagem);
+
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+
+		} catch (Exception e) {
+			// aqui não tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
+		}
 	}
 
 }

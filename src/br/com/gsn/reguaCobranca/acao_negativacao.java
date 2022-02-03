@@ -2,7 +2,9 @@ package br.com.gsn.reguaCobranca;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+
 import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.extensions.reguacobranca.AcaoReguaCobranca;
 import br.com.sankhya.extensions.reguacobranca.ContextoRegua;
@@ -14,7 +16,7 @@ import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
-public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
+public class acao_negativacao implements AcaoReguaCobranca{
 
 	@Override
 	public void execute(ContextoRegua arg0) throws Exception {
@@ -34,7 +36,7 @@ public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
 			}
 			
 		}
-		 
+		
 	}
 	
 	private DynamicVO getTGFFIN(BigDecimal nufin) throws Exception {
@@ -55,7 +57,7 @@ public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
 			EntityVO NVO = PersistentLocalEntity.getValueObject();
 			DynamicVO appVO = (DynamicVO) NVO;
 							 
-			appVO.setProperty("AD_STATUSREGUA", new BigDecimal(20));
+			appVO.setProperty("AD_STATUSREGUA", new BigDecimal(7));
 							 
 			PersistentLocalEntity.setValueObject(NVO);
 		} catch (Exception e) {
