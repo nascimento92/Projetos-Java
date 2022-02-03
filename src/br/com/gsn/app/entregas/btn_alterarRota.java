@@ -20,6 +20,10 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.modelcore.util.MGECoreParameter;
 
 public class btn_alterarRota implements AcaoRotinaJava {
+	
+	/**
+	 * 03/02/2022 - Funcionalidade removida do sistema.
+	 */
 
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
