@@ -72,6 +72,12 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			if(local!=null) {
 				VO.setProperty("CODLOCALORIG", local);
 			}
+			
+			//TODO:: Desconsiderar item de assinatura no faturamento da 10002
+			if(produto.intValue()==515259) {
+				VO.setProperty("PENDENTE", "N");
+				VO.setProperty("QTDENTREGUE", new BigDecimal(1));
+			}
 		}	
 		
 	}
