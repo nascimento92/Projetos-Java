@@ -20,6 +20,7 @@ public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
 	public void execute(ContextoRegua arg0) throws Exception {
 		
 		Collection<Registro> titulos = arg0.getTitulos();
+		BigDecimal codigo = new BigDecimal(20);
 		
 		for(Registro a : titulos) {
 			BigDecimal nufin = (BigDecimal) a.getCampo("NUFIN");
@@ -29,8 +30,8 @@ public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
 			if(TGFFIN!=null) {
 				BigDecimal statusAnterior = TGFFIN.asBigDecimal("AD_STATUSREGUA");
 				
-				atualizaTGFFIN(nufin);
-				salvaHistorico(statusAnterior,nufin);
+				atualizaTGFFIN(nufin, codigo);
+				salvaHistorico(statusAnterior,nufin,codigo);
 			}
 			
 		}
@@ -48,14 +49,14 @@ public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
 		return tgffin;
 	}
 	
-	private void atualizaTGFFIN(BigDecimal nufin) throws Exception {
+	private void atualizaTGFFIN(BigDecimal nufin, BigDecimal codigo) throws Exception {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			PersistentLocalEntity PersistentLocalEntity = dwfFacade.findEntityByPrimaryKey("Financeiro", nufin);
 			EntityVO NVO = PersistentLocalEntity.getValueObject();
 			DynamicVO appVO = (DynamicVO) NVO;
 							 
-			appVO.setProperty("AD_STATUSREGUA", new BigDecimal(20));
+			appVO.setProperty("AD_STATUSREGUA", codigo);
 							 
 			PersistentLocalEntity.setValueObject(NVO);
 		} catch (Exception e) {
@@ -64,7 +65,7 @@ public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
 
 	}
 
-	private void salvaHistorico(BigDecimal statusAnterior,BigDecimal nufin) throws Exception {
+	private void salvaHistorico(BigDecimal statusAnterior,BigDecimal nufin, BigDecimal codigo) throws Exception {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_HISTREGUA");
@@ -73,7 +74,7 @@ public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
 			VO.setProperty("NUFIN", nufin);
 			VO.setProperty("DATA", TimeUtils.getNow());
 			VO.setProperty("STATUSANT", statusAnterior);
-			VO.setProperty("STATUSATUAL", new BigDecimal(7));
+			VO.setProperty("STATUSATUAL", codigo);
 			VO.setProperty("CODUSU", new BigDecimal(0));
 			
 			dwfFacade.createEntity("AD_HISTREGUA", (EntityVO) VO);

@@ -16,13 +16,12 @@ import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
-public class acao_negativacao implements AcaoReguaCobranca{
+public class acao_retirada_protesto implements AcaoReguaCobranca{
 
 	@Override
 	public void execute(ContextoRegua arg0) throws Exception {
-		
 		Collection<Registro> titulos = arg0.getTitulos();
-		BigDecimal codigo = new BigDecimal(7);
+		BigDecimal codigo = new BigDecimal(19);
 		
 		for(Registro a : titulos) {
 			BigDecimal nufin = (BigDecimal) a.getCampo("NUFIN");
@@ -34,10 +33,8 @@ public class acao_negativacao implements AcaoReguaCobranca{
 				
 				atualizaTGFFIN(nufin, codigo);
 				salvaHistorico(statusAnterior,nufin,codigo);
-			}
-			
-		}
-		
+			}	
+		}	
 	}
 	
 	private DynamicVO getTGFFIN(BigDecimal nufin) throws Exception {
