@@ -69,6 +69,12 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 					cadastraLog(idVtex);
 					throw new Error("Pedido " + idVtex + " já existe, não pode ser cadastrado novamente !");
 				}
+				
+				String sigla = idVtex.substring(0,3);
+				
+				if("MGL".equals(sigla)) {
+					VO.setProperty("CODTIPVENDA", new BigDecimal(1265));
+				}
 			}
 		}
 	}
