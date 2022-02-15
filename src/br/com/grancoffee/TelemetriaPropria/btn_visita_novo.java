@@ -35,6 +35,7 @@ public class btn_visita_novo implements AcaoRotinaJava{
 	 * 16/10/2021 vs 1.0 Reacriado botão de visitas, implementado para gerar a OS no aperto do botão.
 	 * 21/10/2021 vs 1.1 Alteração do método carregaTeclasNosItensDeAbast, o preenchimento dos itens estava vindo da gc_planograma e não pode ser, ele tem que pegar da grade atual.
 	 * 04/11/2021 vs 1.2 Inserido o método carregaTeclasNosItensDeAbastPrimeiraVisita onde insere os itens da visita caso seja a primeira visita.
+	 * 12/02/2022 vs 1.4 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
 	 */
 	
 	int cont = 0;
@@ -54,6 +55,11 @@ public class btn_visita_novo implements AcaoRotinaJava{
 
 			int visitaPendente = validaSeExisteVisitasPendentes(linhas[i].getCampo("CODBEM").toString());
 			boolean maquinaNaRota = validaSeAhMaquinaEstaNaRota(linhas[i].getCampo("CODBEM").toString());
+			boolean maquinaSemPlanograma = verificaSeAhMaquinaPossuiPlanograma(linhas[i].getCampo("CODBEM").toString());
+			
+			if(maquinaSemPlanograma) {
+				arg0.mostraErro("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas[i].getCampo("CODBEM").toString()+" não possui um planograma cadastrado, não é possível gerar a visita!");
+			}
 
 			if (visitaPendente > 0) {
 				arg0.mostraErro("O Patrimônio <b>"+linhas[i].getCampo("CODBEM").toString()+"</b> já possui uma visita pendente! não é possível gerar outra!");
@@ -97,6 +103,36 @@ public class btn_visita_novo implements AcaoRotinaJava{
 			arg0.setMensagemRetorno("Não foram agendadas visitas!");
 		}
 	
+	}
+	
+	private boolean verificaSeAhMaquinaPossuiPlanograma(String codbem) {
+		boolean valida = false;
+		
+		try {
+
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT COUNT(*) AS QTD FROM GC_PLANOGRAMA WHERE CODBEM='"+codbem+"'");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count == 0) {
+					valida = true;
+				}
+			}
+
+		} catch (Exception e) {
+			salvarException(
+					"[verificaSeAhMaquinaPossuiPlanograma] Nao foi possivel validar a quantidade de itens no planograma! Patrimonio "
+							+ codbem + e.getMessage() + "\n" + e.getCause());
+		}
+		
+		return valida;
+		
 	}
 	
 	private boolean validaSeEhAhPrimeiraVisita(String patrimonio) {
@@ -684,23 +720,24 @@ public class btn_visita_novo implements AcaoRotinaJava{
 		return parceiro;
 	}
 	
-	private void chamaPentaho() {
-
-		try {
-
-			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");;
-			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
-			WSPentaho si = new WSPentaho(site, Key);
-
-			String path = "home/GC_New/Transformation/Sankhya-Apenas_Visita/";
-			String objName = "J-Loop_Apenas_visita";
-
-			si.runJob(path, objName);
-
-		} catch (Exception e) {
-			salvarException("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
-		}
-	}
+	/*
+	 * private void chamaPentaho() {
+	 * 
+	 * try {
+	 * 
+	 * String site = (String) MGECoreParameter.getParameter("PENTAHOIP");; String
+	 * Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ=="; WSPentaho si = new
+	 * WSPentaho(site, Key);
+	 * 
+	 * String path = "home/GC_New/Transformation/Sankhya-Apenas_Visita/"; String
+	 * objName = "J-Loop_Apenas_visita";
+	 * 
+	 * si.runJob(path, objName);
+	 * 
+	 * } catch (Exception e) {
+	 * salvarException("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.
+	 * getMessage()+"\n"+e.getCause()); } }
+	 */
 	
 	private void salvarException(String mensagem) {
 		try {

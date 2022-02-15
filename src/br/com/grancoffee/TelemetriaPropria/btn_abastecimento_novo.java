@@ -41,6 +41,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 08/11/2021 vs 1.3 Inserido a validação para não gerar o pedido se a máquina esta totalmente vazia e houve um pedido de abastecimento nos últimos 15 dias.
 	 * 24/11/2021 vs 1.5 Ajustado a geração dos pedidos considerando a quantidade mínima.
 	 * 21/01/2022 vs 1.9 Ajuste na inserção dos itens de ruptura.
+	 * 12/02/2022 vs 2.0 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
 	 */
 	
 	String retornoNegativo = "";
@@ -68,10 +69,15 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			
 			//TODO :: Verificar se o estoque está todo zerado, se tiver fazer a pergunta para o usuário, se ele quer de fato continuar...
 			boolean maquinaDesabastecida = verificarSeAhMaquinaEstaTotalmenteDesabastecida(linhas[i].getCampo("CODBEM").toString());
+			boolean maquinaSemPlanograma = verificaSeAhMaquinaPossuiPlanograma(linhas[i].getCampo("CODBEM").toString());
 			boolean confirmarSimNao = true;
 			
 			if(maquinaDesabastecida) {
 				confirmarSimNao = arg0.confirmarSimNao("Atenção", "A máquina está totalmente desabastecida, talvez seja necessário aguardar um pouco até a rotina atualizar o estoque! caso não normalize nos próximos 10 minutos, acionar o setor de T.I, </br> deseja abastecer mesmo assim ?", 1);
+			}
+			
+			if(maquinaSemPlanograma) {
+				throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas[i].getCampo("CODBEM").toString()+" não possui um planograma cadastrado, não é possível gerar a visita!");
 			}
 			
 			if(confirmarSimNao) {
@@ -292,6 +298,36 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 
+	}
+	
+	private boolean verificaSeAhMaquinaPossuiPlanograma(String codbem) {
+		boolean valida = false;
+		
+		try {
+
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT COUNT(*) AS QTD FROM GC_PLANOGRAMA WHERE CODBEM='"+codbem+"'");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count == 0) {
+					valida = true;
+				}
+			}
+
+		} catch (Exception e) {
+			salvarException(
+					"[verificaSeAhMaquinaPossuiPlanograma] Nao foi possivel validar a quantidade de itens no planograma! Patrimonio "
+							+ codbem + e.getMessage() + "\n" + e.getCause());
+		}
+		
+		return valida;
+		
 	}
 	
 	private DynamicVO getPlanogramaAtual(String patrimonio, BigDecimal produto, String tecla) throws Exception {

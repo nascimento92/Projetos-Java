@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import com.sankhya.util.StringUtils;
+import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
@@ -68,6 +69,13 @@ public class evento_calculaTempoAtividades implements EventoProgramavelJava {
 		Timestamp dtfim = VO.asTimestamp("FIM");
 		
 		if (dtfim != null) {
+			int dayIni = TimeUtils.getDay(dtinicio);
+			int dayFim = TimeUtils.getDay(dtfim);
+			
+			if(dayIni!=dayFim) {
+				throw new Error("<br/><b>OPS</b><br/>Atividades devem ser finalizadas no mesmo dia!<br/><br/>");
+			}
+			
 			double diferencaEmHoras = diferencaEmHoras(dtinicio, dtfim);
 			VO.setProperty("TEMPO", new BigDecimal(diferencaEmHoras));
 		}
