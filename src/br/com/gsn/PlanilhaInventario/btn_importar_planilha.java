@@ -67,7 +67,7 @@ public class btn_importar_planilha implements AcaoRotinaJava{
 
 		try {
 
-			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");;
+			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");
 			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 

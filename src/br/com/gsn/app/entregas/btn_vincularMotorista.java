@@ -6,6 +6,8 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Iterator;
 import com.sankhya.util.TimeUtils;
+
+import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -18,6 +20,7 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 /**
@@ -52,7 +55,7 @@ public class btn_vincularMotorista implements AcaoRotinaJava {
 
 		if (linhas.length > 0) {
 			arg0.setMensagemRetorno("Motorista / Veículo vinculados!");
-			//chamaPentaho();
+			chamaPentaho();
 		} else {
 			throw new Error("<br/><br/><b>Selecione uma ou mais Ordens de carga!</b><br/></b><br/>");
 		}
@@ -143,7 +146,7 @@ public class btn_vincularMotorista implements AcaoRotinaJava {
 		}
 	}
 
-	/*
+	
 	private void chamaPentaho() {
 
 		try {
@@ -161,5 +164,5 @@ public class btn_vincularMotorista implements AcaoRotinaJava {
 			e.getMessage();
 		}
 	}
-	*/
+	
 }
