@@ -1,26 +1,28 @@
 package br.com.gsn.app.entregas;
 
 import java.math.BigDecimal;
-import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.Iterator;
-
+import com.sankhya.util.TimeUtils;
 import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
-import br.com.sankhya.jape.dao.JdbcWrapper;
-import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.modelcore.util.MGECoreParameter;
+import br.com.sankhya.ws.ServiceContext;
 
 public class btn_removerMotorista implements AcaoRotinaJava {
-
+	int qtd = 0;
+	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
@@ -30,18 +32,11 @@ public class btn_removerMotorista implements AcaoRotinaJava {
 		if (confirmarSimNao) {
 
 			for (int i = 0; i < linhas.length; i++) {
-				
-				//TODO::Valida se existe algum pedido não pendente.
-				Integer oc =  (Integer) linhas[i].getCampo("ORDEMCARGA");
-				if(verificaSeExistePedidosQueNaoEstaoPendentes(new BigDecimal(oc))) {
-					throw new Error("<br/><br/><b>OPS!</b><br/> Existem pedidos em execução ou finalizados! Motorista não pode ser desvinculado da Ordem de Carga !<br/><br/></br/>");
-				}
-				
-				removerMotorista(linhas[i]);
+				excluirMotorista(linhas[i]);
 			}
 		}
 		
-		if(linhas.length>0) {
+		if(qtd>0) {
 			arg0.setMensagemRetorno("Motorista/Veiculo removidos!");
 		}else {
 			throw new Error("<br/><br/><b>Selecione uma ou mais Ordens de carga!</b><br/></b><br/>");
@@ -50,29 +45,83 @@ public class btn_removerMotorista implements AcaoRotinaJava {
 		
 		chamaPentaho();
 	}
-
-	private void removerMotorista(Registro linhas) {
+	
+	private void excluirMotorista(Registro linhas) throws Exception {
+		
+		BigDecimal nrounico = null;
+		Integer i = (Integer) linhas.getCampo("NRO_UNICO");
+		nrounico = new BigDecimal(i);
+		
+		if(nrounico!=null) {
+			DynamicVO tgfcab = getTGFCAB(nrounico);
+			if(tgfcab!=null) {
+				String status = tgfcab.asString("AD_STATUSENTREGA");
+				BigDecimal oc = tgfcab.asBigDecimal("ORDEMCARGA");
+				BigDecimal empresa = tgfcab.asBigDecimal("CODEMP");
+				
+				if("1".equals(status)) {
+					alteraDadosCab(nrounico);
+					salvarNaIntegracao(nrounico,oc,empresa);
+					qtd++;
+					
+				}else {
+					throw new Error("<br/><b>OPS!</b><br/><br/>A entrega não está pendente! não é possível remover o motorista!");
+				}
+			}
+		}
+		
+	}
+	
+	private void salvarNaIntegracao(BigDecimal nrounico, BigDecimal oc, BigDecimal empresa) {
 		try {
-			Object oc = linhas.getCampo("ORDEMCARGA");
-
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_INTENTREGAS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("NUNOTA", nrounico);
+			VO.setProperty("DTSOLICIT", TimeUtils.getNow());
+			VO.setProperty("TIPO", "D");
+			VO.setProperty("ORDEMCARGA", oc);
+			VO.setProperty("CODEMP", empresa);
+			VO.setProperty("CODUSU",  ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			
+			dwfFacade.createEntity("AD_INTENTREGAS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+	}
+	
+	private void alteraDadosCab(BigDecimal nrounico) {
+		try {
+			
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("OrdemCarga", "this.ORDEMCARGA=?", new Object[] { oc }));
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("CabecalhoNota",
+					"this.NUNOTA=?", new Object[] { nrounico }));
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				DynamicVO VO = (DynamicVO) NVO;
 
-				VO.setProperty("AD_APPMOTO", null);
-				VO.setProperty("CODVEICULO", new BigDecimal(0));
-				VO.setProperty("AD_INTEGRADO", "N");
-				VO.setProperty("AD_NOMEROTA", null);
+				VO.setProperty("AD_DTEXP", null);
+				VO.setProperty("CODVEICULO", null);
+				VO.setProperty("AD_MOTENTREGA", null);
+				VO.setProperty("AD_STATUSENTREGA", null);
+				VO.setProperty("AD_IDFIREBASE", null);
 
 				itemEntity.setValueObject(NVO);
 			}
+			
 		} catch (Exception e) {
-			throw new Error("ops " + e.getCause());
+			// TODO: handle exception
 		}
+	}
+	
+	private DynamicVO getTGFCAB(BigDecimal nunota) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
+		DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
+		return VO;
 	}
 
 	private void chamaPentaho() {
@@ -92,34 +141,4 @@ public class btn_removerMotorista implements AcaoRotinaJava {
 			e.getMessage();
 		}
 	}
-	
-	private boolean verificaSeExistePedidosQueNaoEstaoPendentes(BigDecimal oc) {
-		boolean valida = false;
-		
-		try {
-			
-			JdbcWrapper jdbcWrapper = null;
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
-			ResultSet contagem;
-			NativeSql nativeSql = new NativeSql(jdbcWrapper);
-			nativeSql.resetSqlBuf();
-			nativeSql.appendSql(
-					"SELECT COUNT(*) AS QTD FROM TGFCAB WHERE ORDEMCARGA=15119 AND AD_STATUSENTREGA <> '1'");
-			contagem = nativeSql.executeQuery();
-			while (contagem.next()) {
-				int count = contagem.getInt("QTD");
-				if (count >= 1) {
-					valida = true;
-				}
-			}	
-			
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		
-		
-		return valida;
-	}
-
 }
