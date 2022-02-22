@@ -18,7 +18,7 @@ public class btn_criarOS implements AcaoRotinaJava {
 		
 		JsonObject callAsJson = si.callAsJson(service, modulo, body);
 		
-		//teste.
+		//teste
 	}
 
 }
