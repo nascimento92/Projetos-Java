@@ -37,13 +37,12 @@ public class btn_alterarMotorista implements AcaoRotinaJava{
 		
 		if(qtd>0) {
 			arg0.setMensagemRetorno("Motorista/Veiculo alterado!");
-			chamaPentaho();
 			
 		}else {
 			throw new Error("<br/><br/><b>Selecione uma ou mais Ordens de carga!</b><br/></b><br/>");
 		}
 		
-		
+		chamaPentaho();
 		
 	}
 	

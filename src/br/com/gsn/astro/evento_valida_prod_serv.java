@@ -94,6 +94,8 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 					}else {
 						throw new Error("<br/><b>OPS</b><br/><br/>Produto não pode ser inserido! tipo de contrato <b>Assinatura</b>! não foi encontrado uma unidade alternativa em KG.");
 					}
+				}else {
+					VO.setProperty("AD_QTDEMKG", qtdprev);
 				}
 				
 			}

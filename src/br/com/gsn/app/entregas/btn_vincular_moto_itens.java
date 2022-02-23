@@ -1,10 +1,10 @@
 package br.com.gsn.app.entregas;
 
 import java.math.BigDecimal;
-import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Iterator;
+
 import com.sankhya.util.TimeUtils;
 
 import Helpers.WSPentaho;
@@ -13,99 +13,72 @@ import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
-import br.com.sankhya.jape.dao.JdbcWrapper;
-import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
-/**
- * 
- * @author fernando.silva
- * @version 1.3 20/10/2021 - Adicionado campos a ser inseridos na tabela (DTEXP,
- *          NOMEROTA);
- */
-
-public class btn_vincularMotorista implements AcaoRotinaJava {
-
+public class btn_vincular_moto_itens implements AcaoRotinaJava{
+	int qtd = 0;
+	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
 		String idMotorista = (String) arg0.getParam("ID");
 		String veiculo = (String) arg0.getParam("VEICULO");
 		Timestamp dtExp = (Timestamp) arg0.getParam("DTEXP");
-		String rota = (String) arg0.getParam("NOMEROTA");
 		
-		//TODO :: INSERIR TRAVA PARA VALIDAR SE A OC JÁ ESTA INTEGRADA
-
 		for (int i = 0; i < linhas.length; i++) {
-			String integrado = (String) linhas[i].getCampo("AD_INTEGRADO");
-			if("S".equals(integrado)) {
-				throw new Error("<br/><br/><b>Ordem de carga já integrada! Se quiser alterar o motorista, selecione a opção na parte inferior da tela.</b><br/></b><br/>");
-			}else {
-				registraDadosNaOC(linhas[i], new BigDecimal(veiculo), rota);
-			}
 			
+			BigDecimal nrounico = null;
+			Integer x = (Integer) linhas[i].getCampo("NRO_UNICO");
+			nrounico = new BigDecimal(x);
+			
+			registrarIntegracao(nrounico, new BigDecimal(idMotorista), new BigDecimal(veiculo), dtExp);
 		}
-
-		for (int i = 0; i < linhas.length; i++) {
-			BigDecimal oc = (BigDecimal) linhas[i].getCampo("ORDEMCARGA");
-			BigDecimal empresa = (BigDecimal) linhas[i].getCampo("CODEMP");
-
-			descobriPedidosParaSeremIntegrados(oc, empresa, new BigDecimal(idMotorista), new BigDecimal(veiculo), dtExp);
+		
+		if(qtd>0) {
+			arg0.setMensagemRetorno("Motorista/Veiculo vinculado!");	
+		}else {
+			throw new Error("<br/><br/><b>Selecione uma ou mais entregas!</b><br/></b><br/>");
 		}
-
-		if (linhas.length > 0) {
-			arg0.setMensagemRetorno("Motorista / Veículo vinculados!");
-			chamaPentaho();
-		} else {
-			throw new Error("<br/><br/><b>Selecione uma ou mais Ordens de carga!</b><br/></b><br/>");
-		}
-
+		
+		chamaPentaho();
 	}
-
-	private void registraDadosNaOC(Registro linhas, BigDecimal veiculo, String rota) {
-		try {
-
-			linhas.setCampo("CODVEICULO", veiculo); // será salvo no pedido CODVEICULO
-			linhas.setCampo("AD_NOMEROTA", rota);
-			linhas.setCampo("AD_INTEGRADO", "S");
-		} catch (Exception e) {
-			throw new Error("ops " + e.getCause());
-		}
-	}
-
-	// AD_DTEXP
-	// CODVEICULO
-	// AD_MOTENTREGA
-
-	private void descobriPedidosParaSeremIntegrados(BigDecimal oc, BigDecimal empresa, BigDecimal idMotorista, BigDecimal veiculo, Timestamp data) {
-
-		try {
-
-			JdbcWrapper jdbcWrapper = null;
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
-			ResultSet contagem;
-			NativeSql nativeSql = new NativeSql(jdbcWrapper);
-			nativeSql.resetSqlBuf();
-			nativeSql.appendSql(
-					"SELECT NRO_UNICO FROM GC_LISTA_ENTREGAS WHERE ORDEMCARGA="+oc+" AND CODEMP="+empresa);
-			contagem = nativeSql.executeQuery();
-			while (contagem.next()) {
-				BigDecimal nroUnico = contagem.getBigDecimal("NRO_UNICO");
-				alteraDadosCab(nroUnico,idMotorista,veiculo,data);
-				salvarNaIntegracao(nroUnico, oc, empresa);
+	
+	private void registrarIntegracao(BigDecimal nrounico, BigDecimal idMotorista, BigDecimal veiculo, Timestamp data) throws Exception {
+		
+		if(nrounico!=null) {
+			DynamicVO tgfcab = getTGFCAB(nrounico);
+			if(tgfcab!=null) {
+				BigDecimal oc = tgfcab.asBigDecimal("ORDEMCARGA");
+				BigDecimal empresa = tgfcab.asBigDecimal("CODEMP");
+				String status = tgfcab.asString("AD_STATUSENTREGA");
+				
+				if(status==null) {
+					alteraDadosCab(nrounico, idMotorista, veiculo, data);
+					salvarNaIntegracao(nrounico,oc,empresa);
+					qtd++;
+					
+				}else {
+					throw new Error("<br/><b>OPS!</b><br/><br/>A entrega já está integrada!<br/><br/>");
+				}
+				
+				
 			}
-
-		} catch (Exception e) {
-			// TODO: handle exception
 		}
-
+		
+	}
+	
+	private DynamicVO getTGFCAB(BigDecimal nunota) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
+		DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
+		return VO;
 	}
 	
 	private void alteraDadosCab(BigDecimal nrounico, BigDecimal idMotorista, BigDecimal veiculo, Timestamp data) {
@@ -151,7 +124,6 @@ public class btn_vincularMotorista implements AcaoRotinaJava {
 			// TODO: handle exception
 		}
 	}
-
 	
 	private void chamaPentaho() {
 
@@ -170,5 +142,5 @@ public class btn_vincularMotorista implements AcaoRotinaJava {
 			e.getMessage();
 		}
 	}
-	
+
 }

@@ -56,9 +56,13 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal produto = VO.asBigDecimal("CODPROD");
 		BigDecimal numeroUnico = VO.asBigDecimal("NUNOTA");
+		BigDecimal top = null;
+		BigDecimal qtd = null;
+		BigDecimal contrato = null;
+		BigDecimal vlr = null;
 
 		//TODO::Descobrir a TOP
-		BigDecimal top = pegaTipoDeOperacao(numeroUnico);
+		top = getTgfcab(numeroUnico).asBigDecimal("CODTIPOPER");
 		
 		if(top.intValue()==10001) {
 			
@@ -78,21 +82,46 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 				VO.setProperty("PENDENTE", "N");
 				VO.setProperty("QTDENTREGUE", new BigDecimal(1));
 			}
+			
+			//TODO:: Pega a quantidade negociada do contrato
+			contrato = getTgfcab(numeroUnico).asBigDecimal("NUMCONTRATO");
+			qtd = getTcspsc(contrato,produto).asBigDecimal("QTDEPREVISTA");
+			
+			if(qtd!=null) {
+				vlr = VO.asBigDecimal("VLRUNIT");
+				VO.setProperty("QTDNEG", qtd);
+				VO.setProperty("VLRTOT", vlr.multiply(qtd));
+			}
 		}	
 		
 	}
 	
-	private BigDecimal pegaTipoDeOperacao(BigDecimal numeroUnico) throws Exception {
-		BigDecimal top = null;
+	private DynamicVO getTgfcab(BigDecimal numeroUnico) throws Exception {
+		DynamicVO VOs = null;
+		
 		
 		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
 		DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { numeroUnico });
 		
 		if(VO!=null) {
-			top = VO.asBigDecimal("CODTIPOPER");
+			VOs = VO;
 		}
 
-		return top;
+		return VOs;
+	}
+	
+	private DynamicVO getTcspsc(BigDecimal contrato, BigDecimal produto) throws Exception { //produtos e serviços
+		DynamicVO VOs = null;
+		
+		
+		JapeWrapper DAO = JapeFactory.dao("ProdutoServicoContrato");
+		DynamicVO VO = DAO.findOne("NUMCONTRATO=? AND CODPROD=?",new Object[] { contrato, produto });
+		
+		if(VO!=null) {
+			VOs = VO;
+		}
+
+		return VOs;
 	}
 	
 	private BigDecimal pegarLocalPadrao(BigDecimal produto) throws Exception {
@@ -107,5 +136,6 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 
 		return localpadrao;
 	}
+	
 
 }
