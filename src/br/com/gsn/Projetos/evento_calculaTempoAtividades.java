@@ -76,8 +76,9 @@ public class evento_calculaTempoAtividades implements EventoProgramavelJava {
 				throw new Error("<br/><b>OPS</b><br/>Atividades devem ser finalizadas no mesmo dia!<br/><br/>");
 			}
 			
-			double diferencaEmHoras = diferencaEmHoras(dtinicio, dtfim);
-			VO.setProperty("TEMPO", new BigDecimal(diferencaEmHoras));
+			//double diferencaEmHoras = diferencaEmHoras(dtinicio, dtfim);
+			int difference = TimeUtils.getDifference(dtinicio, dtfim);
+			VO.setProperty("TEMPO", new BigDecimal(difference));
 		}
 	}
 	
