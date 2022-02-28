@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
@@ -77,8 +79,9 @@ public class evento_calculaTempoAtividades implements EventoProgramavelJava {
 			}
 			
 			//double diferencaEmHoras = diferencaEmHoras(dtinicio, dtfim);
-			int difference = TimeUtils.getDifference(dtinicio, dtfim);
-			VO.setProperty("TEMPO", new BigDecimal(difference));
+
+			double diferencaEmHoras = diff(dtinicio,dtfim);
+			VO.setProperty("TEMPO", new BigDecimal(diferencaEmHoras));
 		}
 	}
 	
@@ -133,6 +136,18 @@ public class evento_calculaTempoAtividades implements EventoProgramavelJava {
 
 		return horas;
 	}
+	
+	private double diff (Timestamp dtinicial, Timestamp dtfinal) {
+		LocalDateTime a = dtinicial.toLocalDateTime();
+		LocalDateTime b = dtfinal.toLocalDateTime();
+		
+		Duration duration = Duration.between(a, b);
+		long diff = Math.abs(duration.toMinutes());
+		double result = Double.valueOf(diff) / 60;
+		
+		return result;
+	}
+	
 
 	public double diferencaEmHoras(Timestamp dataInicio, Timestamp dataFim) {
 
