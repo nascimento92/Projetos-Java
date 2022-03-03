@@ -31,21 +31,32 @@ public class httpRequestHelper {
 
 	public static void main(String[] args)
 			throws URISyntaxException, IOException, InterruptedException, ParseException, JSONException {
-		String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=eq.8689&tecla=eq.32768";
+		//String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=eq.8689&tecla=eq.32768";
+		String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=in.(\"999999999999999\")";	
 		String metodo = "GET";
 		String body = "";
+		String pt = "";
 
 		// String retorno = sendRequest(url,body,metodo);
 		// String retorno2 = newHttpRequest(url);
 		// String request3 = request3(url, metodo);
-		String request4 = request4();	
+		String request4 = request4(url);
+		//System.out.println(request4);
+		
 		JSONArray array = new JSONArray(request4);
-		for(int i=0; i < array.length(); i++)   
-		{  
-			JSONObject object = array.getJSONObject(i);
-			System.out.println(object.getString("codbem"));
+		
+		if(array.length()==0) {
+			System.out.println("erro");
+		}else {
+			for(int i=0; i < array.length(); i++)   
+			{  
+				JSONObject object = array.getJSONObject(i);
+				pt += "\n"+object.getString("codbem")+" tecla: "+object.getString("tecla");	
+			}
+			
+			System.out.println(pt);
 		}
-
+		
 		// System.out.println(retorno);
 		// System.out.println(retorno2);
 		// System.out.println(request3);
@@ -171,10 +182,10 @@ public class httpRequestHelper {
 		}
 	}
 
-	private static String request4() throws IOException, ParseException {
+	private static String request4(String url) throws IOException, ParseException {
 		OkHttpClient client = new OkHttpClient().newBuilder().build();
 		Request request = new Request.Builder()
-				.url("http://api.grancoffee.com.br:8000/mid/inventario?codbem=eq.8689&tecla=eq.32768")
+				.url(url)
 				.method("GET", null)
 				.addHeader("token",
 						"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcGlhY2Nlc3MifQ.BlvnsLa4kDAAlyxYuLRc1qo-hd72YqHPdr3SKnCxxqI")
