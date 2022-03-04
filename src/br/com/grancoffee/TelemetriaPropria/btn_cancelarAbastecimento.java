@@ -32,6 +32,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			BigDecimal nunota = (BigDecimal) linhas[0].getCampo("NUNOTA");
 			BigDecimal numos = (BigDecimal) linhas[0].getCampo("NUMOS");
 			String status = (String) linhas[0].getCampo("STATUS");
+			String motivo = (String) arg0.getParam("MOTIVO");
 			
 			boolean confirmarSimNao = false;
 			boolean confirmarNotaJaFaturada = false;
@@ -90,12 +91,12 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 					linhas[0].setCampo("STATUS", "4");
 			        linhas[0].setCampo("AD_DTCANCELAMENTO", TimeUtils.getNow());
 			        linhas[0].setCampo("AD_CODUSUCANCEL", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			        linhas[0].setCampo("AD_MOTCANCEL", motivo);
 				}
-			}else
-				if("4".equals(status)) {
-					arg0.mostraErro("<b>Abastecimento jfoi cancelado!</b>");
+			}else if("4".equals(status)) {
+					arg0.mostraErro("<b>Abastecimento já se encontra cancelado!</b>");
 				}else {
-					arg0.mostraErro("<b>Abastecimento jfoi realizado nposscancela-lo!</b>");
+					arg0.mostraErro("<b>Abastecimento já se encontra finalizado! não é possível cancela-lo!</b>");
 				}
 		}
 		if(cont>0) {
@@ -205,7 +206,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
 			VO.setProperty("CODUSUREL", codusurel);
 			VO.setProperty("TIPO", "G");
-			VO.setProperty("VINCULO", "s");
+			VO.setProperty("VINCULO", "S");
 			VO.setProperty("LIDERIMEDIATO", "N");
 			
 			dwfFacade.createEntity("RelacionamentoUsuario", (EntityVO) VO);
