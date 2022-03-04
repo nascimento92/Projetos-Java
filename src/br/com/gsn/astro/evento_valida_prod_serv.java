@@ -1,6 +1,7 @@
 package br.com.gsn.astro;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.event.PersistenceEvent;
@@ -19,13 +20,33 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		DynamicVO VO = (DynamicVO) arg0.getVo();
 		
+		BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
+		BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
+		
+		if(qtdprev!=null && qtdEmKg!=null) {
+			if(qtdprev.intValue()==0 && qtdEmKg.intValue()==0) {
+				throw new Error("<br/><b>OPS</b><br/><br/>tipo de contrato <b>Assinatura</b>! Valor 0 não é válido ! Preencha o campo <b>Qtd. Prevista</b> ou <b>Qtd. Em KG</b>!");
+				
+			}
+		}
 	}
 
 	@Override
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		
+		BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
+		BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
+		
+		if(qtdprev!=null && qtdEmKg!=null) {
+			if(qtdprev.intValue()==0 && qtdEmKg.intValue()==0) {
+				throw new Error("<br/><b>OPS</b><br/><br/>tipo de contrato <b>Assinatura</b>! Valor 0 não é válido ! Preencha o campo <b>Qtd. Prevista</b> ou <b>Qtd. Em KG</b>!");
+				
+			}
+		}
 		
 	}
 
@@ -43,15 +64,73 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		start(arg0);		
+		insert(arg0);		
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		start(arg0);		
+		update(arg0);
 	}
 	
-	public void start(PersistenceEvent arg0) throws Exception {
+	private void update(PersistenceEvent arg0) throws Exception {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
+		
+		BigDecimal produto = VO.asBigDecimal("CODPROD");
+		DynamicVO TCSCON = getTCSCON(contrato);
+		String tipoContrato = TCSCON.asString("AD_TIPCONT");
+		
+		DynamicVO TGFPRO = getTGFPRO(produto);
+		String unidadePadrao = TGFPRO.asString("CODVOL");
+		
+		if("A".equals(tipoContrato)) {
+			String tipoFranquia = VO.asString("AD_FRANQUIA"); 
+			if("S".equals(tipoFranquia)) {
+				
+				DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
+				
+				//campos agora
+				BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
+				BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
+				
+				//campos anteriormente
+				BigDecimal oldqtdprev = oldVO.asBigDecimal("QTDEPREVISTA");
+				BigDecimal oldqtdEmKg = oldVO.asBigDecimal("AD_QTDEMKG");
+				
+				ValidaNullEZero(qtdprev,qtdEmKg);
+				
+				if(!"KG".equals(unidadePadrao)) { //unidade padrão não é quilo
+					DynamicVO TGFVOA = getTGFVOA(produto);
+					
+					if(qtdprev!=oldqtdprev && qtdEmKg==oldqtdEmKg) {
+						calculaPelaQuantidade(qtdprev,qtdEmKg,TGFVOA,VO);
+					}
+					
+					if(qtdEmKg!=oldqtdEmKg && qtdprev==oldqtdprev) {
+						calcularPeloKg(qtdprev,qtdEmKg,TGFVOA,VO);
+					}
+					
+					
+				}else { //unidade padrão já é quilo
+					
+					if(qtdEmKg!=oldqtdEmKg && qtdprev==oldqtdprev) {
+						VO.setProperty("QTDEPREVISTA", qtdEmKg);
+					}
+					
+					if(qtdprev!=oldqtdprev && qtdEmKg==oldqtdEmKg) {
+						VO.setProperty("AD_QTDEMKG", qtdprev);
+					}
+					
+					if(qtdprev!=oldqtdprev && qtdEmKg!=oldqtdEmKg) {
+						VO.setProperty("QTDEPREVISTA", qtdEmKg);
+					}
+					
+				}
+			}
+		}
+	}
+	
+	public void insert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
 		BigDecimal produto = VO.asBigDecimal("CODPROD");
@@ -68,38 +147,82 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 			if("S".equals(tipoFranquia)) {
 				
 				BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
+				BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
 				
-				if(qtdprev==null) {
-					throw new Error("<br/><b>OPS</b><br/><br/>tipo de contrato <b>Assinatura</b>! Preencha o campo Qtd. Prevista!");
-				}
+				ValidaNullEZero(qtdprev,qtdEmKg);
 				
 				if(!"KG".equals(unidadePadrao)) {
 					DynamicVO TGFVOA = getTGFVOA(produto);
-					if(TGFVOA!=null) {
-						
-						String opcao = TGFVOA.asString("DIVIDEMULTIPLICA");//M = multiplica D=Divide
-						BigDecimal qtdTgfvoa = TGFVOA.asBigDecimal("QUANTIDADE");
-						BigDecimal qtdEmKG = null;
-						
-						if("M".equals(opcao)) {
-							qtdEmKG = qtdprev.divide(qtdTgfvoa);
-						}else if("D".equals(opcao)) {
-							qtdEmKG = qtdprev.multiply(qtdTgfvoa);
-						}else {
-							qtdEmKG = qtdprev;
-						}
-						
-						VO.setProperty("AD_QTDEMKG", qtdEmKG);
-						
-					}else {
+					
+					if(TGFVOA==null) {
 						throw new Error("<br/><b>OPS</b><br/><br/>Produto não pode ser inserido! tipo de contrato <b>Assinatura</b>! não foi encontrado uma unidade alternativa em KG.");
 					}
+		
+					if(TGFVOA!=null) {
+						
+						if(qtdprev!=null && qtdEmKg==null) {
+							calculaPelaQuantidade(qtdprev,qtdEmKg,TGFVOA,VO);
+						}
+						
+						if(qtdEmKg!=null) {
+							calcularPeloKg(qtdprev,qtdEmKg,TGFVOA,VO);
+						}
+		
+					}
+
 				}else {
-					VO.setProperty("AD_QTDEMKG", qtdprev);
+					
+					if(qtdprev!=null) {
+						VO.setProperty("AD_QTDEMKG", qtdprev);
+					}
+					
+					if (qtdprev==null && qtdEmKg!=null) {
+						VO.setProperty("QTDEPREVISTA", qtdEmKg);
+					}
 				}
 				
 			}
 			
+		}
+	}
+	
+	private void calculaPelaQuantidade(BigDecimal qtdprev, BigDecimal qtdEmKg, DynamicVO TGFVOA, DynamicVO VO) {
+		 //preenchendo atraves da qtd prevista.
+			String opcao = TGFVOA.asString("DIVIDEMULTIPLICA");//M = multiplica D=Divide
+			BigDecimal qtdTgfvoa = TGFVOA.asBigDecimal("QUANTIDADE").setScale(2, RoundingMode.HALF_EVEN);
+			BigDecimal qtdEmKG = null;
+			
+			if("M".equals(opcao)) {
+				qtdEmKG = qtdprev.divide(qtdTgfvoa, 2, RoundingMode.HALF_UP);
+			}else if("D".equals(opcao)) {
+				qtdEmKG = qtdprev.multiply(qtdTgfvoa);
+			}else {
+				qtdEmKG = qtdprev;
+			}
+			
+			VO.setProperty("AD_QTDEMKG", qtdEmKG);
+	}
+	
+	private void calcularPeloKg(BigDecimal qtdprev, BigDecimal qtdEmKg, DynamicVO TGFVOA, DynamicVO VO) {
+		String opcao = TGFVOA.asString("DIVIDEMULTIPLICA");//M = multiplica D=Divide
+		BigDecimal qtdTgfvoa = TGFVOA.asBigDecimal("QUANTIDADE").setScale(2, RoundingMode.HALF_EVEN);
+		BigDecimal qtdEmKG = null;
+		
+		if("M".equals(opcao)) {
+			qtdEmKG = qtdEmKg.multiply(qtdTgfvoa);
+		}else if("D".equals(opcao)) {
+			qtdEmKG = qtdEmKg.divide(qtdTgfvoa, 2, RoundingMode.HALF_UP);
+		}else {
+			qtdEmKG = qtdprev;
+		}
+		
+		VO.setProperty("QTDEPREVISTA", qtdEmKG);
+	}
+	
+	private void ValidaNullEZero(BigDecimal qtdprev, BigDecimal qtdEmKg) {
+		if(qtdprev==null && qtdEmKg==null) {
+			throw new Error("<br/><b>OPS</b><br/><br/>tipo de contrato <b>Assinatura</b>! Preencha o campo <b>Qtd. Prevista</b> ou <b>Qtd. Em KG</b>!");
+		}else {
 		}
 	}
 	
