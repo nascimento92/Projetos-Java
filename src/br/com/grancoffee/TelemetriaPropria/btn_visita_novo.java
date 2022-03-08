@@ -9,7 +9,6 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import com.sankhya.util.TimeUtils;
-import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -25,7 +24,6 @@ import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
-import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_visita_novo implements AcaoRotinaJava{
@@ -36,6 +34,7 @@ public class btn_visita_novo implements AcaoRotinaJava{
 	 * 21/10/2021 vs 1.1 Alteração do método carregaTeclasNosItensDeAbast, o preenchimento dos itens estava vindo da gc_planograma e não pode ser, ele tem que pegar da grade atual.
 	 * 04/11/2021 vs 1.2 Inserido o método carregaTeclasNosItensDeAbastPrimeiraVisita onde insere os itens da visita caso seja a primeira visita.
 	 * 12/02/2022 vs 1.4 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
+	 * 08/03/2022 vs 1.5 Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
 	 */
 	
 	int cont = 0;
@@ -53,45 +52,32 @@ public class btn_visita_novo implements AcaoRotinaJava{
 
 		for (int i = 0; i < linhas.length; i++) {
 
-			int visitaPendente = validaSeExisteVisitasPendentes(linhas[i].getCampo("CODBEM").toString());
-			boolean maquinaNaRota = validaSeAhMaquinaEstaNaRota(linhas[i].getCampo("CODBEM").toString());
-			boolean maquinaSemPlanograma = verificaSeAhMaquinaPossuiPlanograma(linhas[i].getCampo("CODBEM").toString());
-			
-			if(maquinaSemPlanograma) {
-				arg0.mostraErro("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas[i].getCampo("CODBEM").toString()+" não possui um planograma cadastrado, não é possível gerar a visita!");
-			}
+			validacoes(linhas[i].getCampo("CODBEM").toString(),arg0, linhas[i]);
 
-			if (visitaPendente > 0) {
-				arg0.mostraErro("O Patrimônio <b>"+linhas[i].getCampo("CODBEM").toString()+"</b> já possui uma visita pendente! não é possível gerar outra!");
-			} else {
-				if(!maquinaNaRota) {
-					arg0.mostraErro("Patrimônio <b>"+linhas[i].getCampo("CODBEM").toString()+"</b> fora da Rota, não pode ser gerado uma visita!");
-				}else {
-					BigDecimal idretorno = cadastrarNovaVisita(linhas[i].getCampo("CODBEM").toString());
-					if(idretorno!=null) {
-						
-						if(validaSeEhAhPrimeiraVisita(linhas[i].getCampo("CODBEM").toString())) {
-							//TODO :: carrega itens da grade
-							carregaTeclasNosItensDeAbastPrimeiraVisita(linhas[i].getCampo("CODBEM").toString(),idretorno);
-						}else {
-							carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(),idretorno);
-						}
-						
-						DynamicVO gc_solicitabast = agendarVisita(linhas[i].getCampo("CODBEM").toString(), dtVisita, motivo,idretorno);
-						cont++;
-						
-						int compareTo = dtVisita.compareTo(TimeUtils.getNow());
-						
-						if(compareTo<=0) {
-							BigDecimal numos = gerarCabecalhoOS(linhas[i].getCampo("CODBEM").toString(), motivo);
-							if(numos!=null) {
-								geraItemOS(numos, linhas[i].getCampo("CODBEM").toString());
-								salvaNumeroOS(numos, linhas[i].getCampo("CODBEM").toString(), gc_solicitabast.asBigDecimal("ID"), idretorno);
-								
-								validaAD_TROCADEGRADE(linhas[i].getCampo("CODBEM").toString(),numos);
-							}
-						}
-						
+			BigDecimal idretorno = cadastrarNovaVisita(linhas[i].getCampo("CODBEM").toString());
+			if (idretorno != null) {
+
+				if (validaSeEhAhPrimeiraVisita(linhas[i].getCampo("CODBEM").toString())) {
+					// TODO :: carrega itens da grade
+					carregaTeclasNosItensDeAbastPrimeiraVisita(linhas[i].getCampo("CODBEM").toString(), idretorno);
+				} else {
+					carregaTeclasNosItensDeAbast(linhas[i].getCampo("CODBEM").toString(), idretorno);
+				}
+
+				DynamicVO gc_solicitabast = agendarVisita(linhas[i].getCampo("CODBEM").toString(), dtVisita, motivo,
+						idretorno);
+				cont++;
+
+				int compareTo = dtVisita.compareTo(TimeUtils.getNow());
+
+				if (compareTo <= 0) {
+					BigDecimal numos = gerarCabecalhoOS(linhas[i].getCampo("CODBEM").toString(), motivo);
+					if (numos != null) {
+						geraItemOS(numos, linhas[i].getCampo("CODBEM").toString());
+						salvaNumeroOS(numos, linhas[i].getCampo("CODBEM").toString(),
+								gc_solicitabast.asBigDecimal("ID"), idretorno);
+
+						validaAD_TROCADEGRADE(linhas[i].getCampo("CODBEM").toString(), numos);
 					}
 				}
 			}
@@ -103,6 +89,87 @@ public class btn_visita_novo implements AcaoRotinaJava{
 			arg0.setMensagemRetorno("Não foram agendadas visitas!");
 		}
 	
+	}
+	
+	private void validacoes(String patrimonio, ContextoAcao arg0, Registro linhas) throws Exception {
+		int visitaPendente = validaSeExisteVisitasPendentes(patrimonio);
+		boolean maquinaNaRota = validaSeAhMaquinaEstaNaRota(patrimonio);
+		boolean maquinaSemPlanograma = verificaSeAhMaquinaPossuiPlanograma(patrimonio);
+		String loja = (String) linhas.getCampo("TOTEM");
+		
+		if(!maquinaNaRota) {
+			arg0.mostraErro("Patrimônio <b>"+patrimonio+"</b> fora da Rota, não pode ser gerado uma visita!");
+		}
+		
+		if(maquinaSemPlanograma) {
+			arg0.mostraErro("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+patrimonio+" não possui um planograma cadastrado, não é possível gerar a visita!");
+		}
+		
+		if(visitaPendente > 0) {
+			arg0.mostraErro("O Patrimônio <b>"+patrimonio+"</b> já possui uma visita pendente! não é possível gerar outra!");
+		}
+		
+		//TODO:: se for loja, valida se não existem produtos repetidos.
+		if ("S".equals(loja)) {
+			if (seExistemProdutosDuplicadoLojas(linhas.getCampo("CODBEM").toString())) {
+				throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina " + linhas.getCampo("CODBEM").toString()
+						+ " está marcada como loja <b>Micro Market</b>, porém existem produtos duplicados no planograma, não é possível gerar a visita, ajustar o planograma! <br/><br/>");
+			}
+		} else {
+			if (seExistemProdutosDuplicadoMaquina(linhas.getCampo("CODBEM").toString())) {
+				throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina " + linhas.getCampo("CODBEM").toString()
+						+ " está com teclas duplicadas, não é possível gerar a visita, ajustar o planograma! <br/><br/>");
+			}
+		}
+		
+	}
+	
+	private boolean seExistemProdutosDuplicadoLojas(String patrimonio) {
+		boolean valida = false;
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+					"SELECT CODPROD, COUNT(*) AS QTD FROM GC_PLANOGRAMA WHERE CODBEM='"+patrimonio+"' GROUP BY CODPROD HAVING COUNT(*)>1");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count > 1) {
+					valida = true;
+				}
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return valida;
+	}
+	
+	private boolean seExistemProdutosDuplicadoMaquina(String patrimonio) {
+		boolean valida = false;
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+					"SELECT TECLA, COUNT(*) AS QTD FROM GC_PLANOGRAMA WHERE CODBEM='"+patrimonio+"' GROUP BY TECLA HAVING COUNT(*)>1");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count > 1) {
+					valida = true;
+				}
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return valida;
 	}
 	
 	private boolean verificaSeAhMaquinaPossuiPlanograma(String codbem) {

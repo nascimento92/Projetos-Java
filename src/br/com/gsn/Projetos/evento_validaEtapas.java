@@ -1,16 +1,11 @@
 package br.com.gsn.Projetos;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
-
 import com.sankhya.util.TimeUtils;
-
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.vo.DynamicVO;
-import br.com.sankhya.jape.wrapper.JapeFactory;
-import br.com.sankhya.jape.wrapper.JapeWrapper;
 
 public class evento_validaEtapas implements EventoProgramavelJava {
 
@@ -46,68 +41,57 @@ public class evento_validaEtapas implements EventoProgramavelJava {
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		insertValidation(arg0);
+		insert(arg0);
 	}
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		startValidations(arg0);		
+		update(arg0);		
 	}
 	
-	private void startValidations(PersistenceEvent arg0) throws Exception {
+	private void insert(PersistenceEvent arg0) {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		String status = VO.asString("STATUS");
+		Timestamp dtfim = VO.asTimestamp("DTFIM");
+		
+		if("2".equals(status)) {
+			VO.setProperty("DTFIM", TimeUtils.getNow());
+		}
+		
+		if(dtfim!=null) {
+			VO.setProperty("STATUS", "2");
+		}
+		
+		if(status==null) {
+			VO.setProperty("STATUS", "1");
+		}
+	}
+	
+	private void update(PersistenceEvent arg0) {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
 		
-		BigDecimal sprint = VO.asBigDecimal("SPRINT");
-		DynamicVO adSprint = getSprint(sprint);
+		String status = VO.asString("STATUS");
+		String oldstatus = oldVO.asString("STATUS");
 		
-		Timestamp dtfinal = adSprint.asTimestamp("DTFINAL");
+		Timestamp dtfim = VO.asTimestamp("DTFIM");
+		Timestamp olddtfim = oldVO.asTimestamp("DTFIM");
 		
-		/*
-		 * if(dtfinal.before(TimeUtils.getNow())) { throw new
-		 * Error("Não é possível atribuir tarefas a uma Sprint já finalizada !"); }
-		 */
-		
-		String oldStatus = oldVO.asString("STATUS");
-		String newStatus = VO.asString("STATUS");
-		
-		Timestamp newDtFim = VO.asTimestamp("DTFIM");
-		
-		if(newStatus!=oldStatus && newStatus.equals("2")) {
-			VO.setProperty("DTFIM", TimeUtils.getNow());
+		if(status!=oldstatus) {
+			if("2".equals(status)) {
+				VO.setProperty("DTFIM", TimeUtils.getNow());
+			}
+			
+			if("1".equals(status)) {
+				VO.setProperty("DTFIM", null);
+			}
 		}
 		
-		if(newDtFim!=null) {
-			VO.setProperty("STATUS", new String("2"));
+		if(dtfim!=olddtfim) {
+			if(dtfim!=null) {
+				VO.setProperty("STATUS", "2");
+			}
 		}
-	}
-	
-	private void insertValidation(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal sprint = VO.asBigDecimal("SPRINT");
-		DynamicVO adSprint = getSprint(sprint);
-		Timestamp newDtFim = VO.asTimestamp("DTFIM");
-		String newStatus = VO.asString("STATUS");
-		
-		Timestamp dtfinal = adSprint.asTimestamp("DTFINAL");
-		/*
-		 * if(dtfinal.before(TimeUtils.getNow())) { throw new
-		 * Error("Não é possível atribuir tarefas a uma Sprint já finalizada !"); }
-		 */
-		
-		if(newDtFim!=null) {
-			VO.setProperty("STATUS", new String("2"));
-		}
-		
-		if(newStatus.equals("2")) {
-			VO.setProperty("DTFIM", TimeUtils.getNow());
-		}
-	}
-	
-	private DynamicVO getSprint(BigDecimal sprint) throws Exception {
-		JapeWrapper DAO = JapeFactory.dao("AD_SPRINTS");
-		DynamicVO VO = DAO.findOne("IDSPRINT=?",new Object[] { sprint });
-		return VO;		
 	}
 
 }
