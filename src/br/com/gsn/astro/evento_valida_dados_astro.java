@@ -69,7 +69,7 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			//TODO:: Descobrir o local padrão do item
 			BigDecimal local = pegarLocalPadrao(produto);
 			
-			if(local == null && produto.intValue()!=515259) {
+			if(local == null && produto.intValue()!=515613) {
 				local = new BigDecimal(1110);
 			}
 			
@@ -78,7 +78,7 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			}
 			
 			//TODO:: Desconsiderar item de assinatura no faturamento da 10002
-			if(produto.intValue()==515259) {
+			if(produto.intValue()==515613) {
 				VO.setProperty("PENDENTE", "N");
 				VO.setProperty("QTDENTREGUE", new BigDecimal(1));
 			}
