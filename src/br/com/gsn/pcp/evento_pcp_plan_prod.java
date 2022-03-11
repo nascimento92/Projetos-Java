@@ -55,7 +55,7 @@ public class evento_pcp_plan_prod implements EventoProgramavelJava{
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-			
+		insert(arg0);	
 	}
 	
 	private void insert(PersistenceEvent arg0) {
@@ -64,11 +64,13 @@ public class evento_pcp_plan_prod implements EventoProgramavelJava{
 		try {
 
 			String qtdimport = VO.asString("QTD2");
-			String p2 = qtdimport.replace("(?:[^\\d\\,])", "").replace(",", "");
-			Double db = Double.valueOf(p2);
-			BigDecimal qtd = new BigDecimal(db);
-			
-			VO.setProperty("QTDNEG", qtd);
+			//String p2 = qtdimport.replace("(?:[^\\d\\,])", "").replace(",", "");
+			if(qtdimport!=null) {
+				Double db = Double.valueOf(qtdimport);
+				BigDecimal qtd = new BigDecimal(db);
+				VO.setProperty("QTDNEG", qtd);
+			}
+
 		} catch (Exception e) {
 			salvarException("[insert] Não foi possível alterar o valor !"+"\n"+e.getCause
 					  ()+"\n"+e.getCause());

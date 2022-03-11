@@ -1,6 +1,7 @@
 package br.com.grancoffee.TelemetriaPropria;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Iterator;
@@ -12,6 +13,8 @@ import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
+import br.com.sankhya.jape.dao.JdbcWrapper;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
@@ -25,6 +28,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 
 	/**
 	 * 21/09/21 vs 1.6 inserido o método salvarNoHistorico e chamaPentaho.
+	 * 11/03/22 vs 1.7 inserido método validaSeExisteAjusteMaisRecente para impedir que um ajuste antigo seja realizado.
 	 */
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -35,6 +39,10 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 		BigDecimal idabast = (BigDecimal) linhas[0].getCampo("ID");
 		String status = verificaStatusAbastecimento(idabast);
 		Timestamp hora = TimeUtils.getNow();
+		
+		if(validaSeExisteAjusteMaisRecente(idabast)) {
+			throw new Error("<br/><b>ATENÇÃO</b><br/>Não é possível ajustar essa visita, existem visitas mais recentes!<br/><br/>");
+		}
 
 		if ("S".equals(campo)) {
 			arg0.mostraErro("<br/><b>Abastecimento já ajustado!</b><br/>");
@@ -56,6 +64,101 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 				
 			}
 		}
+	}
+	
+	private boolean validaSeExisteAjusteMaisRecente(BigDecimal idabastecimento) {
+		boolean valida = false;
+		
+		try {
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+			"SELECT SUM(QTD) AS QTD FROM ("+
+			"SELECT COUNT(*) AS QTD  FROM ("+
+			"SELECT R.ID,A.CODBEM,A.AD_TIPOPRODUTOS,A.REABASTECIMENTO FROM AD_RETABAST R JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)) X "+
+			"WHERE X.ID > "+idabastecimento+" AND X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID="+idabastecimento+") AND X.AD_TIPOPRODUTOS = (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO="+idabastecimento+") AND X.REABASTECIMENTO ='S' "+
+			"UNION ALL "+
+			"SELECT COUNT(*) AS QTD FROM ("+
+			"SELECT R.ID,A.CODBEM,A.AD_TIPOPRODUTOS FROM AD_RETABAST R JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)) X "+
+			"WHERE X.ID > "+idabastecimento+" AND X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID="+idabastecimento+") AND (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO="+idabastecimento+") IS NULL "+
+			"UNION ALL "+
+			"SELECT COUNT(*) AS QTD FROM ("+
+			"SELECT R.ID,A.CODBEM,A.AD_TIPOPRODUTOS FROM AD_RETABAST R JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)) X "+
+			"WHERE X.ID > "+idabastecimento+" AND X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID="+idabastecimento+") AND (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO="+idabastecimento+") IN ('1','2') AND X.AD_TIPOPRODUTOS IS NULL)"
+			 );
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count >= 1) {
+					valida = true;
+				}
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		/* EXEMPLO
+		 * 
+SELECT SUM(QTD) AS QTD FROM (
+	-- VISITA COM REABASTECIMENTO VALIDANDO SE TEVE DEPOIS VISITAS DO MESMO TIPO
+	SELECT COUNT(*) AS QTD  FROM (
+		SELECT 
+		R.ID,
+		A.CODBEM,
+		A.AD_TIPOPRODUTOS,
+		A.REABASTECIMENTO 
+		FROM AD_RETABAST R
+		JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)
+		) X
+	WHERE 
+	X.ID > 15858 AND 
+	X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID=15858) AND 
+	X.AD_TIPOPRODUTOS = (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO=15858) AND 
+	X.REABASTECIMENTO ='S'
+	
+	UNION ALL
+	
+	-- APENAS VISITAS VALIDANDO SE DEPOIS TEVE VISITAS COM REABASTECIMENTO
+	SELECT COUNT(*) AS QTD FROM (
+		SELECT 
+		R.ID,
+		A.CODBEM,
+		A.AD_TIPOPRODUTOS
+		FROM AD_RETABAST R
+		JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)
+		) X
+	WHERE 
+	X.ID > 15858 AND 
+	X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID=15858) AND 
+	(SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO=15858) IS NULL
+	
+	UNION ALL 
+	
+	-- VISITAS COM ABASTECIMENTO VALIDANDO SE DEPOIS TEVE APENAS VISITAS
+	SELECT COUNT(*) AS QTD FROM (
+		SELECT 
+		R.ID,
+		A.CODBEM,
+		A.AD_TIPOPRODUTOS
+		FROM AD_RETABAST R
+		JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)
+		) X
+	WHERE 
+	X.ID > 15858 AND 
+	X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID=15858) AND 
+	(SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO=15858) IN ('1','2') AND 
+	X.AD_TIPOPRODUTOS IS NULL
+	
+)
+		 */
+		
+		return valida;
 	}
 
 	private void pegarTeclas(Object idObjeto, ContextoAcao arg0, Timestamp hora) throws Exception {

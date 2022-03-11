@@ -33,6 +33,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			BigDecimal numos = (BigDecimal) linhas[0].getCampo("NUMOS");
 			String status = (String) linhas[0].getCampo("STATUS");
 			String motivo = (String) arg0.getParam("MOTIVO");
+			BigDecimal idretorno = (BigDecimal) linhas[0].getCampo("IDABASTECIMENTO");
 			
 			boolean confirmarSimNao = false;
 			boolean confirmarNotaJaFaturada = false;
@@ -87,7 +88,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 								cancelarOS(numos);		
 							}
 					this.cont++;
-					excluirRetornoAbastecimento(numos, nunota);
+					excluirRetornoAbastecimento(idretorno);
 					linhas[0].setCampo("STATUS", "4");
 			        linhas[0].setCampo("AD_DTCANCELAMENTO", TimeUtils.getNow());
 			        linhas[0].setCampo("AD_CODUSUCANCEL", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
@@ -169,29 +170,15 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		}
 	}
 	
-	private void excluirRetornoAbastecimento(BigDecimal numos, BigDecimal nunota) {
+	private void excluirRetornoAbastecimento(BigDecimal idretorno) {
 		try {
 			
-			JapeWrapper DAO = JapeFactory.dao("AD_RETABAST");
-			DynamicVO VO = null;
-			
-			if(numos!=null) {
-				VO = DAO.findOne("NUMOS=?",new Object[] { numos });
-			}else {
-				VO = DAO.findOne("NUNOTA=?",new Object[] { nunota });
-			}
-			
-			BigDecimal id = VO.asBigDecimal("ID");
-			
-			if(id!=null) {
-				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-				dwfFacade.removeByCriteria(new FinderWrapper("AD_ITENSRETABAST", "this.ID=?",new Object[] {id}));
-				dwfFacade.removeByCriteria(new FinderWrapper("AD_RETABAST", "this.ID=?",new Object[] {id}));
-			}
-			
-			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_ITENSRETABAST", "this.ID=?",new Object[] {idretorno}));
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_RETABAST", "this.ID=?",new Object[] {idretorno}));
+
 		} catch (Exception e) {
-			salvarException("[excluirRetornoAbastecimento] Nao foi possivel excluir o retorno de abastecimento! "+e.getMessage()+"\n"+e.getCause());
+			salvarException("[excluirRetornoAbastecimento] Nao foi possivel excluir o retorno de abastecimento! id retorno: "+idretorno+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
