@@ -8,6 +8,7 @@ import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 
 public class evento_valida_dados_astro implements EventoProgramavelJava {
 
@@ -81,6 +82,12 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			if(produto.intValue()==515613) {
 				VO.setProperty("PENDENTE", "N");
 				VO.setProperty("QTDENTREGUE", new BigDecimal(1));
+				
+				BigDecimal valor = VO.asBigDecimal("VLRUNIT");
+				if(valor.intValue()==0) {
+					VO.setProperty("VLRUNIT", new BigDecimal(1).divide(new BigDecimal(100)));
+					VO.setProperty("VLRDESC", new BigDecimal(1).divide(new BigDecimal(100)));
+				}
 			}
 			
 			//TODO:: Pega a quantidade negociada do contrato
@@ -92,6 +99,8 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 				VO.setProperty("QTDNEG", qtd);
 				VO.setProperty("VLRTOT", vlr.multiply(qtd));
 			}
+			
+			totalizaImpostos(numeroUnico);
 		}	
 		
 	}
@@ -135,6 +144,15 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 		}
 
 		return localpadrao;
+	}
+	
+	public void totalizaImpostos(BigDecimal nunota) throws Exception{
+        ImpostosHelpper impostos = new ImpostosHelpper();
+        impostos.carregarNota(nunota);
+        impostos.setForcarRecalculo(true);
+        impostos.calcularTotalItens(nunota, true);
+        impostos.totalizarNota(nunota);
+        impostos.salvarNota();
 	}
 	
 
