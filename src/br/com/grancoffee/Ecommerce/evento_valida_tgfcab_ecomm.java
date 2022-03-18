@@ -69,8 +69,39 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 					cadastraLog(idVtex);
 					throw new Error("Pedido " + idVtex + " já existe, não pode ser cadastrado novamente !");
 				}
+				
+				
+				//TODO :: Verificar se tem observações adicionais
+				String observacaoAtual = VO.asString("OBSERVACAO");
+				String obsAdicional = verificaObservacaoAdicional();
+				if(obsAdicional!=null && obsAdicional!="") {
+					String newObs = observacaoAtual+" "+obsAdicional;
+					VO.setProperty("OBSERVACAO", newObs);
+				}
 			}
 		}
+	}
+	
+	private String verificaObservacaoAdicional() {
+		String obs="";
+		try {
+			
+			JapeWrapper DAO = JapeFactory.dao("AD_CONFIGECOMM");
+			DynamicVO VO = DAO.findOne("ID=?",new Object[] { new BigDecimal(1) });
+			
+			if(VO!=null) {
+				String asString = VO.asString("OBSNOTA");
+				
+				if(asString!=null) {
+					obs = asString;
+				}
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return obs;
 	}
 
 	private boolean verificaSeJaExiste(BigDecimal top, String pedidoVtex) {
