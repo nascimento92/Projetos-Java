@@ -87,6 +87,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 				Timestamp data = DynamicVO.asTimestamp("DTAGENDAMENTO");
 				//String reabastecimento = DynamicVO.asString("REABASTECIMENTO");
 				String apenasvisita = DynamicVO.asString("APENASVISITA");
+				BigDecimal substituto = DynamicVO.asBigDecimal("AD_USUSUB");
 				
 
 				int compareTo = data.compareTo(TimeUtils.getNow()); //comparação das datas
@@ -100,9 +101,9 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 							
 							BigDecimal numos = gerarCabecalhoOS(patrimonio, "");
 							if(numos!=null) {
-								insereItem(numos,patrimonio);
-								salvaNumeroOS(numos, patrimonio, id, idretorno);
-								geraItemOS(numos, patrimonio);
+								insereItem(numos,patrimonio, substituto);
+								salvaNumeroOS(numos, patrimonio, id, idretorno, substituto);
+								//geraItemOS(numos, patrimonio);
 								validaAD_TROCADEGRADE(patrimonio,numos);
 							}
 						}
@@ -164,13 +165,27 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 		return numos;	
 	}
 	
-	private void insereItem(BigDecimal numos, String patrimonio) {
+	private void insereItem(BigDecimal numos, String patrimonio, BigDecimal sub) {
 		
 		try {
 			
+			BigDecimal atendenteRota = null;
+			
+			if(sub!=null) {
+				atendenteRota = sub;
+			}else {
+				atendenteRota = getAtendenteRota(patrimonio);
+			}
+			
+				
 			BigDecimal motivo = new BigDecimal(100);
-			BigDecimal atendenteRota = getAtendenteRota(patrimonio);
 			DynamicVO ad_patrimonio = getADPATRIMONIO(patrimonio);
+			
+			try {
+				cadastraServicoParaOhExecutante(ad_patrimonio.asBigDecimal("CODPROD"), atendenteRota, new BigDecimal(200000));
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
 			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemOrdemServico");
@@ -210,64 +225,65 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 		}
 	}
 	
-	private void geraItemOS(BigDecimal numos, String patrimonio) throws Exception{
-		
-
-		BigDecimal atendenteRota = getAtendenteRota(patrimonio);
-		BigDecimal motivo = new BigDecimal(100);
-		DynamicVO ad_patrimonio = getADPATRIMONIO(patrimonio);
-		BigDecimal servico = new BigDecimal(200000);
-		
-		try {
-			cadastraServicoParaOhExecutante(ad_patrimonio.asBigDecimal("CODPROD"), atendenteRota, servico);
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
+	/*
+	 * private void geraItemOS(BigDecimal numos, String patrimonio) throws
+	 * Exception{
+	 * 
+	 * 
+	 * BigDecimal atendenteRota = getAtendenteRota(patrimonio); BigDecimal motivo =
+	 * new BigDecimal(100); DynamicVO ad_patrimonio = getADPATRIMONIO(patrimonio);
+	 * BigDecimal servico = new BigDecimal(200000);
+	 * 
+	 * try { cadastraServicoParaOhExecutante(ad_patrimonio.asBigDecimal("CODPROD"),
+	 * atendenteRota, servico); } catch (Exception e) { // TODO: handle exception }
+	 * 
+	 * try {
+	 * 
+	 * EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade(); DynamicVO
+	 * ModeloNPVO = (DynamicVO)
+	 * dwfFacade.findEntityByPrimaryKeyAsVO("ItemOrdemServico",new Object[]{new
+	 * BigDecimal(593595),new BigDecimal(1)}); DynamicVO NotaProdVO =
+	 * ModeloNPVO.buildClone();
+	 * 
+	 * NotaProdVO.setProperty("NUMOS",numos); NotaProdVO.setProperty("NUMITEM",new
+	 * BigDecimal(1)); NotaProdVO.setProperty("HRINICIAL", null);
+	 * NotaProdVO.setProperty("HRFINAL", null); NotaProdVO.setProperty("DHPREVISTA",
+	 * addDias(TimeUtils.getNow(),new BigDecimal(7)));
+	 * NotaProdVO.setProperty("INICEXEC", null); NotaProdVO.setProperty("TERMEXEC",
+	 * null); NotaProdVO.setProperty("TEMPGASTO", null);
+	 * NotaProdVO.setProperty("CODSIT", new BigDecimal(1));
+	 * NotaProdVO.setProperty("CODOCOROS", motivo);
+	 * NotaProdVO.setProperty("SOLUCAO", " "); NotaProdVO.setProperty("CODUSU",
+	 * atendenteRota); NotaProdVO.setProperty("CORSLA", null);
+	 * NotaProdVO.setProperty("CODUSUALTER", null);
+	 * NotaProdVO.setProperty("DTALTER", null); NotaProdVO.setProperty("CODPROD",
+	 * ad_patrimonio.asBigDecimal("CODPROD")); NotaProdVO.setProperty("SERIE",
+	 * patrimonio); NotaProdVO.setProperty("AD_CODBEM1", patrimonio);
+	 * NotaProdVO.setProperty("AD_LONGITUDEINI", null);
+	 * NotaProdVO.setProperty("AD_LONGITUDEFIN", null);
+	 * NotaProdVO.setProperty("AD_DHLOCALIZACAOFIN", null);
+	 * NotaProdVO.setProperty("AD_LATITUDEFIN", null);
+	 * NotaProdVO.setProperty("AD_TELASAC", "S");
+	 * 
+	 * dwfFacade.createEntity(DynamicEntityNames.ITEM_ORDEM_SERVICO,(EntityVO)
+	 * NotaProdVO);
+	 * 
+	 * 
+	 * } catch (Exception e) { salvarException(
+	 * "[geraItemOS] Nao foi possivel Gerar a sub-os! Patrimonio "+patrimonio +
+	 * e.getMessage() + "\n" + e.getCause()); } }
+	 */
 	
-		try {
-			
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("ItemOrdemServico",new Object[]{new BigDecimal(593595),new BigDecimal(1)});
-			DynamicVO NotaProdVO = ModeloNPVO.buildClone();
-			
-			NotaProdVO.setProperty("NUMOS",numos);
-			NotaProdVO.setProperty("NUMITEM",new BigDecimal(1));
-			NotaProdVO.setProperty("HRINICIAL", null); 
-			NotaProdVO.setProperty("HRFINAL", null);
-			NotaProdVO.setProperty("DHPREVISTA", addDias(TimeUtils.getNow(),new BigDecimal(7)));
-			NotaProdVO.setProperty("INICEXEC", null); 
-			NotaProdVO.setProperty("TERMEXEC", null); 
-			NotaProdVO.setProperty("TEMPGASTO", null);
-			NotaProdVO.setProperty("CODSIT", new BigDecimal(1));
-			NotaProdVO.setProperty("CODOCOROS", motivo);
-			NotaProdVO.setProperty("SOLUCAO", " ");
-			NotaProdVO.setProperty("CODUSU", atendenteRota);
-			NotaProdVO.setProperty("CORSLA", null);
-			NotaProdVO.setProperty("CODUSUALTER", null);
-			NotaProdVO.setProperty("DTALTER", null);
-			NotaProdVO.setProperty("CODPROD", ad_patrimonio.asBigDecimal("CODPROD"));
-			NotaProdVO.setProperty("SERIE", patrimonio);
-			NotaProdVO.setProperty("AD_CODBEM1", patrimonio);
-			NotaProdVO.setProperty("AD_LONGITUDEINI", null);
-			NotaProdVO.setProperty("AD_LONGITUDEFIN", null);
-			NotaProdVO.setProperty("AD_DHLOCALIZACAOFIN", null);
-			NotaProdVO.setProperty("AD_LATITUDEFIN", null);
-			NotaProdVO.setProperty("AD_TELASAC", "S");
-			
-			dwfFacade.createEntity(DynamicEntityNames.ITEM_ORDEM_SERVICO,(EntityVO) NotaProdVO);
-
-
-		} catch (Exception e) {
-			salvarException(
-					"[geraItemOS] Nao foi possivel Gerar a sub-os! Patrimonio "+patrimonio
-							+ e.getMessage() + "\n" + e.getCause());
+	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno, BigDecimal sub) {
+		
+		BigDecimal atendenteRota = null;
+		
+		if(sub!=null) {
+			atendenteRota = sub;
+		}else {
+			atendenteRota = getAtendenteRota(patrimonio);
 		}
-	}
-	
-	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno) {
-		
-		BigDecimal atendenteRota = getAtendenteRota(patrimonio);
-		
+
 		try {
 			
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();

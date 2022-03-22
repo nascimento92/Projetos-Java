@@ -1,7 +1,6 @@
 package br.com.grancoffee.TelemetriaPropria;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Calendar;
@@ -93,8 +92,8 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				String reabastecimento = DynamicVO.asString("REABASTECIMENTO");
 				String status = DynamicVO.asString("STATUS");
 				BigDecimal nunota = DynamicVO.asBigDecimal("NUNOTA");
+				BigDecimal substituto = DynamicVO.asBigDecimal("AD_USUSUB");
 				
-
 				int compareTo = data.compareTo(TimeUtils.getNow()); //comparação das datas
 				
 				if(numosx==null) {
@@ -102,7 +101,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 						if("1".equals(status)) {
 							if("S".equals(reabastecimento)) {
 								//gerarPedidoENota(patrimonio, DynamicVO, idretorno, id);
-								gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota);
+								gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota, substituto);
 							}
 						}
 					}
@@ -115,7 +114,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	}
 
 	
-	private void gerarPedidoENota(String patrimonio, DynamicVO gc_solicitabast, BigDecimal idRetorno, BigDecimal idsolicitacao, BigDecimal nto) throws Exception {
+	private void gerarPedidoENota(String patrimonio, DynamicVO gc_solicitabast, BigDecimal idRetorno, BigDecimal idsolicitacao, BigDecimal nto, BigDecimal sub) throws Exception {
 		
 		BigDecimal nunota = null;
 		
@@ -136,8 +135,8 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			BigDecimal numos = gerarCabecalhoOS(patrimonio);
 			
 			if(numos!=null) {
-				geraItemOS(numos, patrimonio, gc_solicitabast);
-				salvaNumeroOS(numos, patrimonio, idsolicitacao, idRetorno, gc_solicitabast);
+				geraItemOS(numos, patrimonio, gc_solicitabast, sub);
+				salvaNumeroOS(numos, patrimonio, idsolicitacao, idRetorno, gc_solicitabast, sub);
 				
 				verificaPlanogramaPendente(patrimonio, numos, nunota, idsolicitacao, idRetorno);
 				
@@ -473,9 +472,15 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return estoque;
 	}
 	
-	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno, DynamicVO gc_solicitabast) {
+	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno, DynamicVO gc_solicitabast, BigDecimal sub) {
 		
-		BigDecimal atendenteRota = getAtendenteRota(patrimonio, gc_solicitabast);
+		BigDecimal atendenteRota = null;
+		
+		if(sub!=null) {
+			atendenteRota = sub;
+		}else {
+			atendenteRota = getAtendenteRota(patrimonio, gc_solicitabast);
+		}
 		
 		try {
 			
@@ -599,10 +604,17 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return dataInicialMaisPrazo;
 	}
 	
-	private void geraItemOS(BigDecimal numos, String patrimonio, DynamicVO gc_solicitabast) throws Exception{
+	private void geraItemOS(BigDecimal numos, String patrimonio, DynamicVO gc_solicitabast, BigDecimal sub) throws Exception{
 		
 
-		BigDecimal atendenteRota = getAtendenteRota(patrimonio, gc_solicitabast);
+		BigDecimal atendenteRota = null;
+		
+		if(sub!=null) {
+			atendenteRota = sub;
+		}else {
+			atendenteRota = getAtendenteRota(patrimonio, gc_solicitabast);
+		}
+
 		BigDecimal motivo = new BigDecimal(111);
 		DynamicVO ad_patrimonio = getADPATRIMONIO(patrimonio);
 		BigDecimal servico = new BigDecimal(200000);
