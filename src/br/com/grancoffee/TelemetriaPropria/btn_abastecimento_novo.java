@@ -43,7 +43,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 21/01/2022 vs 1.9 Ajuste na inserção dos itens de ruptura.
 	 * 12/02/2022 vs 2.0 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
 	 * 08/03/2022 vs 2.1 Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
-	 * 27/03/2022 vs 2.2 Pegar o valor do item da TGFCUS preço sem ICMS
+	 * 27/03/2022 vs 2.3 Pegar o valor do item da TGFCUS preço sem ICMS
 	 */
 	
 	String retornoNegativo = "";
