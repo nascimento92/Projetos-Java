@@ -43,7 +43,11 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 21/01/2022 vs 1.9 Ajuste na inserção dos itens de ruptura.
 	 * 12/02/2022 vs 2.0 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
 	 * 08/03/2022 vs 2.1 Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
+<<<<<<< HEAD
 	 * 27/03/2022 vs 2.3 Pegar o valor do item da TGFCUS preço sem ICMS
+=======
+	 * 22/03/2022 vs 2.2 Inserida a obtenção da data de atendimento (parametro DTVISIT)
+>>>>>>> Work
 	 */
 	
 	String retornoNegativo = "";
@@ -64,8 +68,38 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 		String tipoAbastecimento = (String) arg0.getParam("TIPABAST");// 1=Agora 2=Agendado
 		String secosCongelados = (String) arg0.getParam("SECOSECONGELADOS");// 1=Abastecer Apenas Secos.2=Abastecer Apenas Congelados.3=Abastecer Secos e Congelados
+		Timestamp dtAbastecimentoX = (Timestamp) arg0.getParam("DTABAST");
+		
 		DynamicVO gc_solicitabast = null;
 		BigDecimal idRetorno = null;
+		
+		//TODO :: Implementar a data da visita
+		Timestamp dtvisita = (Timestamp) arg0.getParam("DTVISIT");
+		
+		if (dtvisita != null) {
+			if (dtvisita.before(TimeUtils.getNow())) {
+				dtvisita = addDias(TimeUtils.getNow(), new BigDecimal(1));
+			}
+
+			if (dtAbastecimentoX != null) {
+				if (dtvisita.before(dtAbastecimentoX)) {
+					dtvisita = addDias(dtAbastecimentoX, new BigDecimal(1));
+				}
+			}
+			
+		} else {
+			Timestamp datatemp = null;
+
+			if ("1".equals(tipoAbastecimento)) {
+				datatemp = TimeUtils.getNow();
+			} else {
+				datatemp = dtAbastecimentoX;
+			}
+
+			dtvisita = addDias(datatemp, new BigDecimal(1));
+		}
+		
+		//TODO :: Verifica todas as visitas selecionadas
 
 		for (int i = 0; i < linhas.length; i++) {
 			
@@ -93,10 +127,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 						if (dtAbastecimento != null) {// agendado
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									dtAbastecimento, idRetorno, "S", "N");
+									dtAbastecimento, idRetorno, "S", "N", dtvisita);
 						} else {// agora
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									TimeUtils.getNow(), idRetorno, "S", "N");
+									TimeUtils.getNow(), idRetorno, "S", "N", dtvisita);
 							
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
 						}
@@ -115,10 +149,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 						if (dtAbastecimento != null) {// agendado
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									dtAbastecimento, idRetorno, "N", "S");
+									dtAbastecimento, idRetorno, "N", "S", dtvisita);
 						} else {// agora
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									TimeUtils.getNow(), idRetorno, "N", "S");
+									TimeUtils.getNow(), idRetorno, "N", "S", dtvisita);
 							
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
 						}
@@ -134,10 +168,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 						apenasSecos(idSecos, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
 						if (dtAbastecimento != null) {// agendado
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									dtAbastecimento, idSecos, "S", "N");
+									dtAbastecimento, idSecos, "S", "N", dtvisita);
 						} else {// agora
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									TimeUtils.getNow(), idSecos, "S", "N");
+									TimeUtils.getNow(), idSecos, "S", "N", dtvisita);
 							
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idSecos);
 						}
@@ -151,10 +185,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 						apenasCongelados(idcongelados, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
 						if (dtAbastecimento != null) {// agendado
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									dtAbastecimento, idcongelados, "N", "S");
+									dtAbastecimento, idcongelados, "N", "S", dtvisita);
 						} else {// agora
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									TimeUtils.getNow(), idcongelados, "N", "S");
+									TimeUtils.getNow(), idcongelados, "N", "S", dtvisita);
 							
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idcongelados);
 						}
@@ -742,6 +776,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		
 		Timestamp dtAbastecimento = (Timestamp) arg0.getParam("DTABAST");
 		Timestamp dtSolicitacao = null;
+		
 
 		if (validaPedido(linhas.getCampo("CODBEM").toString(), secosCongelados)) {
 			throw new PersistenceException(
@@ -1303,7 +1338,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	//FUNCIONTIONS
 	
 	private DynamicVO agendarAbastecimento(String patrimonio, Timestamp dtSolicitacao, Timestamp dtAgendamento,
-			BigDecimal idAbastecimento, String seco, String congelado) {
+			BigDecimal idAbastecimento, String seco, String congelado, Timestamp dtvisita) {
 		
 		DynamicVO gc_solicitabast = null;
 		
@@ -1324,6 +1359,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			VO.setProperty("APENASVISITA", "N");
 			VO.setProperty("AD_NUMCONTRATO", getContrato(patrimonio));
 			VO.setProperty("AD_CODPARC", getParceiro(patrimonio));
+			
+			if(dtvisita!=null) {
+				VO.setProperty("AD_DTATENDIMENTO", dtvisita);
+			}
 
 			if ("S".equals(seco)) {
 				VO.setProperty("AD_TIPOPRODUTOS", "1");

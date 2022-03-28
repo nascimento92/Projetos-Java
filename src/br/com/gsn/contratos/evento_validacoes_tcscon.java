@@ -75,9 +75,11 @@ public class evento_validacoes_tcscon implements EventoProgramavelJava{
 				VO.setProperty("AD_DIALEITURA", new BigDecimal(1));
 			}
 			
-			if(diaLeitura.intValue()>28) {
-				VO.setProperty("AD_DIALEITURA", new BigDecimal(28));
+			
+			if (diaLeitura.intValue() > 31) {
+				VO.setProperty("AD_DIALEITURA", new BigDecimal(31));
 			}
+			 
 		}
 		
 	}
