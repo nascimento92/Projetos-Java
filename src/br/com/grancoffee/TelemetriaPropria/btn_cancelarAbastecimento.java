@@ -173,9 +173,23 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 	private void excluirRetornoAbastecimento(BigDecimal idretorno) {
 		try {
 			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_RETABAST",
+					"this.ID=?", new Object[] { idretorno }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("STATUS", "4");
+
+				itemEntity.setValueObject(NVO);
+			}
+
+			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("AD_ITENSRETABAST", "this.ID=?",new Object[] {idretorno}));
-			dwfFacade.removeByCriteria(new FinderWrapper("AD_RETABAST", "this.ID=?",new Object[] {idretorno}));
+			//dwfFacade.removeByCriteria(new FinderWrapper("AD_RETABAST", "this.ID=?",new Object[] {idretorno}));
 
 		} catch (Exception e) {
 			salvarException("[excluirRetornoAbastecimento] Nao foi possivel excluir o retorno de abastecimento! id retorno: "+idretorno+"\n"+e.getMessage()+"\n"+e.getCause());

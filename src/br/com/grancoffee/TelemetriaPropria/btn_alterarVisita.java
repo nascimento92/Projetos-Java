@@ -21,11 +21,12 @@ public class btn_alterarVisita implements AcaoRotinaJava{
 		String motivo = (String) arg0.getParam("MOTIVO");
 		String substituto = (String) arg0.getParam("SUB");
 		Timestamp data = (Timestamp) arg0.getParam("DATA");
+		Timestamp dataAtendimento = (Timestamp) arg0.getParam("DTVISIT");
 		
 		Registro[] linhas = arg0.getLinhas();
 		
 		for(Registro r : linhas) {
-			start(r,motivo, new BigDecimal(substituto), data, arg0);
+			start(r,motivo, new BigDecimal(substituto), data, arg0, dataAtendimento);
 		}
 		
 		if(x>0) {
@@ -33,7 +34,7 @@ public class btn_alterarVisita implements AcaoRotinaJava{
 		}
 	}
 	
-	private void start(Registro linha,String motivo,BigDecimal substituto, Timestamp data, ContextoAcao arg0) throws Exception {
+	private void start(Registro linha,String motivo,BigDecimal substituto, Timestamp data, ContextoAcao arg0, Timestamp dataAtendimento) throws Exception {
 		
 		validacoes(linha,arg0,data);
 		
@@ -41,6 +42,7 @@ public class btn_alterarVisita implements AcaoRotinaJava{
 		linha.setCampo("AD_CODUSUALT", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
 		linha.setCampo("AD_DTALTAGEND", TimeUtils.getNow());
 		linha.setCampo("DTAGENDAMENTO", data);
+		linha.setCampo("AD_DTATENDIMENTO", dataAtendimento);
 		
 		if(substituto!=null) {
 			linha.setCampo("AD_USUSUB", substituto);

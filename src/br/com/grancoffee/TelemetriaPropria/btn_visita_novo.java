@@ -35,6 +35,7 @@ public class btn_visita_novo implements AcaoRotinaJava{
 	 * 04/11/2021 vs 1.2 Inserido o método carregaTeclasNosItensDeAbastPrimeiraVisita onde insere os itens da visita caso seja a primeira visita.
 	 * 12/02/2022 vs 1.4 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
 	 * 08/03/2022 vs 1.5 Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
+	 * 22/03/2022 vs 1.6 Inserida a obtenção da data de atendimento (parametro DTVISIT)
 	 */
 	
 	int cont = 0;
@@ -47,6 +48,17 @@ public class btn_visita_novo implements AcaoRotinaJava{
 	private void start(ContextoAcao arg0) throws Exception {
 		Timestamp dtVisita = (Timestamp) arg0.getParam("DTVISITA");
 		String motivo = (String) arg0.getParam("MOTIVO");
+		
+		//TODO :: Implementar a data da visita
+		Timestamp dtAtendimento = (Timestamp) arg0.getParam("DTVISIT");
+		if(dtAtendimento!=null) {
+			if(dtAtendimento.before(dtAtendimento)) {
+				dtAtendimento = addDias(dtVisita, new BigDecimal(1));
+			}
+		}else {
+			dtAtendimento = addDias(dtVisita, new BigDecimal(1));
+		}
+		
 
 		Registro[] linhas = arg0.getLinhas();
 
@@ -65,7 +77,7 @@ public class btn_visita_novo implements AcaoRotinaJava{
 				}
 
 				DynamicVO gc_solicitabast = agendarVisita(linhas[i].getCampo("CODBEM").toString(), dtVisita, motivo,
-						idretorno);
+						idretorno, dtAtendimento);
 				cont++;
 
 				int compareTo = dtVisita.compareTo(TimeUtils.getNow());
@@ -585,7 +597,7 @@ public class btn_visita_novo implements AcaoRotinaJava{
 		return valida;	
 	}
 
-	private DynamicVO agendarVisita(String patrimonio, Timestamp dtVisita, String motivo,BigDecimal idretorno) {
+	private DynamicVO agendarVisita(String patrimonio, Timestamp dtVisita, String motivo,BigDecimal idretorno, Timestamp dtvisita) {
 		DynamicVO gc_solicitabast = null;
 		
 		try {
@@ -606,6 +618,10 @@ public class btn_visita_novo implements AcaoRotinaJava{
 			VO.setProperty("REABASTECIMENTO", "N");
 			VO.setProperty("AD_NUMCONTRATO", getContrato(patrimonio));
 			VO.setProperty("AD_CODPARC", getParceiro(patrimonio));
+			
+			if(dtvisita!=null) {
+				VO.setProperty("AD_DTATENDIMENTO", dtvisita);
+			}
 
 			dwfFacade.createEntity("GCSolicitacoesAbastecimento", (EntityVO) VO);
 			
