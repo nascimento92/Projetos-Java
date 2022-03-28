@@ -34,6 +34,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	/**
 	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para salvar os itens que deveriam ser abastecidos porém não tinha em estoque na filial
 	 * 24/11/2021 vs 1.2 Ajustado a geração dos pedidos considerando a quantidade mínima.
+	 * 27/03/2022 vs 1.3 Pegar o valor do item da TGFCUS preço sem ICMS
 	 */
 	
 	@Override
@@ -948,7 +949,15 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			BigDecimal estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
 			
 			BigDecimal falta = nivelpar.subtract(estoque);
-			BigDecimal valor = vlrpar.add(vlrfun);
+			BigDecimal valor = null;
+			BigDecimal valorSemICMS = obtemValorItemSemICMS(produto,empresaAbast);
+			
+			if(valorSemICMS!=null) {
+				valor = valorSemICMS;
+			}else {
+				valor = vlrpar.add(vlrfun);
+			}
+					
 			BigDecimal estoqueNaEmpresa = getEstoqueDoItem(empresaAbast,localAbast,produto);
 
 			//qtd minima para abastecimento
@@ -976,6 +985,33 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 					"[identificaItens] Nao foi possivel identificar os itens! patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
+	}
+	
+	private BigDecimal obtemValorItemSemICMS(BigDecimal codprod, BigDecimal empresa) {
+		BigDecimal valor = null;
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+					"SELECT ROUND(ENTRADASEMICMS,2) AS VLR FROM TGFCUS WHERE CODPROD="+codprod+" AND CODEMP="+empresa+" AND DTATUAL= (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD="+codprod+" AND CODEMP="+empresa+")");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				BigDecimal vlr = contagem.getBigDecimal("VLR");
+				if(vlr!=null) {
+					valor = vlr;
+				}
+			}
+		} catch (Exception e) {
+			salvarException(
+					"[obtemValorItemSemICMS] Nao foi possivel obter o preço! produto "+codprod+" empresa "+empresa
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+		return valor;
 	}
 	
 	

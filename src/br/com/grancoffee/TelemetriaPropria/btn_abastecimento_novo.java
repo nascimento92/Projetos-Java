@@ -43,6 +43,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 21/01/2022 vs 1.9 Ajuste na inserção dos itens de ruptura.
 	 * 12/02/2022 vs 2.0 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
 	 * 08/03/2022 vs 2.1 Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
+	 * 27/03/2022 vs 2.2 Pegar o valor do item da TGFCUS preço sem ICMS
 	 */
 	
 	String retornoNegativo = "";
@@ -1772,7 +1773,15 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			BigDecimal estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
 			
 			BigDecimal falta = nivelpar.subtract(estoque);
-			BigDecimal valor = vlrpar.add(vlrfun);
+			BigDecimal valor = null;
+			BigDecimal valorSemICMS = obtemValorItemSemICMS(produto,empresaAbast);
+			
+			if(valorSemICMS!=null) {
+				valor = valorSemICMS;
+			}else {
+				valor = vlrpar.add(vlrfun);
+			}
+						
 			BigDecimal estoqueNaEmpresa = getEstoqueDoItem(empresaAbast,localAbast,produto);
 
 			//qtd minima para abastecimento
@@ -1833,6 +1842,33 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					"[identificaItens] Nao foi possivel identificar os itens! patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
+	}
+	
+	private BigDecimal obtemValorItemSemICMS(BigDecimal codprod, BigDecimal empresa) {
+		BigDecimal valor = null;
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+					"SELECT ROUND(ENTRADASEMICMS,2) AS VLR FROM TGFCUS WHERE CODPROD="+codprod+" AND CODEMP="+empresa+" AND DTATUAL= (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD="+codprod+" AND CODEMP="+empresa+")");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				BigDecimal vlr = contagem.getBigDecimal("VLR");
+				if(vlr!=null) {
+					valor = vlr;
+				}
+			}
+		} catch (Exception e) {
+			salvarException(
+					"[obtemValorItemSemICMS] Nao foi possivel obter o preço! produto "+codprod+" empresa "+empresa
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+		return valor;
 	}
 	
 	private void geraItemOS(BigDecimal numos, String patrimonio, DynamicVO gc_solicitabast) throws Exception{

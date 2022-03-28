@@ -61,11 +61,13 @@ public class evento_valida_exclusao implements EventoProgramavelJava {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal nunota = VO.asBigDecimal("NUNOTA");
 		String idVtex = VO.asString("AD_PEDIDOVTEX");
-
-		if (idVtex != null) {
-			registraCancelamento(nunota, idVtex);
+		String tipmov = VO.asString("TIPMOV");
+		
+		if("P".equals(tipmov)) {
+			if (idVtex != null) {
+				registraCancelamento(nunota, idVtex);
+			}
 		}
-
 	}
 
 	private void registraCancelamento(BigDecimal nunota, String id) {
