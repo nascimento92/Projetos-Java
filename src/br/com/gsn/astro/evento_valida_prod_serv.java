@@ -103,7 +103,10 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 		String unidadePadrao = TGFPRO.asString("CODVOL");
 		
 		if("A".equals(tipoContrato)) {
-			String tipoFranquia = VO.asString("AD_FRANQUIA"); 
+			 
+			VO.setProperty("AD_FRANQUIA", "S");
+			String tipoFranquia = VO.asString("AD_FRANQUIA");
+			
 			if("S".equals(tipoFranquia)) {
 				
 				if(produto.intValue()!=515613) {
@@ -164,6 +167,8 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 		String unidadePadrao = TGFPRO.asString("CODVOL");
 		
 		if("A".equals(tipoContrato)) {
+			
+			VO.setProperty("AD_FRANQUIA", "S");
 			String tipoFranquia = VO.asString("AD_FRANQUIA"); 
 			
 			if("S".equals(tipoFranquia)) {

@@ -1,14 +1,20 @@
 package br.com.gsn.astro;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
+import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
+import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class evento_valida_dados_astro implements EventoProgramavelJava {
 
@@ -101,8 +107,33 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			}
 			
 			totalizaImpostos(numeroUnico);
+			//TODO :: Pega o valor dos itens e salva no VLRNOTA. Inserir na TGFCAB e não na TGFITE contrato 30368
+			//BigDecimal valorFinal = getValor(numeroUnico);
+			//VO.setProperty("VLRNOTA", valorFinal);
 		}	
 		
+	}
+	
+	private BigDecimal getValor(BigDecimal numerounico) throws Exception {
+		BigDecimal valor = null;
+		
+		JdbcWrapper jdbcWrapper = null;
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+		jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+		ResultSet contagem;
+		NativeSql nativeSql = new NativeSql(jdbcWrapper);
+		nativeSql.resetSqlBuf();
+		nativeSql.appendSql("SELECT SUM(QTDNEG*VLRUNIT) AS VLR FROM TGFITE WHERE NUNOTA="+numerounico+" AND VLRUNIT > '0.0100'");
+		contagem = nativeSql.executeQuery();
+		while (contagem.next()) {
+			BigDecimal vlr = contagem.getBigDecimal("VLR");
+			
+			if(vlr!=null) {
+				valor = vlr;
+			}
+		}
+
+		return valor;
 	}
 	
 	private DynamicVO getTgfcab(BigDecimal numeroUnico) throws Exception {

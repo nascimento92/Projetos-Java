@@ -32,8 +32,10 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		String patrimonio = VO.asString("CODBEM");
+		cadastraTelemetrias(new BigDecimal(1), patrimonio);
+		cadastraTelemetrias(new BigDecimal(2), patrimonio);
 	}
 
 	@Override
@@ -278,8 +280,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		String abastecimento = VO.asString("ABASTECIMENTO");
 		String patrimonio = VO.asString("CODBEM");
 		String valid = "";
-		String loja = VO.asString("TOTEM");
-		
+				
 		if("S".equals(abastecimento)) {
 			valid = "S";	
 		}else {
@@ -289,10 +290,32 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		VO.setProperty("AD_NOPICK", valid);
 		registraFila(patrimonio,valid);
 		
+		if(verificaGrupoProdutoDaMaquina(patrimonio)) {
+			VO.setProperty("TOTEM", "S");
+		}
+		
+		String loja = VO.asString("TOTEM");
+		
 		if("S".equals(loja)) {
 			if(!verificaGrupoProdutoDaMaquina(patrimonio)) {
 				throw new Error("<br/><b>ATENÇÃO</b><br/>Patrimônio não pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrimônio o campo Loja não está tickado!<br/><br/>");
 			}
+		}
+	}
+	
+	private void cadastraTelemetrias(BigDecimal idTelemetria, String codbem) {
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCTelemInstalacao");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("AD_INTEGRADO", "N");
+			VO.setProperty("CODBEM", codbem);
+			VO.setProperty("IDTEL", idTelemetria);
+			
+			dwfFacade.createEntity("GCTelemInstalacao", (EntityVO) VO);
+		} catch (Exception e) {
+			// TODO: handle exception
 		}
 	}
 	
