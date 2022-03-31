@@ -1,20 +1,14 @@
 package br.com.gsn.astro;
 
 import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
-import br.com.sankhya.jape.EntityFacade;
-import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
-import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
-import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class evento_valida_dados_astro implements EventoProgramavelJava {
 
@@ -26,8 +20,20 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal produto = VO.asBigDecimal("CODPROD");
 		
+		//TODO:: Desconsiderar item de assinatura no faturamento da 10002
+		if(produto.intValue()==515613) {
+			VO.setProperty("PENDENTE", "N");
+			VO.setProperty("QTDENTREGUE", new BigDecimal(1));
+			
+			BigDecimal valor = VO.asBigDecimal("VLRUNIT");
+			if(valor.intValue()==0) {
+				VO.setProperty("VLRUNIT", new BigDecimal(1).divide(new BigDecimal(100)));
+				VO.setProperty("VLRDESC", new BigDecimal(1).divide(new BigDecimal(100)));
+			}
+		}
 	}
 
 	@Override
@@ -85,16 +91,7 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			}
 			
 			//TODO:: Desconsiderar item de assinatura no faturamento da 10002
-			if(produto.intValue()==515613) {
-				VO.setProperty("PENDENTE", "N");
-				VO.setProperty("QTDENTREGUE", new BigDecimal(1));
-				
-				BigDecimal valor = VO.asBigDecimal("VLRUNIT");
-				if(valor.intValue()==0) {
-					VO.setProperty("VLRUNIT", new BigDecimal(1).divide(new BigDecimal(100)));
-					VO.setProperty("VLRDESC", new BigDecimal(1).divide(new BigDecimal(100)));
-				}
-			}
+			//movido para o after insert
 			
 			//TODO:: Pega a quantidade negociada do contrato
 			contrato = getTgfcab(numeroUnico).asBigDecimal("NUMCONTRATO");
@@ -114,6 +111,7 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 		
 	}
 	
+	/*
 	private BigDecimal getValor(BigDecimal numerounico) throws Exception {
 		BigDecimal valor = null;
 		
@@ -135,6 +133,7 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 
 		return valor;
 	}
+	*/
 	
 	private DynamicVO getTgfcab(BigDecimal numeroUnico) throws Exception {
 		DynamicVO VOs = null;
