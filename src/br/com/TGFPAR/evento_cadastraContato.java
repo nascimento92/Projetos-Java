@@ -59,9 +59,10 @@ public class  evento_cadastraContato implements EventoProgramavelJava{
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal codparceiro = VO.asBigDecimal("CODPARC");
 		String nome = VO.asString("NOMEPARC");
+		String cpfcnpj = VO.asString("CGC_CPF");
 		
 		if(!verificaContatoUm(codparceiro)) {
-			cadastraContato(codparceiro, nome);
+			cadastraContato(codparceiro, nome, cpfcnpj);
 		}
 	}
 	
@@ -78,7 +79,7 @@ public class  evento_cadastraContato implements EventoProgramavelJava{
 
 	}
 	
-	private void cadastraContato(BigDecimal parceiro, String nome) {
+	private void cadastraContato(BigDecimal parceiro, String nome, String cpfcnpj) {
 		try {
 			
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -88,6 +89,7 @@ public class  evento_cadastraContato implements EventoProgramavelJava{
 			VO.setProperty("CODCONTATO", new BigDecimal(1));
 			VO.setProperty("CODPARC", parceiro);
 			VO.setProperty("NOMECONTATO", nome);
+			VO.setProperty("CNPJ", cpfcnpj);
 			
 			dwfFacade.createEntity("Contato", (EntityVO) VO);
 			

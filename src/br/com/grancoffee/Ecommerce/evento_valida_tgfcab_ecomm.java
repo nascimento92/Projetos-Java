@@ -1,13 +1,18 @@
 package br.com.grancoffee.Ecommerce;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.Collection;
+import java.util.Iterator;
 
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
+import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
@@ -24,7 +29,6 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
 
 	}
 
@@ -53,8 +57,54 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 
 	@Override
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		update(arg0);
+	}
+	
+	private void update(PersistenceEvent arg0) {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal top = VO.asBigDecimal("CODTIPOPER");
+		if(top.intValue()==1101) {
+			String idPedidoVtex = VO.asString("AD_PEDIDOVTEX");
+			if(idPedidoVtex!=null) {
+				
+				String invoicekey = VO.asString("CHAVENFE");
+						
+				if(invoicekey!=null) {
+					atualStatus(VO, invoicekey, idPedidoVtex);
+				}
+				
+			}
+		}
+	}
+	
+	private void atualStatus(DynamicVO VO, String invoicekey, String idPedidoVtex) {
+		BigDecimal nroUnico = VO.asBigDecimal("NUNOTA");
+		Timestamp issuancedate = VO.asTimestamp("DTNEG");
+		BigDecimal invoicevalue = VO.asBigDecimal("VLRNOTA");
+		String statusnfe = VO.asString("STATUSNFE");
+		BigDecimal invoicenumber = VO.asBigDecimal("NUMNOTA");
+		
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_STSECOMM",
+					"this.AD_PEDIDOVTEX=?", new Object[] { idPedidoVtex }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VOS = (DynamicVO) NVO;
+				
+				VOS.setProperty("NUNOTA", nroUnico);
+				VOS.setProperty("INVOICEKEY", invoicekey);
+				VOS.setProperty("ISSUANCEDATE", issuancedate);
+				VOS.setProperty("INVOICEVALUE", invoicevalue);
+				VOS.setProperty("STATUSNFE", statusnfe);
+				VOS.setProperty("INVOICENUMBER", invoicenumber);
 
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
 	}
 
 	private void start(PersistenceEvent arg0) {
@@ -70,16 +120,16 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 					throw new Error("Pedido " + idVtex + " já existe, não pode ser cadastrado novamente !");
 				}
 				
-				
 				//TODO :: Verificar se tem observações adicionais
 				String observacaoAtual = VO.asString("OBSERVACAO");
 				String obsAdicional = verificaObservacaoAdicional();
 				if(obsAdicional!=null && obsAdicional!="") {
 					String newObs = observacaoAtual+" "+obsAdicional;
 					VO.setProperty("OBSERVACAO", newObs);
-				}
+				}	
 			}
 		}
+		
 	}
 	
 	private String verificaObservacaoAdicional() {

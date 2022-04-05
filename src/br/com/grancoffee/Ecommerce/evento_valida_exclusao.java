@@ -1,13 +1,17 @@
 package br.com.grancoffee.Ecommerce;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Iterator;
 
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.bmp.PersistentLocalEntity;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
+import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
@@ -66,6 +70,7 @@ public class evento_valida_exclusao implements EventoProgramavelJava {
 		if("P".equals(tipmov)) {
 			if (idVtex != null) {
 				registraCancelamento(nunota, idVtex);
+				atualStatus(idVtex);
 			}
 		}
 	}
@@ -87,6 +92,27 @@ public class evento_valida_exclusao implements EventoProgramavelJava {
 		} catch (
 
 		Exception e) {
+			// TODO: handle exception
+		}
+	}
+	
+	private void atualStatus(String idPedidoVtex) {
+		String status = "C";
+		
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_STSECOMM",
+					"this.AD_PEDIDOVTEX=?", new Object[] { idPedidoVtex }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VOS = (DynamicVO) NVO;
+				
+				VOS.setProperty("STATUSNFE", status);
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
 			// TODO: handle exception
 		}
 	}

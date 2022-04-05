@@ -66,7 +66,6 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 	    String codvol = VO.asString("CODVOL");
 	    BigDecimal quantidadeOriginal = VO.asBigDecimal("QTDNEG");
 	    BigDecimal valorOriginal = VO.asBigDecimal("VLRUNIT");
-	    //BigDecimal codlocalorig = VO.asBigDecimal("CODLOCALORIG");
 	    BigDecimal novocodlocalorig = new BigDecimal(1117);
 	    
 	    
@@ -117,11 +116,43 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 	            	cadastraLog(idVtex,obs);
 	            }
 	            
+	            //TODO:: Registra na AD_STATUSECOMM
+	            BigDecimal top = tgfcab.asBigDecimal("CODTIPOPER");
+	            if(top.intValue()==1070) { //pedido
+	            	inserirStatus (VO, tgfcab);
+	            }
+	            
 	          } 
 	        } 
 	      } 
 	    }
 	    
+	}
+	
+	private void inserirStatus(DynamicVO itemVO, DynamicVO cabVO) {
+		BigDecimal pedido = cabVO.asBigDecimal("NUNOTA");
+		BigDecimal sequencia = itemVO.asBigDecimal("SEQUENCIA");
+		BigDecimal id = itemVO.asBigDecimal("CODPROD");
+		BigDecimal quantity = itemVO.asBigDecimal("QTDNEG");
+		BigDecimal price = itemVO.asBigDecimal("VLRUNIT");
+		String idPedidoVtex = cabVO.asString("AD_PEDIDOVTEX");
+		
+		try {
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_STSECOMM");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("PEDIDO", pedido);
+			VO.setProperty("SEQUENCIA", sequencia);
+			VO.setProperty("ID", id);
+			VO.setProperty("QUANTITY", quantity);
+			VO.setProperty("PRICE", price);
+			VO.setProperty("AD_PEDIDOVTEX", idPedidoVtex);
+			
+			dwfFacade.createEntity("AD_STSECOMM", (EntityVO) VO);
+		} catch (Exception e) {
+			salvarException("[inserirStatus] não foi possível cadastrar o item! ID Pedido: "+idPedidoVtex+" produto "+id+"\n"+e.getCause()+"\n"+e.getMessage());
+		}
 	}
 	
 	private DynamicVO getTGFCAB(BigDecimal nunota) throws Exception {
