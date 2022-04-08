@@ -69,7 +69,7 @@ public class evento_valida_plantas implements EventoProgramavelJava{
 		BigDecimal cidade = VO.asBigDecimal("CODCID");
 		BigDecimal bairro = VO.asBigDecimal("CODBAI");
 		BigDecimal endereco = VO.asBigDecimal("CODEND");
-		BigDecimal cep = VO.asBigDecimal("CEP");
+		String cep = VO.asString("CEP");
 		
 		DynamicVO cepNativo = getCEPNativo(cep);
 		
@@ -92,7 +92,7 @@ public class evento_valida_plantas implements EventoProgramavelJava{
 				VO.setProperty("CODEND", enderecoN);
 			}
 		}else {
-			String url = "https://viacep.com.br/ws/"+cep.toString()+"/json/";
+			String url = "https://viacep.com.br/ws/"+cep+"/json/";
 			String request = request(url);
 	
 			JsonObject json = JsonUtils.convertStringToJsonObject(request);
@@ -218,7 +218,7 @@ public class evento_valida_plantas implements EventoProgramavelJava{
 	}
 		
 	
-	private DynamicVO getCEPNativo(BigDecimal cep) throws Exception {
+	private DynamicVO getCEPNativo(String cep) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("AD_CEPCOMM");
 		DynamicVO VO = DAO.findOne("CEP=?",new Object[] { cep.toString() });
 		return VO;
@@ -233,7 +233,7 @@ public class evento_valida_plantas implements EventoProgramavelJava{
 		String complemento = VO.asString("COMPLEMENTO");
 		BigDecimal bairro = VO.asBigDecimal("CODBAI");
 		BigDecimal cidade = VO.asBigDecimal("CODCID");
-		BigDecimal cep = VO.asBigDecimal("CEP");
+		String cep = VO.asString("CEP");
 		
 		boolean valida = false;
 		

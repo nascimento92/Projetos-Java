@@ -1,5 +1,6 @@
 package br.com.grancoffee.TelemetriaPropria;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
@@ -9,6 +10,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.simple.parser.ParseException;
+
 import com.sankhya.util.TimeUtils;
 //import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
@@ -31,6 +37,9 @@ import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 //import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class btn_abastecimento_novo implements AcaoRotinaJava {
 
@@ -43,11 +52,8 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 21/01/2022 vs 1.9 Ajuste na inserção dos itens de ruptura.
 	 * 12/02/2022 vs 2.0 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
 	 * 08/03/2022 vs 2.1 Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
-<<<<<<< HEAD
-	 * 27/03/2022 vs 2.3 Pegar o valor do item da TGFCUS preço sem ICMS
-=======
 	 * 22/03/2022 vs 2.2 Inserida a obtenção da data de atendimento (parametro DTVISIT)
->>>>>>> Work
+	 * 27/03/2022 vs 2.3 Pegar o valor do item da TGFCUS preço sem ICMS
 	 */
 	
 	String retornoNegativo = "";
@@ -213,6 +219,12 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	private DynamicVO getTGFPRO(BigDecimal produto) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("Produto");
 		DynamicVO VO = DAO.findOne("CODPROD=?", new Object[] { produto });
+		return VO;
+	}
+	
+	private DynamicVO getGCINSTALACAO(String patrimonio) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("GCInstalacao");
+		DynamicVO VO = DAO.findOne("CODBEM=?", new Object[] { patrimonio });
 		return VO;
 	}
 	
@@ -672,6 +684,20 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			dwfFacade.createEntity("ServicoProdutoExecutante", (EntityVO) VO);
 		} catch (Exception e) {
 			
+		}
+	}
+	
+	private String request(String url) throws IOException, ParseException {
+		OkHttpClient client = new OkHttpClient().newBuilder().build();
+		Request request = new Request.Builder()
+				.url(url)
+				.get()
+				//.method(method, null)
+				.addHeader("token","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcGlhY2Nlc3MifQ.BlvnsLa4kDAAlyxYuLRc1qo-hd72YqHPdr3SKnCxxqI")
+				.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			return response.body().string();
 		}
 	}
 	
@@ -1807,10 +1833,18 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			BigDecimal vlrpar = (BigDecimal) DynamicVO.getProperty("VLRPAR");
 			BigDecimal vlrfun = (BigDecimal) DynamicVO.getProperty("VLRFUN");
 			String volume = getTGFPRO(produto).asString("CODVOL");
+			String liberada = getGCINSTALACAO(patrimonio).asString("AD_LIBERADA");
 			
-			//estoque do item
-			BigDecimal estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
+			BigDecimal estoque = null;
 			
+			//TODO :: se a máquina estiver liberada, pegar o estoque a partir da API
+			if("S".equals(liberada)) {
+				String estoqueAPI = obtemEstoqueViaAPI(patrimonio, tecla);
+				estoque = new BigDecimal(estoqueAPI);
+			}else {
+				estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
+			}
+					
 			BigDecimal falta = nivelpar.subtract(estoque);
 			BigDecimal valor = null;
 			BigDecimal valorSemICMS = obtemValorItemSemICMS(produto,empresaAbast);
@@ -2158,5 +2192,33 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 	}
 	
+	private String obtemEstoqueViaAPI(String patrimonio, String tecla) {
+		
+		String estoque = "";
+		
+		try {
+			String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=in.(\"" + patrimonio + "\")&tecla=eq."
+					+ tecla;
+			String request = request(url);
+
+			JSONArray array = new JSONArray(request);
+
+			for (int i = 0; i < array.length(); i++) {
+				JSONObject object = array.getJSONObject(i);
+				estoque = object.getString("estoque");
+			}
+
+		} catch (Exception e) {
+			salvarException(
+					"[obtemEstoqueViaAPI] Nao foi possivel obter o estoque! patrimonio "+patrimonio+" tecla "+tecla
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+		if(estoque=="" || estoque==null) {
+			estoque="0";
+		}
+		
+		return estoque;
+	}
 	
 }
