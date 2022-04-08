@@ -55,6 +55,7 @@ public class evento_validacoes_tcscon implements EventoProgramavelJava{
 		BigDecimal diapag = VO.asBigDecimal("DIAPAG");
 		BigDecimal prazo = VO.asBigDecimal("AD_PRAZOMES");
 		BigDecimal diaLeitura = VO.asBigDecimal("AD_DIALEITURA");
+		String tipo = VO.asString("AD_TIPCONT");
 		
 		if("S".equals(diaFixo)) {
 			
@@ -80,6 +81,10 @@ public class evento_validacoes_tcscon implements EventoProgramavelJava{
 				VO.setProperty("AD_DIALEITURA", new BigDecimal(31));
 			}
 			 
+		}
+		
+		if("A".equals(tipo)) {
+			VO.setProperty("CODNAT", new BigDecimal(11700));
 		}
 		
 	}

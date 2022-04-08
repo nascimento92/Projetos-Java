@@ -20,20 +20,12 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal produto = VO.asBigDecimal("CODPROD");
-		
-		//TODO:: Desconsiderar item de assinatura no faturamento da 10002
-		if(produto.intValue()==515613) {
-			VO.setProperty("PENDENTE", "N");
-			VO.setProperty("QTDENTREGUE", new BigDecimal(1));
-			
-			BigDecimal valor = VO.asBigDecimal("VLRUNIT");
-			if(valor.intValue()==0) {
-				VO.setProperty("VLRUNIT", new BigDecimal(1).divide(new BigDecimal(100)));
-				VO.setProperty("VLRDESC", new BigDecimal(1).divide(new BigDecimal(100)));
-			}
-		}
+			DynamicVO VO = (DynamicVO) arg0.getVo();
+			BigDecimal nrounico = VO.asBigDecimal("NUNOTA");
+			BigDecimal top = getTgfcab(nrounico).asBigDecimal("CODTIPOPER");
+			if(top.intValue()==10001) {
+				totalizaImpostos(nrounico);
+			}	
 	}
 
 	@Override
@@ -90,8 +82,15 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 				VO.setProperty("CODLOCALORIG", local);
 			}
 			
-			//TODO:: Desconsiderar item de assinatura no faturamento da 10002
-			//movido para o after insert
+			if (produto.intValue() == 515613) {
+				VO.setProperty("PENDENTE", "N");
+		        VO.setProperty("QTDENTREGUE", new BigDecimal(1));
+				BigDecimal valor = VO.asBigDecimal("VLRUNIT");
+				if (valor.intValue() == 0) {
+					VO.setProperty("VLRUNIT", (new BigDecimal(1)).divide(new BigDecimal(100)));
+			        VO.setProperty("VLRDESC", (new BigDecimal(1)).divide(new BigDecimal(100)));
+				}
+			}
 			
 			//TODO:: Pega a quantidade negociada do contrato
 			contrato = getTgfcab(numeroUnico).asBigDecimal("NUMCONTRATO");
@@ -101,39 +100,11 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 				vlr = VO.asBigDecimal("VLRUNIT");
 				VO.setProperty("QTDNEG", qtd);
 				VO.setProperty("VLRTOT", vlr.multiply(qtd));
-			}
-			
-			totalizaImpostos(numeroUnico);
-			//TODO :: Pega o valor dos itens e salva no VLRNOTA. Inserir na TGFCAB e não na TGFITE contrato 30368
-			//BigDecimal valorFinal = getValor(numeroUnico);
-			//VO.setProperty("VLRNOTA", valorFinal);
+			}	
+		
 		}	
 		
 	}
-	
-	/*
-	private BigDecimal getValor(BigDecimal numerounico) throws Exception {
-		BigDecimal valor = null;
-		
-		JdbcWrapper jdbcWrapper = null;
-		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-		jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
-		ResultSet contagem;
-		NativeSql nativeSql = new NativeSql(jdbcWrapper);
-		nativeSql.resetSqlBuf();
-		nativeSql.appendSql("SELECT SUM(QTDNEG*VLRUNIT) AS VLR FROM TGFITE WHERE NUNOTA="+numerounico+" AND VLRUNIT > '0.0100'");
-		contagem = nativeSql.executeQuery();
-		while (contagem.next()) {
-			BigDecimal vlr = contagem.getBigDecimal("VLR");
-			
-			if(vlr!=null) {
-				valor = vlr;
-			}
-		}
-
-		return valor;
-	}
-	*/
 	
 	private DynamicVO getTgfcab(BigDecimal numeroUnico) throws Exception {
 		DynamicVO VOs = null;
@@ -171,6 +142,8 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 		
 		if(VO!=null) {
 			localpadrao = VO.asBigDecimal("CODLOCALPADRAO");
+		}else {
+			localpadrao = new BigDecimal(1110);
 		}
 
 		return localpadrao;
