@@ -54,6 +54,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 08/03/2022 vs 2.1 Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
 	 * 22/03/2022 vs 2.2 Inserida a obtenção da data de atendimento (parametro DTVISIT)
 	 * 27/03/2022 vs 2.3 Pegar o valor do item da TGFCUS preço sem ICMS
+	 * 08/04/2022 vs 2.4 Inserido método para obter o estoque do item diretamente da API do MID.
 	 */
 	
 	String retornoNegativo = "";
@@ -115,7 +116,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			boolean confirmarSimNao = true;
 			
 			if(maquinaDesabastecida) {
-				confirmarSimNao = arg0.confirmarSimNao("Atenção", "A máquina está totalmente desabastecida, talvez seja necessário aguardar um pouco até a rotina atualizar o estoque! caso não normalize nos próximos 10 minutos, acionar o setor de T.I, </br> deseja abastecer mesmo assim ?", 1);
+				confirmarSimNao = arg0.confirmarSimNao("Atenção", "A máquina está totalmente desabastecida, será gerado um pedido cheio para a máquina, </br> deseja abastecer mesmo assim ?", 1);
 			}
 			
 			if(confirmarSimNao) {
@@ -1839,7 +1840,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			
 			//TODO :: se a máquina estiver liberada, pegar o estoque a partir da API
 			if("S".equals(liberada)) {
-				String estoqueAPI = obtemEstoqueViaAPI(patrimonio, tecla);
+				int estoqueAPI = obtemEstoqueViaAPI(patrimonio, tecla);
 				estoque = new BigDecimal(estoqueAPI);
 			}else {
 				estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
@@ -2192,9 +2193,9 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 	}
 	
-	private String obtemEstoqueViaAPI(String patrimonio, String tecla) {
+	private int obtemEstoqueViaAPI(String patrimonio, String tecla) {
 		
-		String estoque = "";
+		int estoque = 0;
 		
 		try {
 			String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=in.(\"" + patrimonio + "\")&tecla=eq."
@@ -2205,7 +2206,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 			for (int i = 0; i < array.length(); i++) {
 				JSONObject object = array.getJSONObject(i);
-				estoque = object.getString("estoque");
+				estoque = object.getInt("estoque");
 			}
 
 		} catch (Exception e) {
@@ -2213,11 +2214,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					"[obtemEstoqueViaAPI] Nao foi possivel obter o estoque! patrimonio "+patrimonio+" tecla "+tecla
 							+ e.getMessage() + "\n" + e.getCause());
 		}
-		
-		if(estoque=="" || estoque==null) {
-			estoque="0";
-		}
-		
+				
 		return estoque;
 	}
 	
