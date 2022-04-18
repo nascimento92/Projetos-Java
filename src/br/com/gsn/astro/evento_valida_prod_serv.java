@@ -101,56 +101,60 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 		
 		DynamicVO TGFPRO = getTGFPRO(produto);
 		String unidadePadrao = TGFPRO.asString("CODVOL");
+		BigDecimal grupo = TGFPRO.asBigDecimal("CODGRUPOPROD");
 		
 		if("A".equals(tipoContrato)) {
-			 
-			VO.setProperty("AD_FRANQUIA", "S");
-			String tipoFranquia = VO.asString("AD_FRANQUIA");
 			
-			if("S".equals(tipoFranquia)) {
+			if(grupo.intValue()<500000 && grupo.intValue()>=600000) {
 				
-				if(produto.intValue()!=515613) {
+				VO.setProperty("AD_FRANQUIA", "S");
+				String tipoFranquia = VO.asString("AD_FRANQUIA");
+				
+				if("S".equals(tipoFranquia)) {
 					
-					DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
-					
-					//campos agora
-					BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
-					BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
-					
-					//campos anteriormente
-					BigDecimal oldqtdprev = oldVO.asBigDecimal("QTDEPREVISTA");
-					BigDecimal oldqtdEmKg = oldVO.asBigDecimal("AD_QTDEMKG");
-					
-					ValidaNullEZero(qtdprev,qtdEmKg);
-					
-					if(!"KG".equals(unidadePadrao)) { //unidade padrão não é quilo
-						DynamicVO TGFVOA = getTGFVOA(produto);
+					if(produto.intValue()!=515613) {
 						
-						if(qtdprev!=oldqtdprev && qtdEmKg==oldqtdEmKg) {
-							calculaPelaQuantidade(qtdprev,qtdEmKg,TGFVOA,VO);
+						DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
+						
+						//campos agora
+						BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
+						BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
+						
+						//campos anteriormente
+						BigDecimal oldqtdprev = oldVO.asBigDecimal("QTDEPREVISTA");
+						BigDecimal oldqtdEmKg = oldVO.asBigDecimal("AD_QTDEMKG");
+						
+						ValidaNullEZero(qtdprev,qtdEmKg);
+						
+						if(!"KG".equals(unidadePadrao)) { //unidade padrão não é quilo
+							DynamicVO TGFVOA = getTGFVOA(produto);
+							
+							if(qtdprev!=oldqtdprev && qtdEmKg==oldqtdEmKg) {
+								calculaPelaQuantidade(qtdprev,qtdEmKg,TGFVOA,VO);
+							}
+							
+							if(qtdEmKg!=oldqtdEmKg && qtdprev==oldqtdprev) {
+								calcularPeloKg(qtdprev,qtdEmKg,TGFVOA,VO);
+							}
+							
+							
+						}else { //unidade padrão já é quilo
+							
+							if(qtdEmKg!=oldqtdEmKg && qtdprev==oldqtdprev) {
+								VO.setProperty("QTDEPREVISTA", qtdEmKg);
+							}
+							
+							if(qtdprev!=oldqtdprev && qtdEmKg==oldqtdEmKg) {
+								VO.setProperty("AD_QTDEMKG", qtdprev);
+							}
+							
+							if(qtdprev!=oldqtdprev && qtdEmKg!=oldqtdEmKg) {
+								VO.setProperty("QTDEPREVISTA", qtdEmKg);
+							}
+							
 						}
-						
-						if(qtdEmKg!=oldqtdEmKg && qtdprev==oldqtdprev) {
-							calcularPeloKg(qtdprev,qtdEmKg,TGFVOA,VO);
-						}
-						
-						
-					}else { //unidade padrão já é quilo
-						
-						if(qtdEmKg!=oldqtdEmKg && qtdprev==oldqtdprev) {
-							VO.setProperty("QTDEPREVISTA", qtdEmKg);
-						}
-						
-						if(qtdprev!=oldqtdprev && qtdEmKg==oldqtdEmKg) {
-							VO.setProperty("AD_QTDEMKG", qtdprev);
-						}
-						
-						if(qtdprev!=oldqtdprev && qtdEmKg!=oldqtdEmKg) {
-							VO.setProperty("QTDEPREVISTA", qtdEmKg);
-						}
-						
-					}
-				}	
+					}	
+				}
 			}
 		}
 	}
@@ -165,54 +169,58 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 		
 		DynamicVO TGFPRO = getTGFPRO(produto);
 		String unidadePadrao = TGFPRO.asString("CODVOL");
+		BigDecimal grupo = TGFPRO.asBigDecimal("CODGRUPOPROD");
 		
 		if("A".equals(tipoContrato)) {
 			
-			VO.setProperty("AD_FRANQUIA", "S");
-			String tipoFranquia = VO.asString("AD_FRANQUIA"); 
-			
-			if("S".equals(tipoFranquia)) {
+			if(grupo.intValue()<500000 && grupo.intValue()>=600000) { //valida apenas produtos que não são máquinas
 				
-				if(produto.intValue()!=515613) {
+				VO.setProperty("AD_FRANQUIA", "S");
+				String tipoFranquia = VO.asString("AD_FRANQUIA"); 
+				
+				if("S".equals(tipoFranquia)) {
 					
-					BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
-					BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
-					
-					ValidaNullEZero(qtdprev,qtdEmKg);
-					
-					if(!"KG".equals(unidadePadrao)) {
-						DynamicVO TGFVOA = getTGFVOA(produto);
+					if(produto.intValue()!=515613) {
 						
-						if(TGFVOA==null) {
-							throw new Error("<br/><b>OPS</b><br/><br/>Produto não pode ser inserido! tipo de contrato <b>Assinatura</b>! não foi encontrado uma unidade alternativa em KG.");
-						}
-			
-						if(TGFVOA!=null) {
+						BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
+						BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
+						
+						ValidaNullEZero(qtdprev,qtdEmKg);
+						
+						if(!"KG".equals(unidadePadrao)) {
+							DynamicVO TGFVOA = getTGFVOA(produto);
 							
-							if(qtdprev!=null && qtdEmKg==null) {
-								calculaPelaQuantidade(qtdprev,qtdEmKg,TGFVOA,VO);
+							if(TGFVOA==null) {
+								throw new Error("<br/><b>OPS</b><br/><br/>Produto não pode ser inserido! tipo de contrato <b>Assinatura</b>! não foi encontrado uma unidade alternativa em KG.");
 							}
-							
-							if(qtdEmKg!=null) {
-								calcularPeloKg(qtdprev,qtdEmKg,TGFVOA,VO);
+				
+							if(TGFVOA!=null) {
+								
+								if(qtdprev!=null && qtdEmKg==null) {
+									calculaPelaQuantidade(qtdprev,qtdEmKg,TGFVOA,VO);
+								}
+								
+								if(qtdEmKg!=null) {
+									calcularPeloKg(qtdprev,qtdEmKg,TGFVOA,VO);
+								}
+				
 							}
-			
-						}
 
-					}else {
-						
-						if(qtdprev!=null) {
-							VO.setProperty("AD_QTDEMKG", qtdprev);
+						}else {
+							
+							if(qtdprev!=null) {
+								VO.setProperty("AD_QTDEMKG", qtdprev);
+							}
+							
+							if (qtdprev==null && qtdEmKg!=null) {
+								VO.setProperty("QTDEPREVISTA", qtdEmKg);
+							}
 						}
 						
-						if (qtdprev==null && qtdEmKg!=null) {
-							VO.setProperty("QTDEPREVISTA", qtdEmKg);
-						}
-					}
-					
-				}	
-			}
-			
+					}	
+				}
+				
+			}	
 		}
 	}
 	

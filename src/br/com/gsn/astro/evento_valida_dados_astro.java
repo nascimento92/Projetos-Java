@@ -102,7 +102,14 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 				VO.setProperty("VLRTOT", vlr.multiply(qtd));
 			}	
 		
-		}	
+		}
+		
+		if(top.intValue()==10002) {
+			String usadoComo = getTgfpro(produto).asString("USOPROD");
+			if(usadoComo!=null) {
+				VO.setProperty("USOPROD", usadoComo);
+			}
+		}
 		
 	}
 	
@@ -112,6 +119,19 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 		
 		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
 		DynamicVO VO = DAO.findOne("NUNOTA=?",new Object[] { numeroUnico });
+		
+		if(VO!=null) {
+			VOs = VO;
+		}
+
+		return VOs;
+	}
+	
+	private DynamicVO getTgfpro(BigDecimal produto) throws Exception {
+		DynamicVO VOs = null;
+		
+		JapeWrapper DAO = JapeFactory.dao("Produto");
+		DynamicVO VO = DAO.findOne("CODPROD=?",new Object[] { produto });
 		
 		if(VO!=null) {
 			VOs = VO;
