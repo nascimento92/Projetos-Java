@@ -55,6 +55,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 22/03/2022 vs 2.2 Inserida a obtenção da data de atendimento (parametro DTVISIT)
 	 * 27/03/2022 vs 2.3 Pegar o valor do item da TGFCUS preço sem ICMS
 	 * 08/04/2022 vs 2.4 Inserido método para obter o estoque do item diretamente da API do MID.
+	 * 26/04/2022 vs 2.5 Retirada a validação do Estoque direto da API
 	 */
 	
 	String retornoNegativo = "";
@@ -1834,17 +1835,21 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			BigDecimal vlrpar = (BigDecimal) DynamicVO.getProperty("VLRPAR");
 			BigDecimal vlrfun = (BigDecimal) DynamicVO.getProperty("VLRFUN");
 			String volume = getTGFPRO(produto).asString("CODVOL");
-			String liberada = getGCINSTALACAO(patrimonio).asString("AD_LIBERADA");
+			//String liberada = getGCINSTALACAO(patrimonio).asString("AD_LIBERADA");
 			
 			BigDecimal estoque = null;
 			
 			//TODO :: se a máquina estiver liberada, pegar o estoque a partir da API
+			// 26/04 - desabilitado.
+			/*
 			if("S".equals(liberada)) {
 				int estoqueAPI = obtemEstoqueViaAPI(patrimonio, tecla);
 				estoque = new BigDecimal(estoqueAPI);
 			}else {
 				estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
 			}
+			*/
+			estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
 					
 			BigDecimal falta = nivelpar.subtract(estoque);
 			BigDecimal valor = null;
