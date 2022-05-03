@@ -1,6 +1,7 @@
 package br.com.grancoffee.TelemetriaPropria;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Calendar;
@@ -35,6 +36,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para salvar os itens que deveriam ser abastecidos porém não tinha em estoque na filial
 	 * 24/11/2021 vs 1.2 Ajustado a geração dos pedidos considerando a quantidade mínima.
 	 * 27/03/2022 vs 1.3 Pegar o valor do item da TGFCUS preço sem ICMS
+	 * 28/04/2022 vs 1.4 Ajusta validações dos itens da nota.
 	 */
 	
 	@Override
@@ -967,17 +969,41 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			BigDecimal valorTotal = falta.multiply(valor);
 			
 			//validacao
-			if(falta.doubleValue() % qtdMinima.doubleValue() == 0) {
-				if(falta.intValue() <= estoqueNaEmpresa.intValue()) {
-					if(falta.intValue()>0) {
-						sequencia++;
-						insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+			
+			if(falta.doubleValue() <= estoqueNaEmpresa.doubleValue() && falta.doubleValue()>0) {
+				if(qtdMinima.doubleValue()>1) {
+					if(falta.doubleValue()>qtdMinima.intValue()) {
+						BigDecimal qtdVezes = falta.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
+						BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
+						if(qtdParaNota.doubleValue()<=nivelpar.doubleValue()) {
+							sequencia++;
+							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+						}else { //quantidade para nota, a cima do nível par.
+							//cortado
+							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Falta "+falta+", quantidade para ser abastecida "+qtdParaNota+", nível par "+nivelpar+", quantidade para a nota superior ao nível par.", nivelpar, estoque);
+						}
+					}else { //n atingiu a qtd minima
+						//cortado
+						insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.", nivelpar, estoque);
 					}
 				}else {
-					//TODO :: insere itens em corte / ruptura
-					insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, falta, valor, tecla, gc_solicitabast, patrimonio);
+					sequencia++;
+					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);	
 				}
+			}else {
+				//cortado
+				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoque);
 			}
+			
+			/*
+			 * if(falta.doubleValue() % qtdMinima.doubleValue() == 0) { if(falta.intValue()
+			 * <= estoqueNaEmpresa.intValue()) { if(falta.intValue()>0) { sequencia++;
+			 * insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta,
+			 * new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast); }
+			 * }else { //TODO :: insere itens em corte / ruptura insereItemEmRuptura(nunota,
+			 * empresaAbast, localAbast, produto, falta, valor, tecla, gc_solicitabast,
+			 * patrimonio); } }
+			 */
 			
 			}
 		} catch (Exception e) {
@@ -1090,7 +1116,8 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	}
 	
 	private void insereItemEmRuptura(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
-			BigDecimal qtdneg, BigDecimal vlrunit, String tecla, DynamicVO gc_solicitabast, String patrimonio) {
+			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, 
+			DynamicVO gc_solicitabast, String patrimonio, String motivo, BigDecimal nivelpar, BigDecimal estoque) {
 		try {
 			
 			String PedidoSecosCongelados = (String) gc_solicitabast.getProperty("AD_TIPOPRODUTOS");
@@ -1118,6 +1145,10 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				VO.setProperty("CODLOCALORIG", local);
 				VO.setProperty("QTDNEG", qtdneg);
 				VO.setProperty("VLRUNIT", vlrunit);
+				VO.setProperty("MOTIVO", motivo);
+				VO.setProperty("NIVELPAR", nivelpar);
+				VO.setProperty("ESTOQUE", estoque);
+				VO.setProperty("DATA", TimeUtils.getNow());
 
 				dwfFacade.createEntity("AD_ITENSCORTE", (EntityVO) VO);
 			}
