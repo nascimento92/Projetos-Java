@@ -37,6 +37,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 24/11/2021 vs 1.2 Ajustado a geração dos pedidos considerando a quantidade mínima.
 	 * 27/03/2022 vs 1.3 Pegar o valor do item da TGFCUS preço sem ICMS
 	 * 28/04/2022 vs 1.4 Ajusta validações dos itens da nota.
+	 * 06/05/2022 vs 1.6 Inserida validações para as visitas agendadas automaticamente.
 	 */
 	
 	@Override
@@ -96,6 +97,11 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				String status = DynamicVO.asString("STATUS");
 				BigDecimal nunota = DynamicVO.asBigDecimal("NUNOTA");
 				BigDecimal substituto = DynamicVO.asBigDecimal("AD_USUSUB");
+				BigDecimal solicitante = DynamicVO.asBigDecimal("CODUSU");
+				String abastecimento = DynamicVO.asString("AD_TIPOPRODUTOS");
+				Timestamp dataAgendamento = DynamicVO.asTimestamp("DTAGENDAMENTO");
+				Timestamp dataAtendimento = DynamicVO.asTimestamp("AD_DTATENDIMENTO");
+				BigDecimal rota = DynamicVO.asBigDecimal("ROTA");
 				
 				int compareTo = data.compareTo(TimeUtils.getNow()); //comparação das datas
 				
@@ -103,8 +109,22 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 					if(compareTo<=0) { //gerar Agora
 						if("1".equals(status)) {
 							if("S".equals(reabastecimento)) {
-								//gerarPedidoENota(patrimonio, DynamicVO, idretorno, id);
-								gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota, substituto);
+								
+								if(solicitante.intValue()==3082) {//agendamento automático
+									
+									String erro="";
+									erro = validacoes(patrimonio, abastecimento, dataAgendamento, dataAtendimento, rota);
+									if (erro=="") {
+										gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota, substituto);
+									}else {
+										//TODO::cancelar a visita
+										cancelarVisita(patrimonio,id,erro,idretorno);
+									}
+									
+								}else { //agendamento manual
+									gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota, substituto);
+								}
+	
 							}
 						}
 					}
@@ -115,8 +135,53 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			// TODO: handle exception
 		}
 	}
-
 	
+	private void cancelarVisita(String patrimonio, BigDecimal id, String motivo, BigDecimal idretorno) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento",
+					"this.CODBEM=? AND this.ID=? ", new Object[] { patrimonio, id }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("STATUS",  "4");
+				VO.setProperty("AD_DTCANCELAMENTO",  TimeUtils.getNow());
+				VO.setProperty("AD_CODUSUCANCEL",  new BigDecimal(3082));
+				VO.setProperty("AD_MOTCANCEL",  motivo);
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			salvarException("[cancelarVisita] Nao foi possivel cancelar a visita! patrimonio: "+patrimonio+" id: "+id+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+		
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_RETABAST",
+					"this.ID=?", new Object[] { idretorno }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("STATUS", "4");
+
+				itemEntity.setValueObject(NVO);
+			}
+
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			dwfFacade.removeByCriteria(new FinderWrapper("AD_ITENSRETABAST", "this.ID=?",new Object[] {idretorno}));
+			//dwfFacade.removeByCriteria(new FinderWrapper("AD_RETABAST", "this.ID=?",new Object[] {idretorno}));
+
+		} catch (Exception e) {
+			salvarException("[cancelarVisita] Nao foi possivel excluir o retorno de abastecimento! id retorno: "+idretorno+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+
 	private void gerarPedidoENota(String patrimonio, DynamicVO gc_solicitabast, BigDecimal idRetorno, BigDecimal idsolicitacao, BigDecimal nto, BigDecimal sub) throws Exception {
 		
 		BigDecimal nunota = null;
@@ -1040,7 +1105,6 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return valor;
 	}
 	
-	
 	private DynamicVO getTGFGRU(BigDecimal grupo) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("GrupoProduto");
 		DynamicVO VO = DAO.findOne("CODGRUPOPROD=?", new Object[] { grupo });
@@ -1285,7 +1349,6 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return VO;
 	}
 	
-	
 	private void salvarException(String mensagem) {
 		try {
 
@@ -1306,5 +1369,228 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
 		}
 	}
+	
+	// VALIDAÇÕES
+	
+	private String validacoes(String patrimonio, String abastecimento, Timestamp dtagendamento, Timestamp dtatendimento, BigDecimal rota) {
+		
+		String erro = "";
+		
+		try {
+			//TODO :: Valida máquina na rota
+			if(!validaSeAhMaquinaEstaNaRota(patrimonio)) {
+				erro = "Máquina não vinculada a uma rota";
+			}
+			
+			//TODO:: valida se a máquina possuí planograma.
+			if(verificaSeAhMaquinaPossuiPlanograma(patrimonio)) {
+				erro = "Máquina não possui planograma";
+			}
+			
+			//TODO:: verifica se existe visita pendente sem ajste.
+			if(validaSeExisteVisitaSemAjusteReabastecimento(patrimonio)) {
+				erro = "Máquina não possui planograma";
+			}
+			
+			//TODO:: valida se o pedido pode ser gerado.
+			if(!validaSeOhPedidoDeAbastecimentoPoderaSerGerado(abastecimento,patrimonio)) {
+				erro = "Não foi possível gerar a visita, causas possíveis: Máquina totalmente abastecida, Itens marcados para não abastecer, Itens em ruptura, Itens com qtd. mínima não atingida.";
+			}
+			
+			//TODO:: Valida se já não existe pedido pendente.
+			if (validaPedido(patrimonio, abastecimento)) {
+				erro = "Máquina já possui pedido pendente";
+			}
+			
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return erro;
+	}
+	
+	private boolean validaSeAhMaquinaEstaNaRota(String patrimonio) throws Exception {
+		boolean valida = false;
+		try {
+
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT CASE WHEN EXISTS(SELECT CODBEM FROM AD_ROTATELINS I JOIN AD_ROTATEL R ON (R.ID=I.ID) WHERE I.CODBEM='"+patrimonio+"' AND R.ROTATELPROPRIA='S') THEN 'S' ELSE 'N' END AS VALIDA FROM DUAL" );
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				String verifica = contagem.getString("VALIDA");
+				if ("S".equals(verifica)) {
+					valida = true;
+				}
+			}
+
+		} catch (Exception e) {
+			
+			  salvarException("[validaSeAhMaquinaEstaNaRota] Não foi possivel verificar se a maquina "
+			  + patrimonio + " esta na rota. " + e.getMessage() + "\n" + e.getCause());
+			 
+		}
+		return valida;
+		}
+		
+	private boolean verificaSeAhMaquinaPossuiPlanograma(String codbem) {
+			boolean valida = false;
+			
+			try {
+
+				JdbcWrapper jdbcWrapper = null;
+				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+				jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+				ResultSet contagem;
+				NativeSql nativeSql = new NativeSql(jdbcWrapper);
+				nativeSql.resetSqlBuf();
+				nativeSql.appendSql("SELECT COUNT(*) AS QTD FROM GC_PLANOGRAMA WHERE CODBEM='"+codbem+"'");
+				contagem = nativeSql.executeQuery();
+				while (contagem.next()) {
+					int count = contagem.getInt("QTD");
+					if (count == 0) {
+						valida = true;
+					}
+				}
+
+			} catch (Exception e) {
+				
+				  salvarException(
+				  "[verificaSeAhMaquinaPossuiPlanograma] Nao foi possivel validar a quantidade de itens no planograma! Patrimonio "
+				  + codbem + e.getMessage() + "\n" + e.getCause());
+				 
+			}
+			
+			return valida;
+		}
+		
+	private boolean validaSeExisteVisitaSemAjusteReabastecimento(String patrimonio) {
+			boolean valida = false;
+			try {
+				JdbcWrapper jdbcWrapper = null;
+				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+				jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+				ResultSet contagem;
+				NativeSql nativeSql = new NativeSql(jdbcWrapper);
+				nativeSql.resetSqlBuf();
+				nativeSql.appendSql(
+				"SELECT COUNT(OK) AS QTD "+
+				"FROM( SELECT CASE WHEN S.STATUS='3' AND R.STATUSVALIDACAO='2' THEN 'S' ELSE 'N' END AS OK"
+				+ " FROM GC_SOLICITABAST S"
+				+ " JOIN AD_RETABAST R ON (R.ID=S.IDABASTECIMENTO)"
+				+ " WHERE S.CODBEM='"+patrimonio+"' AND R.NUMOS IS NOT NULL AND S.REABASTECIMENTO='S' AND S.STATUS='3') WHERE OK='N'");
+				contagem = nativeSql.executeQuery();
+				while (contagem.next()) {
+					int count = contagem.getInt("QTD");
+					if (count >= 1) {
+						valida = true;
+					}
+				}
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+			return valida;
+		}
+		
+	private boolean validaSeOhPedidoDeAbastecimentoPoderaSerGerado(String secosCongelados, String codbem) {
+			
+			boolean valida = false;
+			
+			try {
+				
+				String tipoAbastecimento = "";
+				
+				if("1".equals(secosCongelados)) {
+					tipoAbastecimento="N";
+				}else {
+					tipoAbastecimento="S";
+				}
+				
+				JdbcWrapper jdbcWrapper = null;
+				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+				jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+				ResultSet contagem;
+				NativeSql nativeSql = new NativeSql(jdbcWrapper);
+				nativeSql.resetSqlBuf();
+				nativeSql.appendSql(
+				"SELECT COUNT(*) AS QTD "+
+				"FROM("+
+					"SELECT X.CODBEM, X.CODPROD, X.FALTA, X.EMP_ABAST, X.LOCAL_ABAST, AD_CONGELADOS FROM("+
+						"SELECT T.CODBEM, P.CODPROD,(P.NIVELPAR-P.ESTOQUE) AS FALTA, "+
+						"CASE WHEN NVL(EO.CODEMPABAST,C.CODEMP)=1 AND '"+secosCongelados+"'='1' THEN 6 WHEN NVL(EO.CODEMPABAST,C.CODEMP) IN (1,6) AND '"+secosCongelados+"'='2' THEN 2 WHEN NVL(EO.CODEMPABAST,C.CODEMP)<>1 THEN NVL(EO.CODEMPABAST,C.CODEMP) END AS EMP_ABAST, "+
+						"NVL(EO.CODLOCALABAST,1110) AS LOCAL_ABAST, NVL(GRU.AD_CONGELADOS,'N') AS AD_CONGELADOS, NVL(PRO.AD_QTDMIN,1) AS AD_QTDMIN FROM GC_INSTALACAO T "+
+						"JOIN GC_PLANOGRAMA P ON (P.CODBEM=T.CODBEM) JOIN AD_ENDERECAMENTO EO ON (EO.CODBEM=T.CODBEM) JOIN TCSCON C ON (C.NUMCONTRATO=EO.NUMCONTRATO) JOIN TGFPRO PRO ON (PRO.CODPROD=P.CODPROD) JOIN TGFGRU GRU ON (GRU.CODGRUPOPROD=PRO.CODGRUPOPROD) "+
+						"WHERE T.CODBEM='"+codbem+"' AND P.AD_ABASTECER='S' AND (P.NIVELPAR - P.ESTOQUE)> 0 "+
+					") X "+
+					"LEFT JOIN TGFEST E ON (E.CODEMP=X.EMP_ABAST AND E.CODLOCAL=X.LOCAL_ABAST AND E.CODPROD=X.CODPROD AND E.CONTROLE=' ' AND E.ATIVO='S' AND E.CODPARC=0) "+
+					"WHERE (E.ESTOQUE - E.RESERVADO) >= FALTA AND '"+tipoAbastecimento+"' = AD_CONGELADOS AND TRUNC(FALTA/AD_QTDMIN)>0 "+
+				")");
+				contagem = nativeSql.executeQuery();
+				while (contagem.next()) {
+					int count = contagem.getInt("QTD");
+					if (count >= 1) {
+						valida = true;
+					}
+				}
+
+			} catch (Exception e) {
+				
+				  salvarException(
+				  "[validaSeOhPedidoDeAbastecimentoPoderaSerGerado] Nao foi possivel validar a quantidade de itens! Patrimonio "
+				  +codbem + e.getMessage() + "\n" + e.getCause());
+				 
+			}
+			
+			return valida;
+			
+		}
+		
+	private boolean validaPedido(String patrimonio, String secosCongelados) {
+			boolean valida = false;
+
+			try {
+
+				JdbcWrapper jdbcWrapper = null;
+				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+				jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+				ResultSet contagem;
+				NativeSql nativeSql = new NativeSql(jdbcWrapper);
+				nativeSql.resetSqlBuf();
+
+				if ("1".equals(secosCongelados)) {
+					nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
+							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='1' AND NUMOS IS NOT NULL");
+				} else if ("2".equals(secosCongelados)) {
+					nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
+							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='2' AND NUMOS IS NOT NULL");
+				} else {
+					nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
+							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('1','2') AND NUMOS IS NOT NULL");
+				}
+
+				contagem = nativeSql.executeQuery();
+				while (contagem.next()) {
+					int count = contagem.getInt("COUNT(*)");
+					if (count >= 1) {
+						valida = true;
+					}
+				}
+
+			} catch (Exception e) {
+				
+				  salvarException( "[validaPedido] Nao foi possivel validar o pedido! " +
+				  e.getMessage() + "\n" + e.getCause());
+				 
+			}
+
+			return valida;
+		}
+	
+	//--- FIM VALIDAÇÕES
 
 }

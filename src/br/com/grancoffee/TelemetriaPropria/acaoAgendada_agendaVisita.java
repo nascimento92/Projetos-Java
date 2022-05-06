@@ -29,6 +29,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 	
 	/**
 	 * 04/05/2022 1.0 - Desenvolvimento da ação agendada, objeto verificará as máquinas que tem abastecimento programada e realiza a criação do agendamento.
+	 * 06/05/2022 1.1 - Retirada as validações, esse objeto terá a responsabilidade apenas de agendar, as validações precisam estar no objeto que de fato faz a geração da OS/NOTA.
 	 */
 
 	@Override
@@ -125,9 +126,9 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 				dataAgendamento = buildData(hora);
 				dataAtendimento = TimeUtils.dataAddDay(dataAgendamento, QtdDias);
 				
-				String erro = validacoes(patrimonio, abastecimento, dataAgendamento, dataAtendimento, new BigDecimal(rota));
+				//String erro = validacoes(patrimonio, abastecimento, dataAgendamento, dataAtendimento, new BigDecimal(rota));
 				
-				if(erro=="") {
+				//if(erro=="") {
 					
 					if("1".equals(abastecimento)) { //Apenas Secos
 						idRetorno = cadastrarNovoAbastecimento(patrimonio, "S", "N", idflow);
@@ -168,7 +169,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 					}
 					
 					atualizarInstalacao(patrimonio);
-				}
+			//	}
 				
 				}
 
@@ -642,6 +643,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 	
 	// VALIDAÇÕES
 	
+	/*
 	private String validacoes(String patrimonio, String abastecimento, Timestamp dtagendamento, Timestamp dtatendimento, BigDecimal rota) {
 		
 		String erro = "";
@@ -884,5 +886,5 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 		return valida;
 	}
 	//--- FIM VALIDAÇÕES
-
+	*/
 }
