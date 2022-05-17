@@ -26,9 +26,9 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 	/**
 	 * @author Gabriel
 	 * 
-	 * 19/11/2020 11:15 vs1.6 implementado método [cadastraServicoParaOhExecutante] para cadastrar o serviço/produto para o executante.
-	 * 16/12/2020 16:35 vs1.7 implementado método [salvarException] para registrar as Exceptions, criado método [registraOsCriada] para salvar na AD_PATCANCELAMENTO qual o número da OS gerada.
-	 * 
+	 * 19/11/2020 11:15 vs1.6 Gabriel Nascimento: implementado método [cadastraServicoParaOhExecutante] para cadastrar o serviço/produto para o executante.
+	 * 16/12/2020 16:35 vs1.7 Gabriel Nascimento: implementado método [salvarException] para registrar as Exceptions, criado método [registraOsCriada] para salvar na AD_PATCANCELAMENTO qual o número da OS gerada.
+	 * 13/05/2022 16:07 vs1.8 Nicolas Oliveira: Inserido funcionalidade para alteração do motivo da OS = Se Motivo Principal for Inadimplência (5) então o motivo da OS é RETIRADA - INADIMP (70), senão segue o fluxo padrão.
 	 */
 	
 	//int contador = 0;
@@ -77,10 +77,12 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 		
 		String descricao = this.tipoRetirada+quantidadeMaquinas+Patrimonios+outrosCampos;
 		
+		String motivoPrincipal = getFormCancelmaento(idflow).asString("MOTIVOCANCELPRINC");
+		
 		BigDecimal numos = gerarCabecalhoOS(idflow,descricao);
 		if(numos.intValue()!=0) {
 			int primeiro = 159;
-			geraItemOS(numos,idflow,primeiro, 1);		
+			geraItemOS(numos,idflow,primeiro, 1, motivoPrincipal);		
 			salvaOsGerada(idflow,numos);
 			registraOsCriada(idflow,planta,numos);
 		}
@@ -299,7 +301,14 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 		return numos;
 	}
 	
-	private void geraItemOS(BigDecimal numos,Object idflow, int usuario, int numitem) throws Exception{
+	private void geraItemOS(BigDecimal numos,Object idflow, int usuario, int numitem, String motivoprincipal) throws Exception{
+		
+		BigDecimal motivoOs = null;
+		if ("5".equals(motivoprincipal)) {
+			motivoOs = new BigDecimal(70);
+		} else {
+			motivoOs = new BigDecimal(2);
+		}
 		
 		DynamicVO patrimonio = getUmPatrimonioDeExemplo(idflow);
 		BigDecimal produto = getTCIBEM(patrimonio.asString("CODBEM")).asBigDecimal("CODPROD");
@@ -322,7 +331,7 @@ public class flow_cc_tarefaJava_GerarOS implements TarefaJava {
 			NotaProdVO.setProperty("SERIE", patrimonio.asString("CODBEM"));
 			NotaProdVO.setProperty("CODPROD", produto);
 			NotaProdVO.setProperty("CODSIT", new BigDecimal(1));
-			NotaProdVO.setProperty("CODOCOROS", new BigDecimal(2));
+			NotaProdVO.setProperty("CODOCOROS",motivoOs);
 			NotaProdVO.setProperty("SOLUCAO", " ");
 			NotaProdVO.setProperty("CODUSU", new BigDecimal(usuario));
 			NotaProdVO.setProperty("CORSLA", null);
