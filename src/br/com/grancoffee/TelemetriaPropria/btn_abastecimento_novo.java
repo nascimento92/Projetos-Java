@@ -56,6 +56,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 27/03/2022 vs 2.3 Pegar o valor do item da TGFCUS preço sem ICMS
 	 * 08/04/2022 vs 2.4 Inserido método para obter o estoque do item diretamente da API do MID.
 	 * 26/04/2022 vs 2.5 Retirada a validação do Estoque direto da API
+	 * 10/05/2022 vs 2.6 Ajuste na rotina de abastecimento, quando o item tinha quantidade minima, o valor faltante tinha que ser > que a quantidade minima, foi alterado para ser >=
 	 */
 	
 	String retornoNegativo = "";
@@ -1876,7 +1877,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				
 				if(qtdMinima.doubleValue()>1) { //possui qtd minima
 					
-					if(falta.doubleValue()>qtdMinima.intValue()) {
+					if(falta.doubleValue()>=qtdMinima.intValue()) {
 						BigDecimal qtdVezes = falta.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
 						BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
 						

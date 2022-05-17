@@ -15,6 +15,13 @@ import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class acao_notificacao_de_negativacao implements AcaoReguaCobranca  {
+	
+	/**
+	 * @descricao
+	 * Essa ação tem o objeto de alterar um status na mov. financeira, e salvar o histórico da atualização na AD_HISTREGUA. Esta sendo utilizado pelo flow.
+	 * 
+	 * 05/05/2022 vs 1.0 a 1.2 - Gabriel Nascimento - Desenvolvimento do objeto.
+	 */
 
 	@Override
 	public void execute(ContextoRegua arg0) throws Exception {
