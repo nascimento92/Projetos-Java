@@ -65,6 +65,7 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 		BigDecimal qtd = null;
 		BigDecimal contrato = null;
 		BigDecimal vlr = null;
+		BigDecimal qtdfinal = null;
 
 		//TODO::Descobrir a TOP
 		top = getTgfcab(numeroUnico).asBigDecimal("CODTIPOPER");
@@ -96,10 +97,16 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			contrato = getTgfcab(numeroUnico).asBigDecimal("NUMCONTRATO");
 			qtd = getTcspsc(contrato,produto).asBigDecimal("QTDEPREVISTA");
 			
-			if(qtd!=null) {
+			if(qtd.intValue()<=0) {
+				qtdfinal = new BigDecimal(1);
+			}else {
+				qtdfinal = qtd;
+			}
+			
+			if(qtdfinal!=null) {
 				vlr = VO.asBigDecimal("VLRUNIT");
-				VO.setProperty("QTDNEG", qtd);
-				VO.setProperty("VLRTOT", vlr.multiply(qtd));
+				VO.setProperty("QTDNEG", qtdfinal);
+				VO.setProperty("VLRTOT", vlr.multiply(qtdfinal));
 			}	
 		
 		}

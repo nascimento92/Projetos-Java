@@ -22,7 +22,11 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 
 public class evento_calculaRetornos implements EventoProgramavelJava {
-
+	
+	/**
+	 * 11/05/2022 vs 1.3 - Inserido a funcionalidade para registrar o horário de alteração/inserção da linha.
+	 */
+	
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		update(arg0);
@@ -55,6 +59,8 @@ public class evento_calculaRetornos implements EventoProgramavelJava {
 		if(VO.asBigDecimal("QTD").intValue()==0) {
 			VO.setProperty("QTD", new BigDecimal(1));
 		}
+		
+		VO.setProperty("DTALTER", TimeUtils.getNow());
 	}
 
 	@Override
@@ -63,6 +69,8 @@ public class evento_calculaRetornos implements EventoProgramavelJava {
 		if(VO.asBigDecimal("QTD").intValue()==0) {
 			throw new Error("Valor não pode ser zero, caso não houve retorno deste item, exclui-lo!");
 		}
+		
+		VO.setProperty("DTALTER", TimeUtils.getNow());
 	}
 
 
