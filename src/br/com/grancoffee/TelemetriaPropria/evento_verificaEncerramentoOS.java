@@ -39,6 +39,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 	 * 26/10/2021 vs 1.6 Insere nos cálculos a retirada dos retornos que não devem entrar nos calculos. Todos onde o campo REDUZESTOQUE da AD_MOTIVOSRETORNO esteja como "N".
 	 * 30/12/2021 vs 1.8 Ajuste do objeto que passa o planograma pendente para o planograma atual
 	 * 24/01/2022 vs 1.9 Inserida a validação para não realizar as ações se a OS foi cancelada.
+	 * 19/05/2022 vs 2.0 Bloqueado temporáriamente a chamada do objeto pentaho, criado métodos [atualizaNivelPar] e [atualizaPlanAtual] para atualizar o nv. par quando for apenas visita.
 	 */
 	
 	@Override
@@ -101,6 +102,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 					realizaValidacoes(numos);
 					atualizaCamposFinal(numos);
 					
+					/*
 					Timer timer = new Timer(1000, new ActionListener() {	
 						@Override
 						public void actionPerformed(ActionEvent e) {
@@ -109,6 +111,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 					});
 					timer.setRepeats(false);
 					timer.start();
+					*/
 				}
 				
 			}	
@@ -176,6 +179,8 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 					atualizaDadosAbastecimento(patrimonio);
 					//TODO :: planograma pendente para atual
 					validaDadosAbastecimento(numos, gc_SOLICITABAST);
+				}else {
+					atualizaNivelPar(numos, gc_SOLICITABAST);
 				}
 				
 			}
@@ -514,6 +519,61 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		} catch (Exception e) {
 			salvarException(
 					"[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void atualizaNivelPar(BigDecimal numos, DynamicVO gc_SOLICITABAST) {
+		
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade
+					.findByDynamicFinder(new FinderWrapper("AD_TROCADEGRADE", "this.NUMOS = ? ", new Object[] { numos }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				String patrimonio = DynamicVO.asString("CODBEM");
+				String tecla = DynamicVO.asString("TECLA");
+				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+				
+				atualizaPlanAtual(patrimonio,tecla,produto,nivelpar);
+				
+			}
+			
+		} catch (Exception e) {
+			salvarException(
+					"[atualizaNivelPar] nao foi possivel obter os dados. numos " + numos
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+	}
+	
+	private void atualizaPlanAtual(String patrimonio,String tecla,BigDecimal produto,BigDecimal nivelpar) {
+		try {
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_PLANOGRAMAATUAL",
+					"this.CODBEM=? AND this.TECLA=? AND this.CODPROD=? ", new Object[] { patrimonio, tecla,  produto}));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("NIVELPAR", nivelpar);
+
+				itemEntity.setValueObject(NVO);
+			}
+			
+		} catch (Exception e) {
+			salvarException(
+					"[atualizaPlanAtual] nao foi possivel atualizar o plan. atual, patrimônio: " + patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
