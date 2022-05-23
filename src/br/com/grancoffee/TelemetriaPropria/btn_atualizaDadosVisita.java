@@ -26,7 +26,11 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
-		start(linhas[0], arg0);
+		
+		for(int i=0; i < linhas.length; i++) {
+			start(linhas[i], arg0);
+		}
+		
 	}
 
 	private void start(Registro linhas, ContextoAcao arg0) {
