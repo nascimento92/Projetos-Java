@@ -22,7 +22,9 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_atualizaDadosVisita implements AcaoRotinaJava {
-
+	int c = 0;
+	int c2 = 0;
+	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
@@ -30,6 +32,8 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 		for(int i=0; i < linhas.length; i++) {
 			start(linhas[i], arg0);
 		}
+		
+		arg0.setMensagemRetorno("<br/><b>Atenção</b><br/><br/> Visitas que tiveram contagem e foram ajustadas: "+c+"\nVisitas que não tiveram contagem: "+c2+"<br/><br/>");
 		
 	}
 
@@ -39,10 +43,12 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 		String patrimonio = (String) linhas.getCampo("CODBEM");
 		
 		if (verificaSeHouveContagem(numos)) {
-			arg0.setMensagemRetorno("Houve contagem");
+			c++;
+			//arg0.setMensagemRetorno("Houve contagem, "+c+" visitas atualizadas.");
 			verificaTeclas(numos,id,patrimonio);
 		} else {
-			arg0.setMensagemRetorno("Não houve contagem!");
+			c2++;
+			//arg0.setMensagemRetorno("Não houve contagem!");
 		}
 
 	}
@@ -109,6 +115,7 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 				VO.setProperty("CONTAGEM", qtdcontada);
 
 				itemEntity.setValueObject(NVO);
+				
 			}
 		} catch (Exception e) {
 			salvarException("[atualizaDados] nao foi possivel atualizar os dados das teclas! patrimonio: "+patrimonio+" tecla: "+tecla+" produto: "+produto+"\n"+e.getMessage()+"\n"+e.getCause());
