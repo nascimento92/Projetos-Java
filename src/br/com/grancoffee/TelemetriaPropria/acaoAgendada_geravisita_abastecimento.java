@@ -31,7 +31,9 @@ import br.com.sankhya.modelcore.util.SPBeanUtils;
 import br.com.sankhya.ws.ServiceContext;
 
 public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
-
+	
+	int qtdTeclas = 99;
+	
 	/**
 	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para salvar os itens que deveriam ser abastecidos porém não tinha em estoque na filial
 	 * 24/11/2021 vs 1.2 Ajustado a geração dos pedidos considerando a quantidade mínima.
@@ -39,6 +41,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 28/04/2022 vs 1.4 Ajusta validações dos itens da nota.
 	 * 06/05/2022 vs 1.6 Inserida validações para as visitas agendadas automaticamente.
 	 * 27/05/2022 vs 1.7 Inserido método para verificar o motivo de algumas máquinas estarem retornando o erro de "máquina sem planograma".
+	 * 31/05/2022 vs 1.8 Ajustes no método de validações.
 	 */
 	
 	@Override
@@ -1401,29 +1404,28 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		try {
 			//TODO :: Valida máquina na rota
 			if(!validaSeAhMaquinaEstaNaRota(patrimonio)) {
-				erro = "Máquina "+patrimonio+" não vinculada a uma rota";
+				erro = erro+"\nMáquina "+patrimonio+" não vinculada a uma rota";
 			}
 			
 			//TODO:: valida se a máquina possuí planograma.
-			/*
 			if(verificaSeAhMaquinaPossuiPlanograma(patrimonio)) {
-				erro = "Máquina "+patrimonio+" não possui planograma";
+				erro = "Máquina "+patrimonio+" não possui planograma, quantidade de teclas: "+this.qtdTeclas+" hora atual: "+TimeUtils.getNow();
 			}
-			*/
+			
 			
 			//TODO:: verifica se existe visita pendente sem ajste.
 			if(validaSeExisteVisitaSemAjusteReabastecimento(patrimonio)) {
-				erro = "Máquina "+patrimonio+" não possui planograma";
+				erro = erro+"\nMáquina "+patrimonio+" possui visita anterior pendente de ajuste por parte do setor de controladoria";
 			}
 			
 			//TODO:: valida se o pedido pode ser gerado.
 			if(!validaSeOhPedidoDeAbastecimentoPoderaSerGerado(abastecimento,patrimonio)) {
-				erro = "Não foi possível gerar a visita, causas possíveis: Máquina totalmente abastecida, Itens marcados para não abastecer, Itens em ruptura, Itens com qtd. mínima não atingida.";
+				erro = erro+"\nNão foi possível gerar a visita, causas possíveis: Máquina totalmente abastecida, Itens marcados para não abastecer, Itens em ruptura, Itens com qtd. mínima não atingida.";
 			}
 			
 			//TODO:: Valida se já não existe pedido pendente.
 			if (validaPedido(patrimonio, abastecimento)) {
-				erro = "Máquina "+patrimonio+" já possui pedido pendente";
+				erro = erro+"\nMáquina "+patrimonio+" já possui pedido pendente";
 			}
 			
 			
@@ -1477,8 +1479,9 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				contagem = nativeSql.executeQuery();
 				while (contagem.next()) {
 					int count = contagem.getInt("QTD");
-					if (count == 0) {
+					if (count <= 0) {
 						valida = true;
+						this.qtdTeclas=count;
 					}
 				}
 
