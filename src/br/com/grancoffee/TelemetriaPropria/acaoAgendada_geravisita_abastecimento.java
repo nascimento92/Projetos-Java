@@ -38,6 +38,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 27/03/2022 vs 1.3 Pegar o valor do item da TGFCUS preço sem ICMS
 	 * 28/04/2022 vs 1.4 Ajusta validações dos itens da nota.
 	 * 06/05/2022 vs 1.6 Inserida validações para as visitas agendadas automaticamente.
+	 * 27/05/2022 vs 1.7 Inserido método para verificar o motivo de algumas máquinas estarem retornando o erro de "máquina sem planograma".
 	 */
 	
 	@Override
@@ -116,6 +117,8 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 									erro = validacoes(patrimonio, abastecimento, dataAgendamento, dataAtendimento, rota);
 									if (erro=="") {
 										gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota, substituto);
+									}else if(erro == "Máquina "+patrimonio+" não possui planograma") {
+										registraHistoricoDeErro(patrimonio, id, erro);
 									}else {
 										//TODO::cancelar a visita
 										cancelarVisita(patrimonio,id,erro,idretorno);
@@ -179,6 +182,25 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 		} catch (Exception e) {
 			salvarException("[cancelarVisita] Nao foi possivel excluir o retorno de abastecimento! id retorno: "+idretorno+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void registraHistoricoDeErro(String patrimonio, BigDecimal id, String erro) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento",
+					"this.CODBEM=? AND this.ID=? ", new Object[] { patrimonio, id }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+				
+				VO.setProperty("AD_MOTCANCEL",  "Desconsiderar: "+erro);
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			salvarException("[cancelarVisita] Nao foi possivel cancelar a visita! patrimonio: "+patrimonio+" id: "+id+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -1379,17 +1401,19 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		try {
 			//TODO :: Valida máquina na rota
 			if(!validaSeAhMaquinaEstaNaRota(patrimonio)) {
-				erro = "Máquina não vinculada a uma rota";
+				erro = "Máquina "+patrimonio+" não vinculada a uma rota";
 			}
 			
 			//TODO:: valida se a máquina possuí planograma.
+			/*
 			if(verificaSeAhMaquinaPossuiPlanograma(patrimonio)) {
-				erro = "Máquina não possui planograma";
+				erro = "Máquina "+patrimonio+" não possui planograma";
 			}
+			*/
 			
 			//TODO:: verifica se existe visita pendente sem ajste.
 			if(validaSeExisteVisitaSemAjusteReabastecimento(patrimonio)) {
-				erro = "Máquina não possui planograma";
+				erro = "Máquina "+patrimonio+" não possui planograma";
 			}
 			
 			//TODO:: valida se o pedido pode ser gerado.
@@ -1399,7 +1423,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 			//TODO:: Valida se já não existe pedido pendente.
 			if (validaPedido(patrimonio, abastecimento)) {
-				erro = "Máquina já possui pedido pendente";
+				erro = "Máquina "+patrimonio+" já possui pedido pendente";
 			}
 			
 			

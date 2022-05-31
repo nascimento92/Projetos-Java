@@ -23,6 +23,10 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 
 public class evento_valida_gc_instalacao implements EventoProgramavelJava{
+	
+	/**
+	 * 27/05/2022 vs 1.4 Inserida no before insert para já marcar a máquina como liberada.
+	 */
 
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
@@ -295,6 +299,9 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		}
 		
 		String loja = VO.asString("TOTEM");
+		
+		VO.setProperty("AD_LIBERADA", "S");
+		VO.setProperty("AD_DTLIBERADA", TimeUtils.getNow());;
 		
 		if("S".equals(loja)) {
 			if(!verificaGrupoProdutoDaMaquina(patrimonio)) {
