@@ -42,6 +42,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 06/05/2022 vs 1.6 Inserida validações para as visitas agendadas automaticamente.
 	 * 27/05/2022 vs 1.7 Inserido método para verificar o motivo de algumas máquinas estarem retornando o erro de "máquina sem planograma".
 	 * 31/05/2022 vs 1.8 Ajustes no método de validações.
+	 * 01/06/2022 vs 1.9 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
 	 */
 	
 	@Override
@@ -639,6 +640,26 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				salvarException("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
 			}
 			
+		}else if ("3".equals(PedidoSecosCongelados)) { //tabaco
+			
+			try {
+
+				JdbcWrapper jdbcWrapper = null;
+				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+				jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+				ResultSet contagem;
+				NativeSql nativeSql = new NativeSql(jdbcWrapper);
+				nativeSql.resetSqlBuf();
+				nativeSql.appendSql("select NVL(ABASTTABACO,815) as CODABAST from ad_rotatel where id in (select id from ad_rotatelins where codbem='"+patrimonio+"') and nvl(ROTATELPROPRIA,'N')='S' and rownum=1");
+				contagem = nativeSql.executeQuery();
+				while (contagem.next()) {
+					executante = contagem.getBigDecimal("CODABAST");
+				}
+
+			} catch (Exception e) {
+				salvarException("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
+			}
+			
 		}else {
 			
 			try {
@@ -890,6 +911,36 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		  return local;
 	}
 	
+	private BigDecimal getLocalAbastCongelados(String patrimonio) throws Exception {
+		DynamicVO ad_enderecamento = getEnderecamento(patrimonio);
+		BigDecimal local = null;
+		
+		//local de abast
+		BigDecimal localAbast = (BigDecimal) ad_enderecamento.getProperty("CODLOCALCONGELADOS");
+		  if(localAbast!=null) {
+			  local = localAbast;
+		  }else {
+			  local = new BigDecimal(1110); //talvez transformar em parametro
+		  }
+		  
+		  return local;
+	}
+	
+	private BigDecimal getLocalAbastTabaco(String patrimonio) throws Exception {
+		DynamicVO ad_enderecamento = getEnderecamento(patrimonio);
+		BigDecimal local = null;
+		
+		//local de abast
+		BigDecimal localAbast = (BigDecimal) ad_enderecamento.getProperty("CODLOCALTABACO");
+		  if(localAbast!=null) {
+			  local = localAbast;
+		  }else {
+			  local = new BigDecimal(1110); //talvez transformar em parametro
+		  }
+		  
+		  return local;
+	}
+	
 	private DynamicVO getTcscon(BigDecimal contrato) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("Contrato");
 		DynamicVO VO = DAO.findOne("NUMCONTRATO=?", new Object[] { contrato });
@@ -1014,7 +1065,22 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	private void identificaItens(BigDecimal nunota, String patrimonio, DynamicVO gc_solicitabast) {
 		try {
 			
-			BigDecimal localAbast = getLocalAbast(patrimonio);
+			//TODO::Verifica o local de abastecimento a partir dos cadastros do endereçamento.
+			//01/06 --inicio
+			String tipoProduto = gc_solicitabast.asString("AD_TIPOPRODUTOS");
+			BigDecimal localAbast = null;
+			if("1".equals(tipoProduto)) { //secos
+				localAbast = getLocalAbast(patrimonio);
+			}else if ("2".equals(tipoProduto)) { //congelados
+				localAbast = getLocalAbastCongelados(patrimonio);
+			}else if ("3".equals(tipoProduto)) {
+				localAbast = getLocalAbastTabaco(patrimonio);
+			}else {
+				localAbast = new BigDecimal(1110);
+			}
+			//01/06 -- fim
+			
+			//BigDecimal localAbast = getLocalAbast(patrimonio);
 			BigDecimal empresaAbast = getEmpresaAbast(patrimonio, gc_solicitabast);
 			BigDecimal top = getTop(empresaAbast, localAbast);
 			int sequencia = 0;
@@ -1159,41 +1225,115 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return congelado;
 	}
 	
+	private String validaSeOhItemEhTabaco(BigDecimal produto) throws Exception {
+		String tabaco = "";
+		
+		DynamicVO tgfpro = getTGFPRO(produto);
+		if(tgfpro!=null) {
+			BigDecimal codgrupo = tgfpro.asBigDecimal("CODGRUPOPROD");
+			
+			if(codgrupo!=null) {
+				DynamicVO tgfgru = getTGFGRU(codgrupo);
+				if(tgfgru!=null) {
+					tabaco = tgfgru.asString("AD_TABACO");
+				}
+			}	
+			
+		}
+		
+		if(tabaco=="" || tabaco==null) {
+			tabaco="N";
+		}
+		
+		return tabaco;
+	}
+	
 	private void insereItemNaNota(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
 			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast) {
 		try {
 			
-			String PedidoSecosCongelados = (String) gc_solicitabast.getProperty("AD_TIPOPRODUTOS");
-			String tipoAbastecimento = "";
-			
-			if("1".equals(PedidoSecosCongelados)) {
-				tipoAbastecimento="N";
-			}else {
-				tipoAbastecimento="S";
-			}
+			String PedidoSecosCongelados = gc_solicitabast.asString("AD_TIPOPRODUTOS");
 			
 			String validaSeOhItemEhDeCongelados = validaSeOhItemEhDeCongelados(produto);
+			String validaSeOhItemEhTabaco = validaSeOhItemEhTabaco(produto);
 			
-			if(tipoAbastecimento.equals(validaSeOhItemEhDeCongelados)) {
+			if("1".equals(PedidoSecosCongelados)) { //seco
 				
-				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-				EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
-				DynamicVO VO = (DynamicVO) NPVO;
+				if("N".equals(validaSeOhItemEhDeCongelados) && "N".equals(validaSeOhItemEhTabaco)) { //não é um item congelado e nem tabaco
+					
+					EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+					EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
+					DynamicVO VO = (DynamicVO) NPVO;
+					
+					VO.setProperty("NUNOTA", nunota);
+					VO.setProperty("CODEMP", empresa);
+					VO.setProperty("CODLOCALORIG", local);
+					VO.setProperty("CODPROD", produto);
+					VO.setProperty("CODVOL", volume);
+					VO.setProperty("QTDNEG", qtdneg);
+					VO.setProperty("SEQUENCIA", sequencia);
+					VO.setProperty("VLRTOT", vlrtot);
+					VO.setProperty("VLRUNIT", vlrunit);
+					VO.setProperty("RESERVA", validaReserva(top));
+					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
+					VO.setProperty("AD_TECLA", tecla);
+					
+					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+					
+				}
 				
-				VO.setProperty("NUNOTA", nunota);
-				VO.setProperty("CODEMP", empresa);
-				VO.setProperty("CODLOCALORIG", local);
-				VO.setProperty("CODPROD", produto);
-				VO.setProperty("CODVOL", volume);
-				VO.setProperty("QTDNEG", qtdneg);
-				VO.setProperty("SEQUENCIA", sequencia);
-				VO.setProperty("VLRTOT", vlrtot);
-				VO.setProperty("VLRUNIT", vlrunit);
-				VO.setProperty("RESERVA", validaReserva(top));
-				VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
-				VO.setProperty("AD_TECLA", tecla);
+			} else if ("3".equals(PedidoSecosCongelados)) { //tabaco
 				
-				dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+				if("N".equals(validaSeOhItemEhDeCongelados) && "S".equals(validaSeOhItemEhTabaco)) { //é um item tabaco e não é congelado
+					
+					EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+					EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
+					DynamicVO VO = (DynamicVO) NPVO;
+					
+					VO.setProperty("NUNOTA", nunota);
+					VO.setProperty("CODEMP", empresa);
+					VO.setProperty("CODLOCALORIG", local);
+					VO.setProperty("CODPROD", produto);
+					VO.setProperty("CODVOL", volume);
+					VO.setProperty("QTDNEG", qtdneg);
+					VO.setProperty("SEQUENCIA", sequencia);
+					VO.setProperty("VLRTOT", vlrtot);
+					VO.setProperty("VLRUNIT", vlrunit);
+					VO.setProperty("RESERVA", validaReserva(top));
+					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
+					VO.setProperty("AD_TECLA", tecla);
+					
+					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+					
+				}
+				
+				
+			}
+			else { //congelado
+				
+				if("S".equals(validaSeOhItemEhDeCongelados) && "N".equals(validaSeOhItemEhTabaco)) { //não é um item congelado e não é tabaco
+					
+					EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+					EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
+					DynamicVO VO = (DynamicVO) NPVO;
+					
+					VO.setProperty("NUNOTA", nunota);
+					VO.setProperty("CODEMP", empresa);
+					VO.setProperty("CODLOCALORIG", local);
+					VO.setProperty("CODPROD", produto);
+					VO.setProperty("CODVOL", volume);
+					VO.setProperty("QTDNEG", qtdneg);
+					VO.setProperty("SEQUENCIA", sequencia);
+					VO.setProperty("VLRTOT", vlrtot);
+					VO.setProperty("VLRUNIT", vlrunit);
+					VO.setProperty("RESERVA", validaReserva(top));
+					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
+					VO.setProperty("AD_TECLA", tecla);
+					
+					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+					
+				}
+				
 			}
 			
 			

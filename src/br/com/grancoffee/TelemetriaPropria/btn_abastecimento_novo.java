@@ -1,6 +1,5 @@
 package br.com.grancoffee.TelemetriaPropria;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
@@ -10,11 +9,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.simple.parser.ParseException;
-
 import com.sankhya.util.TimeUtils;
 //import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
@@ -37,9 +31,6 @@ import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 //import br.com.sankhya.modelcore.util.MGECoreParameter;
 import br.com.sankhya.ws.ServiceContext;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 public class btn_abastecimento_novo implements AcaoRotinaJava {
 
@@ -57,6 +48,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 08/04/2022 vs 2.4 Inserido método para obter o estoque do item diretamente da API do MID.
 	 * 26/04/2022 vs 2.5 Retirada a validação do Estoque direto da API
 	 * 10/05/2022 vs 2.6 Ajuste na rotina de abastecimento, quando o item tinha quantidade minima, o valor faltante tinha que ser > que a quantidade minima, foi alterado para ser >=
+	 * 01/06/2022 vs 2.7 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
 	 */
 	
 	String retornoNegativo = "";
@@ -76,7 +68,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	private void start(Registro[] linhas, ContextoAcao arg0) throws Exception {
 
 		String tipoAbastecimento = (String) arg0.getParam("TIPABAST");// 1=Agora 2=Agendado
-		String secosCongelados = (String) arg0.getParam("SECOSECONGELADOS");// 1=Abastecer Apenas Secos.2=Abastecer Apenas Congelados.3=Abastecer Secos e Congelados
+		String secosCongelados = (String) arg0.getParam("SECOSECONGELADOS");// 1=Abastecer Apenas Secos.2=Abastecer Apenas Congelados.3=Abastecer Secos e Congelados. 4 = Tabaco
 		Timestamp dtAbastecimentoX = (Timestamp) arg0.getParam("DTABAST");
 		
 		DynamicVO gc_solicitabast = null;
@@ -128,7 +120,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 				if ("1".equals(secosCongelados)) { // apenas secos
 					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S",
-							"N", idflow);// salva tela Abastecimento
+							"N", idflow, "N");// salva tela Abastecimento
 
 					if (idRetorno != null) {
 						apenasSecos(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());// carrega
@@ -136,10 +128,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 						if (dtAbastecimento != null) {// agendado
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									dtAbastecimento, idRetorno, "S", "N", dtvisita);
+									dtAbastecimento, idRetorno, "S", "N", dtvisita, "N");
 						} else {// agora
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									TimeUtils.getNow(), idRetorno, "S", "N", dtvisita);
+									TimeUtils.getNow(), idRetorno, "S", "N", dtvisita, "N");
 							
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
 						}
@@ -150,7 +142,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 				else if ("2".equals(secosCongelados)) {// apenas congelados
 					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N",
-							"S", idflow);
+							"S", idflow, "N");
 
 					if (idRetorno != null) {
 						apenasCongelados(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());// carrega
@@ -158,10 +150,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 						if (dtAbastecimento != null) {// agendado
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									dtAbastecimento, idRetorno, "N", "S", dtvisita);
+									dtAbastecimento, idRetorno, "N", "S", dtvisita, "N");
 						} else {// agora
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									TimeUtils.getNow(), idRetorno, "N", "S", dtvisita);
+									TimeUtils.getNow(), idRetorno, "N", "S", dtvisita, "N");
 							
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
 						}
@@ -169,18 +161,37 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 						
 					}
 				}
-
+				
+				else if ("4".equals(secosCongelados)) { //Tabaco (Br Mania)
+					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N",
+							"N", idflow, "S");
+					if (idRetorno != null) {
+						apenasTabaco(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
+						
+						//salva na tela instalações na aba solictiações de abastecimento
+						if (dtAbastecimento != null) { //agendado
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									dtAbastecimento, idRetorno, "N", "N", dtvisita, "S");
+						}else { //agora
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
+									TimeUtils.getNow(), idRetorno, "N", "N", dtvisita, "S");
+							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
+						}
+						cont++;			
+					}
+				}
+				
 				else { // secos e congelados
 					BigDecimal idSecos = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N",
-							idflow);
+							idflow, "N");
 					if (idSecos != null) {
 						apenasSecos(idSecos, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
 						if (dtAbastecimento != null) {// agendado
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									dtAbastecimento, idSecos, "S", "N", dtvisita);
+									dtAbastecimento, idSecos, "S", "N", dtvisita, "N");
 						} else {// agora
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									TimeUtils.getNow(), idSecos, "S", "N", dtvisita);
+									TimeUtils.getNow(), idSecos, "S", "N", dtvisita, "N");
 							
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idSecos);
 						}
@@ -189,15 +200,15 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 					}
 
 					BigDecimal idcongelados = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S",
-							idflow);
+							idflow, "N");
 					if (idcongelados != null) {
 						apenasCongelados(idcongelados, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
 						if (dtAbastecimento != null) {// agendado
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									dtAbastecimento, idcongelados, "N", "S", dtvisita);
+									dtAbastecimento, idcongelados, "N", "S", dtvisita, "N");
 						} else {// agora
 							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(),
-									TimeUtils.getNow(), idcongelados, "N", "S", dtvisita);
+									TimeUtils.getNow(), idcongelados, "N", "S", dtvisita, "N");
 							
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idcongelados);
 						}
@@ -340,6 +351,26 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				salvarException("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
 			}
 			
+		}else if ("3".equals(PedidoSecosCongelados)) { //tabaco
+			
+			try {
+
+				JdbcWrapper jdbcWrapper = null;
+				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+				jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+				ResultSet contagem;
+				NativeSql nativeSql = new NativeSql(jdbcWrapper);
+				nativeSql.resetSqlBuf();
+				nativeSql.appendSql("select NVL(ABASTTABACO,815) as CODABAST from ad_rotatel where id in (select id from ad_rotatelins where codbem='"+patrimonio+"') and nvl(ROTATELPROPRIA,'N')='S' and rownum=1");
+				contagem = nativeSql.executeQuery();
+				while (contagem.next()) {
+					executante = contagem.getBigDecimal("CODABAST");
+				}
+
+			} catch (Exception e) {
+				salvarException("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
+			}
+			
 		}else {
 			
 			try {
@@ -407,6 +438,23 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		String congelado = VOS.asString("AD_CONGELADOS");
 
 		if ("S".equals(congelado)) {
+			valida = true;
+		}
+		return valida;
+	}
+	
+	private boolean tabaco(BigDecimal codprod) throws Exception {
+		boolean valida = false;
+
+		JapeWrapper DAO = JapeFactory.dao("Produto");
+		DynamicVO VO = DAO.findOne("CODPROD=?", new Object[] { codprod });
+		BigDecimal grupo = VO.asBigDecimal("CODGRUPOPROD");
+
+		DAO = JapeFactory.dao("GrupoProduto");
+		DynamicVO VOS = DAO.findOne("CODGRUPOPROD=?", new Object[] { grupo });
+		String tabaco = VOS.asString("AD_TABACO");
+
+		if ("S".equals(tabaco)) {
 			valida = true;
 		}
 		return valida;
@@ -500,6 +548,36 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		
 		//local de abast
 		BigDecimal localAbast = (BigDecimal) ad_enderecamento.getProperty("CODLOCALABAST");
+		  if(localAbast!=null) {
+			  local = localAbast;
+		  }else {
+			  local = new BigDecimal(1110); //talvez transformar em parametro
+		  }
+		  
+		  return local;
+	}
+	
+	private BigDecimal getLocalAbastCongelados(String patrimonio) throws Exception {
+		DynamicVO ad_enderecamento = getEnderecamento(patrimonio);
+		BigDecimal local = null;
+		
+		//local de abast
+		BigDecimal localAbast = (BigDecimal) ad_enderecamento.getProperty("CODLOCALCONGELADOS");
+		  if(localAbast!=null) {
+			  local = localAbast;
+		  }else {
+			  local = new BigDecimal(1110); //talvez transformar em parametro
+		  }
+		  
+		  return local;
+	}
+	
+	private BigDecimal getLocalAbastTabaco(String patrimonio) throws Exception {
+		DynamicVO ad_enderecamento = getEnderecamento(patrimonio);
+		BigDecimal local = null;
+		
+		//local de abast
+		BigDecimal localAbast = (BigDecimal) ad_enderecamento.getProperty("CODLOCALTABACO");
 		  if(localAbast!=null) {
 			  local = localAbast;
 		  }else {
@@ -689,7 +767,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			
 		}
 	}
-	
+	/*
 	private String request(String url) throws IOException, ParseException {
 		OkHttpClient client = new OkHttpClient().newBuilder().build();
 		Request request = new Request.Builder()
@@ -704,7 +782,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 	}
 	
-	/*	
+		
 	private void chamaPentaho() {
 
 		try {
@@ -765,6 +843,8 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		
 		if("1".equals(secosCongelados)) {
 			tp="Secos";
+		}else if ("4".equals(secosCongelados)) {
+			tp="Tabaco";
 		}else {
 			tp="Congelados";
 		}
@@ -1000,7 +1080,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			} else if ("2".equals(secosCongelados)) {
 				nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
 						+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('2') AND NVL(AD_TIPOPRODUTOS,'1')='2'");
-			} else {
+			} else if ("4".equals(secosCongelados)) {
+				nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
+						+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('3') AND NVL(AD_TIPOPRODUTOS,'1')='3'");
+			}else {
 				nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
 						+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('1','2') AND NVL(AD_TIPOPRODUTOS,'1')='1'");
 			}
@@ -1066,6 +1149,29 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		return congelado;
 	}
 	
+	private String validaSeOhItemEhTabaco(BigDecimal produto) throws Exception {
+		String tabaco = "";
+		
+		DynamicVO tgfpro = getTGFPRO(produto);
+		if(tgfpro!=null) {
+			BigDecimal codgrupo = tgfpro.asBigDecimal("CODGRUPOPROD");
+			
+			if(codgrupo!=null) {
+				DynamicVO tgfgru = getTGFGRU(codgrupo);
+				if(tgfgru!=null) {
+					tabaco = tgfgru.asString("AD_TABACO");
+				}
+			}	
+			
+		}
+		
+		if(tabaco=="" || tabaco==null) {
+			tabaco="N";
+		}
+		
+		return tabaco;
+	}
+	
 	private int validaAtualEstoque(BigDecimal top) {
 		int atualestoque = 0;
 		
@@ -1096,12 +1202,18 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		
 		try {
 			
-			String tipoAbastecimento = "";
+			String congelado = "";
+			String tabaco = "";
 			
 			if("1".equals(secosCongelados)) {
-				tipoAbastecimento="N";
+				congelado="N";
+				tabaco = "N";
+			}else if("4".equals(secosCongelados)) {
+				congelado="N";
+				tabaco = "S";
 			}else {
-				tipoAbastecimento="S";
+				congelado="S";
+				tabaco = "N";
 			}
 			
 			JdbcWrapper jdbcWrapper = null;
@@ -1113,15 +1225,15 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			nativeSql.appendSql(
 			"SELECT COUNT(*) AS QTD "+
 			"FROM("+
-				"SELECT X.CODBEM, X.CODPROD, X.FALTA, X.EMP_ABAST, X.LOCAL_ABAST, AD_CONGELADOS FROM("+
+				"SELECT X.CODBEM, X.CODPROD, X.FALTA, X.EMP_ABAST, X.LOCAL_ABAST, X.AD_CONGELADOS, X.AD_TABACO FROM("+
 					"SELECT T.CODBEM, P.CODPROD,(P.NIVELPAR-P.ESTOQUE) AS FALTA, "+
 					"CASE WHEN NVL(EO.CODEMPABAST,C.CODEMP)=1 AND '"+secosCongelados+"'='1' THEN 6 WHEN NVL(EO.CODEMPABAST,C.CODEMP) IN (1,6) AND '"+secosCongelados+"'='2' THEN 2 WHEN NVL(EO.CODEMPABAST,C.CODEMP)<>1 THEN NVL(EO.CODEMPABAST,C.CODEMP) END AS EMP_ABAST, "+
-					"NVL(EO.CODLOCALABAST,1110) AS LOCAL_ABAST, NVL(GRU.AD_CONGELADOS,'N') AS AD_CONGELADOS, NVL(PRO.AD_QTDMIN,1) AS AD_QTDMIN FROM GC_INSTALACAO T "+
+					"CASE WHEN GRU.AD_CONGELADOS='S' THEN NVL(EO.CODLOCALCONGELADOS,1110) WHEN GRU.AD_TABACO='S' THEN NVL(EO.CODLOCALTABACO,1110) ELSE NVL(EO.CODLOCALABAST,1110) END AS LOCAL_ABAST, NVL(GRU.AD_CONGELADOS,'N') AS AD_CONGELADOS, NVL(PRO.AD_QTDMIN,1) AS AD_QTDMIN, NVL(GRU.AD_TABACO,'N') AS AD_TABACO FROM GC_INSTALACAO T "+
 					"JOIN GC_PLANOGRAMA P ON (P.CODBEM=T.CODBEM) JOIN AD_ENDERECAMENTO EO ON (EO.CODBEM=T.CODBEM) JOIN TCSCON C ON (C.NUMCONTRATO=EO.NUMCONTRATO) JOIN TGFPRO PRO ON (PRO.CODPROD=P.CODPROD) JOIN TGFGRU GRU ON (GRU.CODGRUPOPROD=PRO.CODGRUPOPROD) "+
 					"WHERE T.CODBEM='"+codbem+"' AND P.AD_ABASTECER='S' AND (P.NIVELPAR - P.ESTOQUE)> 0 "+
 				") X "+
 				"LEFT JOIN TGFEST E ON (E.CODEMP=X.EMP_ABAST AND E.CODLOCAL=X.LOCAL_ABAST AND E.CODPROD=X.CODPROD AND E.CONTROLE=' ' AND E.ATIVO='S' AND E.CODPARC=0) "+
-				"WHERE (E.ESTOQUE - E.RESERVADO) >= FALTA AND '"+tipoAbastecimento+"' = AD_CONGELADOS AND TRUNC(FALTA/AD_QTDMIN)>0 "+
+				"WHERE (E.ESTOQUE - E.RESERVADO) >= FALTA AND '"+congelado+"' = AD_CONGELADOS AND '"+tabaco+"' = AD_TABACO AND TRUNC(FALTA/AD_QTDMIN)>0 "+
 			")");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
@@ -1138,6 +1250,51 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 		
 		return valida;
+		
+		//query:
+		/*
+		 * 
+		 * SELECT 
+COUNT(*) AS QTD
+FROM(
+	SELECT X.CODBEM, X.CODPROD, X.FALTA, X.EMP_ABAST, X.LOCAL_ABAST, X.AD_CONGELADOS, X.AD_TABACO
+	FROM(
+		SELECT 
+		T.CODBEM, 
+		P.CODPROD,
+		(P.NIVELPAR-P.ESTOQUE) AS FALTA, 
+		CASE 
+			WHEN NVL(EO.CODEMPABAST,C.CODEMP)=1 AND '4'='1' THEN 6 
+			WHEN NVL(EO.CODEMPABAST,C.CODEMP) IN (1,6) AND '4'='2' THEN 2 
+			WHEN NVL(EO.CODEMPABAST,C.CODEMP)<>1 THEN NVL(EO.CODEMPABAST,C.CODEMP) 
+			END AS EMP_ABAST,
+		CASE 
+			WHEN GRU.AD_CONGELADOS='S' THEN NVL(EO.CODLOCALCONGELADOS,1110)
+			WHEN GRU.AD_TABACO='S' THEN NVL(EO.CODLOCALTABACO,1110)
+			ELSE NVL(EO.CODLOCALABAST,1110)
+		END AS LOCAL_ABAST,
+		NVL(GRU.AD_CONGELADOS,'N') AS AD_CONGELADOS, 
+		NVL(PRO.AD_QTDMIN,1) AS AD_QTDMIN,
+		NVL(GRU.AD_TABACO,'N') AS AD_TABACO
+		FROM GC_INSTALACAO T 
+		JOIN GC_PLANOGRAMA P ON (P.CODBEM=T.CODBEM) 
+		JOIN AD_ENDERECAMENTO EO ON (EO.CODBEM=T.CODBEM) 
+		JOIN TCSCON C ON (C.NUMCONTRATO=EO.NUMCONTRATO) 
+		JOIN TGFPRO PRO ON (PRO.CODPROD=P.CODPROD) 
+		JOIN TGFGRU GRU ON (GRU.CODGRUPOPROD=PRO.CODGRUPOPROD) 
+		WHERE 
+		T.CODBEM='GCETESTE' AND 
+		P.AD_ABASTECER='S' 
+		AND (P.NIVELPAR - P.ESTOQUE)> 0 
+		) X 
+		LEFT JOIN TGFEST E ON (E.CODEMP=X.EMP_ABAST AND E.CODLOCAL=X.LOCAL_ABAST AND E.CODPROD=X.CODPROD AND E.CONTROLE=' ' AND E.ATIVO='S' AND E.CODPARC=0) 
+		WHERE 
+		(E.ESTOQUE - E.RESERVADO) >= FALTA AND 
+		'S' = AD_CONGELADOS AND
+		'N' = AD_TABACO AND
+		TRUNC(FALTA/AD_QTDMIN)>0
+)
+		 */
 		
 	}
 	
@@ -1367,7 +1524,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	//FUNCIONTIONS
 	
 	private DynamicVO agendarAbastecimento(String patrimonio, Timestamp dtSolicitacao, Timestamp dtAgendamento,
-			BigDecimal idAbastecimento, String seco, String congelado, Timestamp dtvisita) {
+			BigDecimal idAbastecimento, String seco, String congelado, Timestamp dtvisita, String tabaco) {
 		
 		DynamicVO gc_solicitabast = null;
 		
@@ -1399,6 +1556,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 			if ("S".equals(congelado)) {
 				VO.setProperty("AD_TIPOPRODUTOS", "2");
+			}
+			
+			if ("S".equals(tabaco)) {
+				VO.setProperty("AD_TIPOPRODUTOS", "3");
 			}
 
 			String body = montarBody(patrimonio);
@@ -1441,6 +1602,55 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				BigDecimal valorFinal = vlrpar.add(vlrfun);
 				
 				if (congelado(produto)) {
+					try {
+
+						EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+						EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_ITENSRETABAST");
+						DynamicVO VO = (DynamicVO) NPVO;
+
+						VO.setProperty("ID", idAbastecimento);
+						VO.setProperty("CODBEM", patrimonio);
+						VO.setProperty("TECLA", tecla);
+						VO.setProperty("CODPROD", produto);
+						VO.setProperty("CAPACIDADE", capacidade);
+						VO.setProperty("NIVELPAR", nivelpar);
+						VO.setProperty("VALOR", valorFinal);
+
+						dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
+
+					} catch (Exception e) {
+						salvarException(
+								"[carregaTeclasNosItensDeAbast] Nao foi possivel salvar as teclas na tela Retornos Abastecimento! "
+										+ e.getMessage() + "\n" + e.getCause());
+					}
+				}
+			}
+		}
+	}
+	
+	private void apenasTabaco(BigDecimal idAbastecimento, Timestamp dtAbastecimento, String patrimonio)
+			throws Exception {
+		if (idAbastecimento != null) {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
+					new FinderWrapper("GCPlanograma", "this.CODBEM = ? ", new Object[] { patrimonio }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
+				String tecla = DynamicVO.asString("TECLA");
+				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
+				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
+				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+				BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
+				BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
+				BigDecimal valorFinal = vlrpar.add(vlrfun);
+				
+				if (tabaco(produto)) {
 					try {
 
 						EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -1517,7 +1727,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	}
 	
 	private BigDecimal cadastrarNovoAbastecimento(String patrimonio, String secos, String congelados,
-			BigDecimal idflow) {
+			BigDecimal idflow, String tabaco) {
 		BigDecimal idAbastecimento = null;
 
 		try {
@@ -1545,6 +1755,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 			VO.setProperty("SECOS", secos);
 			VO.setProperty("CONGELADOS", congelados);
+			VO.setProperty("TABACO", tabaco);
 
 			dwfFacade.createEntity("AD_RETABAST", (EntityVO) VO);
 
@@ -1773,37 +1984,88 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast) {
 		try {
 			
-			String PedidoSecosCongelados = (String) gc_solicitabast.getProperty("AD_TIPOPRODUTOS");
-			String tipoAbastecimento = "";
-			
-			if("1".equals(PedidoSecosCongelados)) {
-				tipoAbastecimento="N";
-			}else {
-				tipoAbastecimento="S";
-			}
+			String PedidoSecosCongelados = gc_solicitabast.asString("AD_TIPOPRODUTOS");
 			
 			String validaSeOhItemEhDeCongelados = validaSeOhItemEhDeCongelados(produto);
+			String validaSeOhItemEhTabaco = validaSeOhItemEhTabaco(produto);
 			
-			if(tipoAbastecimento.equals(validaSeOhItemEhDeCongelados)) {
+			if("1".equals(PedidoSecosCongelados)) { //seco
 				
-				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-				EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
-				DynamicVO VO = (DynamicVO) NPVO;
+				if("N".equals(validaSeOhItemEhDeCongelados) && "N".equals(validaSeOhItemEhTabaco)) { //não é um item congelado e nem tabaco
+					
+					EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+					EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
+					DynamicVO VO = (DynamicVO) NPVO;
+					
+					VO.setProperty("NUNOTA", nunota);
+					VO.setProperty("CODEMP", empresa);
+					VO.setProperty("CODLOCALORIG", local);
+					VO.setProperty("CODPROD", produto);
+					VO.setProperty("CODVOL", volume);
+					VO.setProperty("QTDNEG", qtdneg);
+					VO.setProperty("SEQUENCIA", sequencia);
+					VO.setProperty("VLRTOT", vlrtot);
+					VO.setProperty("VLRUNIT", vlrunit);
+					VO.setProperty("RESERVA", validaReserva(top));
+					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
+					VO.setProperty("AD_TECLA", tecla);
+					
+					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+					
+				}
 				
-				VO.setProperty("NUNOTA", nunota);
-				VO.setProperty("CODEMP", empresa);
-				VO.setProperty("CODLOCALORIG", local);
-				VO.setProperty("CODPROD", produto);
-				VO.setProperty("CODVOL", volume);
-				VO.setProperty("QTDNEG", qtdneg);
-				VO.setProperty("SEQUENCIA", sequencia);
-				VO.setProperty("VLRTOT", vlrtot);
-				VO.setProperty("VLRUNIT", vlrunit);
-				VO.setProperty("RESERVA", validaReserva(top));
-				VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
-				VO.setProperty("AD_TECLA", tecla);
+			} else if ("3".equals(PedidoSecosCongelados)) { //tabaco
 				
-				dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+				if("N".equals(validaSeOhItemEhDeCongelados) && "S".equals(validaSeOhItemEhTabaco)) { //é um item tabaco e não é congelado
+					
+					EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+					EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
+					DynamicVO VO = (DynamicVO) NPVO;
+					
+					VO.setProperty("NUNOTA", nunota);
+					VO.setProperty("CODEMP", empresa);
+					VO.setProperty("CODLOCALORIG", local);
+					VO.setProperty("CODPROD", produto);
+					VO.setProperty("CODVOL", volume);
+					VO.setProperty("QTDNEG", qtdneg);
+					VO.setProperty("SEQUENCIA", sequencia);
+					VO.setProperty("VLRTOT", vlrtot);
+					VO.setProperty("VLRUNIT", vlrunit);
+					VO.setProperty("RESERVA", validaReserva(top));
+					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
+					VO.setProperty("AD_TECLA", tecla);
+					
+					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+					
+				}
+				
+				
+			}
+			else { //congelado
+				
+				if("S".equals(validaSeOhItemEhDeCongelados) && "N".equals(validaSeOhItemEhTabaco)) { //não é um item congelado e não é tabaco
+					
+					EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+					EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
+					DynamicVO VO = (DynamicVO) NPVO;
+					
+					VO.setProperty("NUNOTA", nunota);
+					VO.setProperty("CODEMP", empresa);
+					VO.setProperty("CODLOCALORIG", local);
+					VO.setProperty("CODPROD", produto);
+					VO.setProperty("CODVOL", volume);
+					VO.setProperty("QTDNEG", qtdneg);
+					VO.setProperty("SEQUENCIA", sequencia);
+					VO.setProperty("VLRTOT", vlrtot);
+					VO.setProperty("VLRUNIT", vlrunit);
+					VO.setProperty("RESERVA", validaReserva(top));
+					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
+					VO.setProperty("AD_TECLA", tecla);
+					
+					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+					
+				}
+				
 			}
 			
 			
@@ -1817,7 +2079,21 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	private void identificaItens(BigDecimal nunota, String patrimonio, DynamicVO gc_solicitabast) {
 		try {
 			
-			BigDecimal localAbast = getLocalAbast(patrimonio);
+			//TODO::Verifica o local de abastecimento a partir dos cadastros do endereçamento.
+			//01/06 --inicio
+			String tipoProduto = gc_solicitabast.asString("AD_TIPOPRODUTOS");
+			BigDecimal localAbast = null;
+			if("1".equals(tipoProduto)) { //secos
+				localAbast = getLocalAbast(patrimonio);
+			}else if ("2".equals(tipoProduto)) { //congelados
+				localAbast = getLocalAbastCongelados(patrimonio);
+			}else if ("3".equals(tipoProduto)) {
+				localAbast = getLocalAbastTabaco(patrimonio);
+			}else {
+				localAbast = new BigDecimal(1110);
+			}
+			//01/06 -- fim
+			
 			BigDecimal empresaAbast = getEmpresaAbast(patrimonio, gc_solicitabast);
 			BigDecimal top = getTop(empresaAbast, localAbast);
 			int sequencia = 0;
@@ -2198,7 +2474,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			arg0.mostraErro("<b> OPS! algo deu errado! acionar o setor de T.I! </b>");
 		}
 	}
-	
+	/*
 	private int obtemEstoqueViaAPI(String patrimonio, String tecla) {
 		
 		int estoque = 0;
@@ -2223,5 +2499,6 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				
 		return estoque;
 	}
+	*/
 	
 }
