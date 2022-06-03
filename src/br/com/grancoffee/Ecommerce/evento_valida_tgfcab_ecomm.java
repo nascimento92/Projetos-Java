@@ -126,7 +126,11 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 				if(obsAdicional!=null && obsAdicional!="") {
 					String newObs = observacaoAtual+" "+obsAdicional;
 					VO.setProperty("OBSERVACAO", newObs);
-				}	
+				}
+				
+				//TODO :: Ajustar frete 03/06/22
+				VO.setProperty("CIF_FOB", "C");
+				VO.setProperty("TIPFRETE", "N");
 			}
 		}
 		
