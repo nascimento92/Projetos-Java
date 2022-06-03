@@ -26,6 +26,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 	
 	/**
 	 * 27/05/2022 vs 1.4 Inserida no before insert para já marcar a máquina como liberada.
+	 * 03/06/2022 vs 1.5 Inserido o método para as validações gerais
 	 */
 
 	@Override
@@ -117,8 +118,9 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 				verificaTeclasContrato(patrimonio, loja);
 			}
 		}
+		
+		ajustesGerais(arg0);
 	}
-	
 	
 	//Valiações
 	private boolean verificaTeclasDuplicadas(String patrimonio) {
@@ -147,6 +149,20 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		return valida;
 	}
 	
+	private void ajustesGerais(PersistenceEvent arg0) {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		String frequencia = VO.asString("AD_FREQCONTAGEM");
+		String dia = VO.asString("AD_DIAINVENTARIO");
+		
+		if("1".equals(frequencia)) {
+			VO.setProperty("AD_DIAINVENTARIO", null);
+		}else {
+			if(frequencia!=null && dia==null) {
+				VO.setProperty("AD_DIAINVENTARIO", "2");
+			}
+		}
+	}
+	
 	private boolean verificaVisitaPendente(String patrimonio) {
 		boolean valida = false;
 
@@ -171,7 +187,6 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 
 		return valida;
 	}
-	
 	
 	//ALTERAR MÁQUINA P/LOJA
 	//1° exclui as teclas
@@ -308,6 +323,8 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 				throw new Error("<br/><b>ATENÇÃO</b><br/>Patrimônio não pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrimônio o campo Loja não está tickado!<br/><br/>");
 			}
 		}
+		
+		ajustesGerais(arg0);
 	}
 	
 	private void cadastraTelemetrias(BigDecimal idTelemetria, String codbem) {
@@ -350,7 +367,6 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		
 		return valida;
 	}
-	
 	
 	private void registraFila(String patrimonio, String nopick) {
 	
