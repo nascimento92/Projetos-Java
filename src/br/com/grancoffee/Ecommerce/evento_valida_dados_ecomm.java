@@ -94,7 +94,7 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 	        	//TODO::Verifica a unidade e-commerce.  
 	            String unidadeVtex = tgfpro.asString("AD_UNIDADELV");
 	            if (!codvol.equals(unidadeVtex)) {
-	            	quantidade = getQuantidade(produto, unidadeVtex);
+	            	quantidade = getQuantidade(produto, unidadeVtex); //10
 	              if (quantidade != null) {
 	                VO.setProperty("QTDNEG", quantidadeOriginal.multiply(quantidade));
 	                VO.setProperty("CODVOL", unidadeVtex);
