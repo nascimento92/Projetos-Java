@@ -66,9 +66,15 @@ public class btn_alterarVisita implements AcaoRotinaJava{
 		linha.setCampo("AD_MOTALT", motivo);
 		linha.setCampo("AD_CODUSUALT", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
 		linha.setCampo("AD_DTALTAGEND", TimeUtils.getNow());
-		linha.setCampo("DTAGENDAMENTO", data);
-		linha.setCampo("AD_DTATENDIMENTO", dataAtendimento);
 		
+		if(data!=null) {
+			linha.setCampo("DTAGENDAMENTO", data);
+		}
+		
+		if(dataAtendimento!=null) {
+			linha.setCampo("AD_DTATENDIMENTO", dataAtendimento);
+		}
+
 		if(substituto!=null) {
 			linha.setCampo("AD_USUSUB", substituto);
 		}

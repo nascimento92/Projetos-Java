@@ -9,12 +9,13 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
-import org.cuckoo.core.ScheduledAction;
-import org.cuckoo.core.ScheduledActionContext;
+
 import com.sankhya.util.TimeUtils;
+
+import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
+import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
-import br.com.sankhya.jape.core.JapeSession;
 import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
@@ -22,65 +23,22 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
-import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.comercial.ComercialUtils;
 import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
-import br.com.sankhya.modelcore.util.SPBeanUtils;
-import br.com.sankhya.ws.ServiceContext;
 
-public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
+public class btn_teste2 implements AcaoRotinaJava{
 	
 	int qtdTeclas = 99;
 	
-	/**
-	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para salvar os itens que deveriam ser abastecidos porém não tinha em estoque na filial
-	 * 24/11/2021 vs 1.2 Ajustado a geração dos pedidos considerando a quantidade mínima.
-	 * 27/03/2022 vs 1.3 Pegar o valor do item da TGFCUS preço sem ICMS
-	 * 28/04/2022 vs 1.4 Ajusta validações dos itens da nota.
-	 * 06/05/2022 vs 1.6 Inserida validações para as visitas agendadas automaticamente.
-	 * 27/05/2022 vs 1.7 Inserido método para verificar o motivo de algumas máquinas estarem retornando o erro de "máquina sem planograma".
-	 * 31/05/2022 vs 1.8 Ajustes no método de validações.
-	 * 01/06/2022 vs 1.9 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
-	 */
-	
 	@Override
-	public void onTime(ScheduledActionContext arg0) {
-		
-		ServiceContext sctx = new ServiceContext(null); 		
-		sctx.setAutentication(AuthenticationInfo.getCurrent()); 
-		sctx.makeCurrent();
-
-		try {
-			SPBeanUtils.setupContext(sctx);
-		} catch (Exception e) {
-			e.printStackTrace();
-			salvarException("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
-		} 
-				
-		JapeSession.SessionHandle hnd = null;
-
-		try {
-
-			hnd = JapeSession.open();
-			hnd.execWithTX(new JapeSession.TXBlock() {
-
-				public void doWithTx() throws Exception {
-
-					getListaPendente();
-				}
-
-			});
-			
-
-		} catch (Exception e) {
-			salvarException("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
-		}
-		
+	public void doAction(ContextoAcao arg0) throws Exception {
+		getListaPendente();		
 	}
-	
+
 	private void getListaPendente() throws Exception {
+		//try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
 			Collection<?> parceiro = dwfEntityFacade
@@ -92,10 +50,10 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
 						.wrapInterface(DynamicVO.class);
 				
+				 //comparação das datas
 				String patrimonio = null;
-				
 				try {
-
+					
 					BigDecimal id = DynamicVO.asBigDecimal("ID");
 					BigDecimal idretorno = DynamicVO.asBigDecimal("IDABASTECIMENTO");
 					BigDecimal numosx = DynamicVO.asBigDecimal("NUMOS");
@@ -113,44 +71,67 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 					
 					if(data==null) {
 						data = TimeUtils.getNow();
-						dataAgendamento = TimeUtils.getNow();
 					}
-
-					int compareTo = data.compareTo(TimeUtils.getNow()); // comparação das datas
-
-					if (numosx == null) {
-						if (compareTo <= 0) { // gerar Agora
-							if ("1".equals(status)) {
-								if ("S".equals(reabastecimento)) {
-
-									if (solicitante.intValue() == 3082) {// agendamento automático
-
-										String erro = "";
-										erro = validacoes(patrimonio, abastecimento, dataAgendamento, dataAtendimento,
-												rota);
-										if (erro == "") {
-											gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
-										} else if (erro == "Máquina " + patrimonio + " não possui planograma") {
-											registraHistoricoDeErro(patrimonio, id, erro);
-										} else {
-											// TODO::cancelar a visita
-											cancelarVisita(patrimonio, id, erro, idretorno);
-										}
-
-									} else { // agendamento manual
-										gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
+					
+					int compareTo = data.compareTo(TimeUtils.getNow());
+					
+					
+				}catch (Exception e){
+					throw new Error("ERRO patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
+				}
+				
+				
+				
+				/*
+				 * System.out.println( "**********************"+ "ID: "+id+
+				 * "\nIDABASTECIMENTO: "+idretorno+ "\nNUMOS: "+numosx+ "\nCODBEM: "+patrimonio+
+				 * "\nDTAGENDAMENTO: "+data+ "\nREABASTECIMENTO: "+reabastecimento+
+				 * "\nSTATUS: "+status+ "\n NUNOTA: "+nunota+ "\n AD_USUSUB: "+substituto+
+				 * "\n CODUSU: "+solicitante+ "\n AD_TIPOPRODUTOS: "+abastecimento+
+				 * "\n DTAGENDAMENTO: "+dataAgendamento+
+				 * "\n AD_DTATENDIMENTO: "+dataAtendimento+ "\n ROTA: "+rota+
+				 * "\n COMPAR TO: "+compareTo);
+				 */
+				
+				//if(numosx==null) {
+					
+					
+					/*
+					if(compareTo<=0) { //gerar Agora
+						if("1".equals(status)) {
+							if("S".equals(reabastecimento)) {
+								
+								
+								
+								
+								if(solicitante.intValue()==3082) {//agendamento automático
+									
+									String erro="";
+									erro = validacoes(patrimonio, abastecimento, dataAgendamento, dataAtendimento, rota);
+									if (erro=="") {
+										gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota, substituto);
+									}else if(erro == "Máquina "+patrimonio+" não possui planograma") {
+										registraHistoricoDeErro(patrimonio, id, erro);
+									}else {
+										//TODO::cancelar a visita
+										cancelarVisita(patrimonio,id,erro,idretorno);
 									}
-
+									
+								}else { //agendamento manual
+									gerarPedidoENota(patrimonio, DynamicVO,idretorno,id, nunota, substituto);
 								}
+								
 							}
 						}
 					}
+					*/
+				//}
 
-				} catch (Exception e) {
-					salvarException("[getListaPendente] Erro ao gerar a visita! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
-				}
 			}
-		}
+		//} catch (Exception e) {
+		//	salvarException("[cancelarVisita] Nao foi possivel cancelar a visita! patrimonio: "+patrimonio+" id: "+id+"\n"+e.getMessage()+"\n"+e.getCause());
+		//}
+	}
 	
 	private void cancelarVisita(String patrimonio, BigDecimal id, String motivo, BigDecimal idretorno) {
 		try {
