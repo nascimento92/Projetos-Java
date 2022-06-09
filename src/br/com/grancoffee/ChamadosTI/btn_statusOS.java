@@ -26,13 +26,17 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 	// falta documentar
 public class btn_statusOS implements AcaoRotinaJava {
-
+	int x = 0;
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
 		if(linhas.length==1) {
 			start(linhas,arg0);
 		}	
+		
+		if(x > 0) {
+			arg0.setMensagemRetorno("Status do chamado alterado!");
+		}
 	}
 	
 	private void start(Registro[] linhas,ContextoAcao arg0) throws Exception {
@@ -41,6 +45,18 @@ public class btn_statusOS implements AcaoRotinaJava {
 		Timestamp dtEncerramento = (Timestamp) linhas[0].getCampo("DTFECHAMENTO");
 		String tipo = (String) linhas[0].getCampo("TIPO");
 		BigDecimal atendente = (BigDecimal) linhas[0].getCampo("ATENDENTE");
+		
+		//08-06-22 Inserido funcionalidade para reclassificação. ---
+		String novaClassificacao = (String) arg0.getParam("CLASSIFICACAO");
+		if(novaClassificacao!=null) {
+			linhas[0].setCampo("CLASSIFICACAO", new BigDecimal(novaClassificacao));
+		}//---
+		
+		//08-06-22 Inserido funcionalidade para validar se o chamado está como análise se sim não permitir. ---
+		BigDecimal classificacaoAtual = (BigDecimal) linhas[0].getCampo("CLASSIFICACAO"); //1001003 - Analise
+		if(classificacaoAtual.intValue()==1001003 && "4".equals(status)) {
+			arg0.mostraErro("</br><b>Opps</b><br/>Não é possível encerar um chamado classificado como Análise, reclassifica-lo !");
+		}//---
 		
 		if(tipo==null) {
 			arg0.mostraErro("Chamado não foi classificado, não é possível alterar o status!");
@@ -125,6 +141,8 @@ public class btn_statusOS implements AcaoRotinaJava {
 			linhas[0].setCampo("DTFECHAMENTO", new Timestamp(System.currentTimeMillis()));
 			linhas[0].setCampo("CANCELADO","S");
 		}
+		
+		x++;
 	}
 	
 	private void encerraChamado(Registro[] linhas,ContextoAcao arg0,String status) throws Exception {

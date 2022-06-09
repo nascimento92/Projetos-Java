@@ -130,7 +130,8 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 				
 				//TODO :: Ajustar frete 03/06/22
 				VO.setProperty("CIF_FOB", "C");
-				VO.setProperty("TIPFRETE", "N");
+				VO.setProperty("TIPFRETE", "S");
+				VO.setProperty("VENCFRETE", TimeUtils.dataAddDay(TimeUtils.getNow(), 30));
 			}
 		}
 		
