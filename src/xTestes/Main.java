@@ -9,15 +9,22 @@ import com.sankhya.util.TimeUtils;
 
 public class Main {
 	public static void main(String[] args) throws Exception {
-		Timestamp data = TimeUtils.getNow();
+		//Timestamp data = TimeUtils.getNow();
 		
-		Timestamp buildPrintableTimestamp = TimeUtils.buildPrintableTimestamp(data.getTime(), "dd/MM/yyyy HH:mm:ss");
+		//Timestamp buildPrintableTimestamp = TimeUtils.buildPrintableTimestamp(data.getTime(), "dd/MM/yyyy HH:mm:ss");
 		
-		Timestamp buildPrintableTimestamp2 = TimeUtils.buildPrintableTimestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 3), "dd/MM/yyyy HH:mm:ss");
+		//Timestamp buildPrintableTimestamp2 = TimeUtils.buildPrintableTimestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 3), "dd/MM/yyyy HH:mm:ss");
 		
-		Timestamp dataA = new Timestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 3));
+		//Timestamp dataA = new Timestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 3));
 		
-		System.out.println(dataA);
+		//System.out.println(dataA);
+		
+		int dia = 15;
+		int mes = 12;
+		int ano = 2022;
+		
+		Timestamp buildData = TimeUtils.buildData(dia, mes, ano);
+		System.out.println(buildData);
 	}
 	
 	/*
