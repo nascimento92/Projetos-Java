@@ -43,6 +43,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 27/05/2022 vs 1.7 Inserido método para verificar o motivo de algumas máquinas estarem retornando o erro de "máquina sem planograma".
 	 * 31/05/2022 vs 1.8 Ajustes no método de validações.
 	 * 01/06/2022 vs 1.9 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
+	 * 20/06/2022 vs 2.0 A pedido da Vania, foi retirada a validação de visita ajustada para as visistas automáticas.
 	 */
 	
 	@Override
@@ -127,7 +128,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 										String erro = "";
 										erro = validacoes(patrimonio, abastecimento, dataAgendamento, dataAtendimento,
-												rota);
+												rota, id);
 										if (erro == "") {
 											gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
 										} else if (erro == "Máquina " + patrimonio + " não possui planograma") {
@@ -1546,7 +1547,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	
 	// VALIDAÇÕES
 	
-	private String validacoes(String patrimonio, String abastecimento, Timestamp dtagendamento, Timestamp dtatendimento, BigDecimal rota) {
+	private String validacoes(String patrimonio, String abastecimento, Timestamp dtagendamento, Timestamp dtatendimento, BigDecimal rota, BigDecimal id) {
 		
 		String erro = "";
 		
@@ -1562,10 +1563,10 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			}
 			
 			
-			//TODO:: verifica se existe visita pendente sem ajste.
-			if(validaSeExisteVisitaSemAjusteReabastecimento(patrimonio)) {
-				erro = erro+"\nMáquina "+patrimonio+" possui visita anterior pendente de ajuste por parte do setor de controladoria";
-			}
+			//TODO:: verifica se existe visita pendente sem ajste. 20/06 retirado a pedido da Vania
+			//if(validaSeExisteVisitaSemAjusteReabastecimento(patrimonio)) {
+			//	erro = erro+"\nMáquina "+patrimonio+" possui visita anterior pendente de ajuste por parte do setor de controladoria";
+			//}
 			
 			//TODO:: valida se o pedido pode ser gerado.
 			if(!validaSeOhPedidoDeAbastecimentoPoderaSerGerado(abastecimento,patrimonio)) {
@@ -1573,8 +1574,8 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			}
 			
 			//TODO:: Valida se já não existe pedido pendente.
-			if (validaPedido(patrimonio, abastecimento)) {
-				erro = erro+"\nMáquina "+patrimonio+" já possui pedido pendente";
+			if (validaPedido(patrimonio, abastecimento, id)) {
+				erro = erro+"\nMáquina "+patrimonio+" já possui pedido pendente, tipo de abastecimento: "+abastecimento;
 			}
 			
 			
@@ -1726,7 +1727,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 		}
 		
-	private boolean validaPedido(String patrimonio, String secosCongelados) {
+	private boolean validaPedido(String patrimonio, String secosCongelados, BigDecimal id) {
 			boolean valida = false;
 
 			try {
@@ -1740,13 +1741,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 				if ("1".equals(secosCongelados)) {
 					nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
-							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='1' AND NUMOS IS NOT NULL");
+							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='1' AND NUMOS IS NOT NULL AND ID <> "+id);
 				} else if ("2".equals(secosCongelados)) {
 					nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
-							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='2' AND NUMOS IS NOT NULL");
+							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='2' AND NUMOS IS NOT NULL AND ID <> "+id);
 				} else {
 					nativeSql.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
-							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('1','2') AND NUMOS IS NOT NULL");
+							+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('1','2') AND NUMOS IS NOT NULL AND ID <> "+id);
 				}
 
 				contagem = nativeSql.executeQuery();

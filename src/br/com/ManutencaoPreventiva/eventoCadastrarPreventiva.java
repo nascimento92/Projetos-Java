@@ -6,6 +6,8 @@ import java.math.BigDecimal;
 //import java.util.Date;
 //import java.util.GregorianCalendar;
 
+import com.sankhya.util.TimeUtils;
+
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.event.PersistenceEvent;
@@ -19,7 +21,8 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 public class eventoCadastrarPreventiva implements EventoProgramavelJava {
 	
 	/**
-	 *  04/10/19 15:44 - Objeto sendo utilizado AD_PATRIMONIO quando um patrimonio é marcado como sim ele é registrado na tela controle man. prev.
+	 *  04/10/19 15:44 vs 1.0 - Objeto sendo utilizado AD_PATRIMONIO quando um patrimonio é marcado como sim ele é registrado na tela controle man. prev.
+	 *  20/06/22 15:40 vs 1.1 - Ajustado para preencher o campo DTPROXMANUTENCAO com a data atual.
 	 */
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -93,7 +96,7 @@ public class eventoCadastrarPreventiva implements EventoProgramavelJava {
 		VO.setProperty("CODBEM", codbem);
 		VO.setProperty("PRAZO", new BigDecimal(60));
 		VO.setProperty("INSERIDOAUT", "S");
-
+		VO.setProperty("DTPROXMANUTENCAO", TimeUtils.getNow());
 		
 		dwfFacade.createEntity("AD_MANUPREV", (EntityVO) VO);
 
