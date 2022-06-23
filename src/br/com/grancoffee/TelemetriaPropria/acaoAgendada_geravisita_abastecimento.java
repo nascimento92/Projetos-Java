@@ -131,8 +131,6 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 												rota, id);
 										if (erro == "") {
 											gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
-										} else if (erro == "Máquina " + patrimonio + " não possui planograma") {
-											registraHistoricoDeErro(patrimonio, id, erro);
 										} else {
 											// TODO::cancelar a visita
 											cancelarVisita(patrimonio, id, erro, idretorno);
@@ -209,7 +207,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				DynamicVO VO = (DynamicVO) NVO;
 				
-				VO.setProperty("AD_MOTCANCEL",  "Desconsiderar: "+erro);
+				VO.setProperty("AD_TEMP",  erro);
 
 				itemEntity.setValueObject(NVO);
 			}
@@ -1575,7 +1573,10 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 			//TODO:: Valida se já não existe pedido pendente.
 			if (validaPedido(patrimonio, abastecimento, id)) {
-				erro = erro+"\nMáquina "+patrimonio+" já possui pedido pendente, tipo de abastecimento: "+abastecimento;
+				BigDecimal numeroOS = DescobrePedidoPendente(patrimonio, abastecimento, id);
+				String retorno = "Máquina: "+patrimonio+ " OS pendente: "+numeroOS+" tipo de abastecimento: "+abastecimento;
+				registraHistoricoDeErro(patrimonio, id, retorno);
+				//erro = erro+"\nMáquina "+patrimonio+" já possui pedido pendente, tipo de abastecimento: "+abastecimento;
 			}
 			
 			
@@ -1767,6 +1768,46 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 			return valida;
 		}
+	
+	private BigDecimal DescobrePedidoPendente(String patrimonio, String secosCongelados, BigDecimal id) {
+		BigDecimal pedido = BigDecimal.ZERO;
+
+		try {
+
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+
+			if ("1".equals(secosCongelados)) {
+				nativeSql.appendSql("SELECT NUMOS FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
+						+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='1' AND NUMOS IS NOT NULL AND ID <> "+id);
+			} else if ("2".equals(secosCongelados)) {
+				nativeSql.appendSql("SELECT NUMOS FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
+						+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND NVL(AD_TIPOPRODUTOS,'1')='2' AND NUMOS IS NOT NULL AND ID <> "+id);
+			} else {
+				nativeSql.appendSql("SELECT NUMOS FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio
+						+ "' AND STATUS IN ('1','2') AND REABASTECIMENTO='S' AND AD_TIPOPRODUTOS IN ('1','2') AND NUMOS IS NOT NULL AND ID <> "+id);
+			}
+
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				
+				pedido = contagem.getBigDecimal("NUMOS");
+				
+			}
+
+		} catch (Exception e) {
+			
+			  salvarException( "[validaPedido] Nao foi possivel validar o pedido! " +
+			  e.getMessage() + "\n" + e.getCause());
+			 
+		}
+
+		return pedido;
+	}
 	
 	//--- FIM VALIDAÇÕES
 

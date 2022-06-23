@@ -175,7 +175,8 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 
 				
 			} catch (Exception e) {
-				
+				salvarException("[buildSolicitacao] Nao foi possivel criar a solicitação: "+patrimonio
+						+ e.getMessage() + "\n" + e.getCause());
 			}	
 			
 	}
