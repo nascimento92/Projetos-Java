@@ -1574,9 +1574,9 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			//TODO:: Valida se já não existe pedido pendente.
 			if (validaPedido(patrimonio, abastecimento, id)) {
 				BigDecimal numeroOS = DescobrePedidoPendente(patrimonio, abastecimento, id);
-				String retorno = "Máquina: "+patrimonio+ " OS pendente: "+numeroOS+" tipo de abastecimento: "+abastecimento;
-				registraHistoricoDeErro(patrimonio, id, retorno);
-				//erro = erro+"\nMáquina "+patrimonio+" já possui pedido pendente, tipo de abastecimento: "+abastecimento;
+				//String retorno = "Máquina: "+patrimonio+ " OS pendente: "+numeroOS+" tipo de abastecimento: "+abastecimento;
+				//registraHistoricoDeErro(patrimonio, id, retorno);
+				erro = erro+"\nMáquina "+patrimonio+" já possui pedido pendente, OS pendente: "+numeroOS;
 			}
 			
 			
