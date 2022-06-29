@@ -35,7 +35,7 @@ public class btn_ajustaEmpresa implements AcaoRotinaJava{
 	
 	private void atualizaEmpresa(Registro linhas, BigDecimal emp) {
 		
-		Timestamp datalimite = TimeUtils.buildData(1, 7, 2022);
+		Timestamp datalimite = TimeUtils.buildData(8, 7, 2022);
 		String codbem = (String) linhas.getCampo("CODBEM");
 		
 		if(TimeUtils.getNow().before(datalimite)) {
