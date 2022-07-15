@@ -11,6 +11,8 @@ import java.util.GregorianCalendar;
 import java.util.Iterator;
 import org.cuckoo.core.ScheduledAction;
 import org.cuckoo.core.ScheduledActionContext;
+
+import com.sankhya.util.BigDecimalUtil;
 import com.sankhya.util.TimeUtils;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
@@ -44,6 +46,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 31/05/2022 vs 1.8 Ajustes no método de validações.
 	 * 01/06/2022 vs 1.9 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
 	 * 20/06/2022 vs 2.0 A pedido da Vania, foi retirada a validação de visita ajustada para as visistas automáticas.
+	 * 13/07/2022 vs 2.1 Ajuste do método getListaPendente.
 	 */
 	
 	@Override
@@ -85,7 +88,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
 			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS = ? ", new Object[] { "1" }));
+					.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS=? AND this.REABASTECIMENTO=? ", new Object[] { "1","S" }));
 
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
@@ -93,60 +96,54 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
 						.wrapInterface(DynamicVO.class);
 				
-				String patrimonio = null;
+				BigDecimal numosx = DynamicVO.asBigDecimal("NUMOS");
 				
-				try {
-
-					BigDecimal id = DynamicVO.asBigDecimal("ID");
-					BigDecimal idretorno = DynamicVO.asBigDecimal("IDABASTECIMENTO");
-					BigDecimal numosx = DynamicVO.asBigDecimal("NUMOS");
-					patrimonio = DynamicVO.asString("CODBEM");
-					Timestamp data = DynamicVO.asTimestamp("DTAGENDAMENTO");
-					String reabastecimento = DynamicVO.asString("REABASTECIMENTO");
-					String status = DynamicVO.asString("STATUS");
-					BigDecimal nunota = DynamicVO.asBigDecimal("NUNOTA");
-					BigDecimal substituto = DynamicVO.asBigDecimal("AD_USUSUB");
-					BigDecimal solicitante = DynamicVO.asBigDecimal("CODUSU");
-					String abastecimento = DynamicVO.asString("AD_TIPOPRODUTOS");
-					Timestamp dataAgendamento = DynamicVO.asTimestamp("DTAGENDAMENTO");
-					Timestamp dataAtendimento = DynamicVO.asTimestamp("AD_DTATENDIMENTO");
-					BigDecimal rota = DynamicVO.asBigDecimal("ROTA");
-					
-					if(data==null) {
-						data = TimeUtils.getNow();
-						dataAgendamento = TimeUtils.getNow();
-					}
-
-					int compareTo = data.compareTo(TimeUtils.getNow()); // comparação das datas
-
-					if (numosx == null) {
-						if (compareTo <= 0) { // gerar Agora
-							if ("1".equals(status)) {
-								if ("S".equals(reabastecimento)) {
-
-									if (solicitante.intValue() == 3082) {// agendamento automático
-
-										String erro = "";
-										erro = validacoes(patrimonio, abastecimento, dataAgendamento, dataAtendimento,
-												rota, id);
-										if (erro == "") {
-											gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
-										} else {
-											// TODO::cancelar a visita
-											cancelarVisita(patrimonio, id, erro, idretorno);
-										}
-
-									} else { // agendamento manual
-										gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
-									}
-
-								}
-							}
+				if(numosx==null) {
+					String patrimonio = DynamicVO.asString("CODBEM");
+					if(patrimonio!=null) {
+						Timestamp data = DynamicVO.asTimestamp("DTAGENDAMENTO");
+						if(data==null) {
+							data = TimeUtils.getNow();
 						}
+						
+						int compareTo = data.compareTo(TimeUtils.getNow()); // comparação das datas
+						
+						if(compareTo < 0) { //GERAR AGORA
+							
+							try {
+								
+								BigDecimal solicitante = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODUSU"));
+								BigDecimal idretorno = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("IDABASTECIMENTO"));
+								BigDecimal id = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("ID"));
+								BigDecimal nunota = DynamicVO.asBigDecimal("NUNOTA");
+								BigDecimal substituto = DynamicVO.asBigDecimal("AD_USUSUB");
+								Timestamp dataAtendimento = DynamicVO.asTimestamp("AD_DTATENDIMENTO");
+								BigDecimal rota = DynamicVO.asBigDecimal("ROTA");
+								String abastecimento = DynamicVO.asString("AD_TIPOPRODUTOS");
+								
+								if (solicitante.intValue() == 3082) {
+									
+									String erro = "";
+									erro = validacoes(patrimonio, abastecimento, data, dataAtendimento, rota, id);
+									
+									if (erro == "") {
+										gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
+									}else {
+										cancelarVisita(patrimonio, id, erro, idretorno);
+									}
+									
+								}else {
+									gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
+								}
+								
+								
+							} catch (Exception e) {
+								salvarException("[getListaPendente] Erro ao gerar a visita! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
+							}
+							
+						}
+						
 					}
-
-				} catch (Exception e) {
-					salvarException("[getListaPendente] Erro ao gerar a visita! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 				}
 			}
 		}
@@ -197,24 +194,24 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		}
 	}
 	
-	private void registraHistoricoDeErro(String patrimonio, BigDecimal id, String erro) {
-		try {
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento",
-					"this.CODBEM=? AND this.ID=? ", new Object[] { patrimonio, id }));
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-				DynamicVO VO = (DynamicVO) NVO;
-				
-				VO.setProperty("AD_TEMP",  erro);
-
-				itemEntity.setValueObject(NVO);
-			}
-		} catch (Exception e) {
-			salvarException("[cancelarVisita] Nao foi possivel cancelar a visita! patrimonio: "+patrimonio+" id: "+id+"\n"+e.getMessage()+"\n"+e.getCause());
-		}
-	}
+	/*
+	 * private void registraHistoricoDeErro(String patrimonio, BigDecimal id, String
+	 * erro) { try { EntityFacade dwfEntityFacade =
+	 * EntityFacadeFactory.getDWFFacade(); Collection<?> parceiro =
+	 * dwfEntityFacade.findByDynamicFinder(new
+	 * FinderWrapper("GCSolicitacoesAbastecimento", "this.CODBEM=? AND this.ID=? ",
+	 * new Object[] { patrimonio, id })); for (Iterator<?> Iterator =
+	 * parceiro.iterator(); Iterator.hasNext();) { PersistentLocalEntity itemEntity
+	 * = (PersistentLocalEntity) Iterator.next(); EntityVO NVO = (EntityVO)
+	 * ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+	 * DynamicVO VO = (DynamicVO) NVO;
+	 * 
+	 * VO.setProperty("AD_TEMP", erro);
+	 * 
+	 * itemEntity.setValueObject(NVO); } } catch (Exception e) {
+	 * salvarException("[cancelarVisita] Nao foi possivel cancelar a visita! patrimonio: "
+	 * +patrimonio+" id: "+id+"\n"+e.getMessage()+"\n"+e.getCause()); } }
+	 */
 
 	private void gerarPedidoENota(String patrimonio, DynamicVO gc_solicitabast, BigDecimal idRetorno, BigDecimal idsolicitacao, BigDecimal nto, BigDecimal sub) throws Exception {
 		
@@ -1647,33 +1644,21 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			return valida;
 		}
 		
-	private boolean validaSeExisteVisitaSemAjusteReabastecimento(String patrimonio) {
-			boolean valida = false;
-			try {
-				JdbcWrapper jdbcWrapper = null;
-				EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-				jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
-				ResultSet contagem;
-				NativeSql nativeSql = new NativeSql(jdbcWrapper);
-				nativeSql.resetSqlBuf();
-				nativeSql.appendSql(
-				"SELECT COUNT(OK) AS QTD "+
-				"FROM( SELECT CASE WHEN S.STATUS='3' AND R.STATUSVALIDACAO='2' THEN 'S' ELSE 'N' END AS OK"
-				+ " FROM GC_SOLICITABAST S"
-				+ " JOIN AD_RETABAST R ON (R.ID=S.IDABASTECIMENTO)"
-				+ " WHERE S.CODBEM='"+patrimonio+"' AND R.NUMOS IS NOT NULL AND S.REABASTECIMENTO='S' AND S.STATUS='3') WHERE OK='N'");
-				contagem = nativeSql.executeQuery();
-				while (contagem.next()) {
-					int count = contagem.getInt("QTD");
-					if (count >= 1) {
-						valida = true;
-					}
-				}
-			} catch (Exception e) {
-				// TODO: handle exception
-			}
-			return valida;
-		}
+		/*
+		 * private boolean validaSeExisteVisitaSemAjusteReabastecimento(String
+		 * patrimonio) { boolean valida = false; try { JdbcWrapper jdbcWrapper = null;
+		 * EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+		 * jdbcWrapper = dwfEntityFacade.getJdbcWrapper(); ResultSet contagem; NativeSql
+		 * nativeSql = new NativeSql(jdbcWrapper); nativeSql.resetSqlBuf();
+		 * nativeSql.appendSql( "SELECT COUNT(OK) AS QTD "+
+		 * "FROM( SELECT CASE WHEN S.STATUS='3' AND R.STATUSVALIDACAO='2' THEN 'S' ELSE 'N' END AS OK"
+		 * + " FROM GC_SOLICITABAST S" +
+		 * " JOIN AD_RETABAST R ON (R.ID=S.IDABASTECIMENTO)" + " WHERE S.CODBEM='"
+		 * +patrimonio+"' AND R.NUMOS IS NOT NULL AND S.REABASTECIMENTO='S' AND S.STATUS='3') WHERE OK='N'"
+		 * ); contagem = nativeSql.executeQuery(); while (contagem.next()) { int count =
+		 * contagem.getInt("QTD"); if (count >= 1) { valida = true; } } } catch
+		 * (Exception e) { // TODO: handle exception } return valida; }
+		 */
 		
 	private boolean validaSeOhPedidoDeAbastecimentoPoderaSerGerado(String secosCongelados, String codbem) {
 			
