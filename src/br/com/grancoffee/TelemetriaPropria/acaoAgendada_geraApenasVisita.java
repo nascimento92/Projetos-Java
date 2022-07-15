@@ -67,52 +67,58 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 		
 	}
 	
-	private void getListaPendente() {
-		try {
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+	private void getListaPendente() throws Exception {
+		
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
-			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS = ? ", new Object[] { "1" }));
+		Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento",
+				"this.STATUS=? AND this.APENASVISITA=? ", new Object[] { "1", "S" }));
 
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
-						.wrapInterface(DynamicVO.class);
-				
-				BigDecimal id = DynamicVO.asBigDecimal("ID");
-				BigDecimal idretorno = DynamicVO.asBigDecimal("IDABASTECIMENTO");
-				BigDecimal numosx = DynamicVO.asBigDecimal("NUMOS");
+			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+
+			BigDecimal numosx = DynamicVO.asBigDecimal("NUMOS");
+
+			if (numosx == null) {
 				String patrimonio = DynamicVO.asString("CODBEM");
-				Timestamp data = DynamicVO.asTimestamp("DTAGENDAMENTO");
-				//String reabastecimento = DynamicVO.asString("REABASTECIMENTO");
-				String apenasvisita = DynamicVO.asString("APENASVISITA");
-				BigDecimal substituto = DynamicVO.asBigDecimal("AD_USUSUB");
-				
+				if (patrimonio != null) {
 
-				int compareTo = data.compareTo(TimeUtils.getNow()); //comparação das datas
-				
-				if(numosx==null) {
-					if(compareTo<=0) { //gerar Agora
-						if("S".equals(apenasvisita)) { //apenas uma visita
-							// TODO :: Registra os dados na AD_TROCADEGRADE.
-							// TODO :: Gera a OS.
-							// TODO :: Registra o dado da OS Gerada.
-							
-							BigDecimal numos = gerarCabecalhoOS(patrimonio, "");
-							if(numos!=null) {
-								insereItem(numos,patrimonio, substituto);
-								salvaNumeroOS(numos, patrimonio, id, idretorno, substituto);
-								//geraItemOS(numos, patrimonio);
-								validaAD_TROCADEGRADE(patrimonio,numos);
-							}
-						}
+					Timestamp data = DynamicVO.asTimestamp("DTAGENDAMENTO");
+					if (data == null) {
+						data = TimeUtils.getNow();
 					}
-				}
 
+					int compareTo = data.compareTo(TimeUtils.getNow()); // comparação das datas
+
+					if (compareTo <= 0) {
+
+						try {
+
+							BigDecimal id = DynamicVO.asBigDecimal("ID");
+							BigDecimal idretorno = DynamicVO.asBigDecimal("IDABASTECIMENTO");
+							BigDecimal substituto = DynamicVO.asBigDecimal("AD_USUSUB");
+
+							BigDecimal numos = gerarCabecalhoOS(patrimonio, "");
+
+							if (numos != null) {
+								insereItem(numos, patrimonio, substituto);
+								salvaNumeroOS(numos, patrimonio, id, idretorno, substituto);
+								// geraItemOS(numos, patrimonio);
+								validaAD_TROCADEGRADE(patrimonio, numos);
+							}
+
+						} catch (Exception e) {
+							salvarException(
+									"[getListaPendente] Nao foi possivel obter a lista! Patrimonio "+patrimonio
+											+ e.getMessage() + "\n" + e.getCause());
+						}
+
+					}
+
+				}
 			}
-		} catch (Exception e) {
-			// TODO: handle exception
 		}
 	}
 	

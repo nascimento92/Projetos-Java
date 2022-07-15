@@ -2180,16 +2180,7 @@ FROM(
 				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoque);
 			}
 			
-			
-			/*
-			 * if(falta.doubleValue() % qtdMinima.doubleValue() == 0) { if(falta.intValue()
-			 * <= estoqueNaEmpresa.intValue()) { if(falta.intValue()>0) { sequencia++;
-			 * insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta,
-			 * new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast); }
-			 * }else { //TODO :: registra itens em ruptura insereItemEmRuptura(nunota,
-			 * empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia),
-			 * valorTotal, valor, tecla, top, gc_solicitabast, patrimonio); } }
-			 */
+			//TODO :: 15/07/22 PENDENTE ! Criar um log que registre todas as informações da visita, para que possamos avaliar se as informações do pedido não foram alteradas.
 			
 			
 			}
