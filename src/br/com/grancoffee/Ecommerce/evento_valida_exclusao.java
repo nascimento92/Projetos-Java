@@ -47,6 +47,9 @@ public class evento_valida_exclusao implements EventoProgramavelJava {
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
 		start(arg0);
+		
+		//TODO :: Excluir também o pedido
+		
 	}
 
 	@Override
