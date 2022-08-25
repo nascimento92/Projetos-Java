@@ -32,7 +32,7 @@ public class httpRequestHelper {
 	public static void main(String[] args)
 			throws URISyntaxException, IOException, InterruptedException, ParseException, JSONException {
 		//String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=eq.8689&tecla=eq.32768";
-		String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=in.(\"999999999999999\")";	
+		String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=in.(\"GCETESTE\")";	
 		String metodo = "GET";
 		String body = "";
 		String pt = "";
@@ -40,8 +40,9 @@ public class httpRequestHelper {
 		// String retorno = sendRequest(url,body,metodo);
 		// String retorno2 = newHttpRequest(url);
 		// String request3 = request3(url, metodo);
-		String request4 = request4(url);
 		//System.out.println(request4);
+		
+		String request4 = request4(url);
 		
 		JSONArray array = new JSONArray(request4);
 		
@@ -51,7 +52,7 @@ public class httpRequestHelper {
 			for(int i=0; i < array.length(); i++)   
 			{  
 				JSONObject object = array.getJSONObject(i);
-				pt += "\n"+object.getString("codbem")+" tecla: "+object.getString("tecla");	
+				pt += "\n"+object.getString("codbem")+" tecla: "+object.getString("tecla")+" estoque: "+object.getInt("estoque");	
 			}
 			
 			System.out.println(pt);

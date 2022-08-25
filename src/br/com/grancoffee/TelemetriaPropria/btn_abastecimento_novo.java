@@ -2465,31 +2465,27 @@ FROM(
 			arg0.mostraErro("<b> OPS! algo deu errado! acionar o setor de T.I! </b>");
 		}
 	}
+	
 	/*
-	private int obtemEstoqueViaAPI(String patrimonio, String tecla) {
-		
-		int estoque = 0;
-		
-		try {
-			String url = "http://api.grancoffee.com.br:8000/mid/inventario?codbem=in.(\"" + patrimonio + "\")&tecla=eq."
-					+ tecla;
-			String request = request(url);
-
-			JSONArray array = new JSONArray(request);
-
-			for (int i = 0; i < array.length(); i++) {
-				JSONObject object = array.getJSONObject(i);
-				estoque = object.getInt("estoque");
-			}
-
-		} catch (Exception e) {
-			salvarException(
-					"[obtemEstoqueViaAPI] Nao foi possivel obter o estoque! patrimonio "+patrimonio+" tecla "+tecla
-							+ e.getMessage() + "\n" + e.getCause());
-		}
-				
-		return estoque;
-	}
-	*/
+	 * private int obtemEstoqueViaAPI(String patrimonio, String tecla) {
+	 * 
+	 * int estoque = 0;
+	 * 
+	 * try { String url =
+	 * "http://api.grancoffee.com.br:8000/mid/inventario?codbem=in.(\"" + patrimonio
+	 * + "\")&tecla=eq." + tecla; String request = request(url);
+	 * 
+	 * JSONArray array = new JSONArray(request);
+	 * 
+	 * for (int i = 0; i < array.length(); i++) { JSONObject object =
+	 * array.getJSONObject(i); estoque = object.getInt("estoque"); }
+	 * 
+	 * } catch (Exception e) { salvarException(
+	 * "[obtemEstoqueViaAPI] Nao foi possivel obter o estoque! patrimonio "
+	 * +patrimonio+" tecla "+tecla + e.getMessage() + "\n" + e.getCause()); }
+	 * 
+	 * return estoque; }
+	 */
+	
 	
 }
