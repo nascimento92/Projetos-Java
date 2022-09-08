@@ -40,9 +40,11 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 		String status = verificaStatusAbastecimento(idabast);
 		Timestamp hora = TimeUtils.getNow();
 		
+		/*
 		if(validaSeExisteAjusteMaisRecente(idabast)) {
 			throw new Error("<br/><b>ATENÇÃO</b><br/>Não é possível ajustar essa visita, existem visitas mais recentes!<br/><br/>");
 		}
+		*/
 
 		if ("S".equals(campo)) {
 			arg0.mostraErro("<br/><b>Abastecimento já ajustado!</b><br/>");
