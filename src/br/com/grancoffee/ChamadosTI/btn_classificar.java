@@ -1,19 +1,13 @@
 package br.com.grancoffee.ChamadosTI;
 
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-
-import com.sankhya.util.StringUtils;
-
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.sql.NativeSql;
-import br.com.sankhya.jape.vo.DynamicVO;
-import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class btn_classificar implements AcaoRotinaJava {
@@ -28,15 +22,15 @@ public class btn_classificar implements AcaoRotinaJava {
 	
 	public void start(Registro[] linhas,ContextoAcao arg0) throws Exception {			
 		
-		String email = (String) linhas[0].getCampo("EMAIL");
-		BigDecimal numos = (BigDecimal) linhas[0].getCampo("NUMOS");
-		String tipo = validaTipo((String) arg0.getParam("TIPOSOLICITACAO"));
-		String prioridade = validaPrioridade((String) arg0.getParam("PRIORIDADE"));
-		String nivel = validaNivel((String) arg0.getParam("NIVEL"));
-		String classificacao = validaClassificacao((String) arg0.getParam("CLASSIFICACAO"));
+		//String email = (String) linhas[0].getCampo("EMAIL");
+		//BigDecimal numos = (BigDecimal) linhas[0].getCampo("NUMOS");
+		//String tipo = validaTipo((String) arg0.getParam("TIPOSOLICITACAO"));
+		//String prioridade = validaPrioridade((String) arg0.getParam("PRIORIDADE"));
+		//String nivel = validaNivel((String) arg0.getParam("NIVEL"));
+		//String classificacao = validaClassificacao((String) arg0.getParam("CLASSIFICACAO"));
 		Timestamp dataFinal = (Timestamp) linhas[0].getCampo("DTFECHAMENTO");
-		String descricaoAbreviada = StringUtils.substr(linhas[0].getCampo("DESCRICAO").toString(), 0, 100);
-		String area = validaArea((String) arg0.getParam("AREA"));
+		//String descricaoAbreviada = StringUtils.substr(linhas[0].getCampo("DESCRICAO").toString(), 0, 100);
+		//String area = validaArea((String) arg0.getParam("AREA"));
 		
 		if(dataFinal!=null) {
 			arg0.mostraErro("Chamado encerrado, não pode ser classificado!");
@@ -54,8 +48,10 @@ public class btn_classificar implements AcaoRotinaJava {
 		linhas[0].setCampo("ATENDENTE", null);
 		linhas[0].setCampo("DTPREVISTA", null);
 		linhas[0].setCampo("AREA", arg0.getParam("AREA"));
+		linhas[0].setCampo("RECORRENTE", arg0.getParam("RECORRENTE"));
 	}
 	
+	/*
 	private void enviarEmail(BigDecimal numos, String email, String tipo, String classificacao, String prioridade, String nivel, String descricao, String area) throws Exception {
 		
 		try {
@@ -100,6 +96,7 @@ public class btn_classificar implements AcaoRotinaJava {
 			e.printStackTrace();
 		}	
 	}
+	*/
 	
 	public String validaTipo(String tipo) {
 		String tipoClassificado="";
@@ -206,6 +203,7 @@ public class btn_classificar implements AcaoRotinaJava {
 		return descricao;
 	}
 	
+	/*
 	private BigDecimal getUltimoCodigoFila() throws Exception {
 		int count = 0;
 		
@@ -227,5 +225,5 @@ public class btn_classificar implements AcaoRotinaJava {
 		
 		return ultimoCodigo;
 	}
-	
+	*/
 }

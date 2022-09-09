@@ -200,7 +200,7 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 			
 			dwfFacade.createEntity("AD_PLANVERTI", (EntityVO) VO);
 		} catch (Exception e) {
-			throw new Error("[cadastrarTeclas] Ops! "+e.getMessage()+" "+e.getCause());
+			salvarException("[cadastrarTeclas] erro ao tentar cadastrar teclas: "+patrimonio+"\n"+e.getMessage()+" "+e.getCause());
 		}
 	}
 	
@@ -226,7 +226,7 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 			}
 			
 		} catch (Exception e) {
-			throw new Error("[validaSeExistemTeclasDuplicadas] Ops! "+e.getMessage()+" "+e.getCause());
+			salvarException("[validaSeExistemTeclasDuplicadas] erro ao verificar teclas duplicadas, patrimonio: "+patrimonio+"\n"+e.getMessage()+" "+e.getCause());
 		}
 		
 		return valida;

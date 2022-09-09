@@ -1,5 +1,6 @@
 package xTestes;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -19,12 +20,18 @@ public class Main {
 		
 		//System.out.println(dataA);
 		
-		int dia = 15;
-		int mes = 12;
-		int ano = 2022;
+		int dia = 01;
+		int mes = 01;
+		int ano = 2023;
 		
-		Timestamp buildData = TimeUtils.buildData(dia, mes, ano);
+		Timestamp buildData = TimeUtils.buildData(dia, mes-1, ano);
 		System.out.println(buildData);
+		
+		int day = TimeUtils.getDay(TimeUtils.getNow());
+		int month = TimeUtils.getMonth(TimeUtils.getNow());
+		int year = TimeUtils.getYear(TimeUtils.getNow());
+
+		System.out.println(TimeUtils.buildData(day, month-1, year)+" - "+month);
 	}
 	
 	/*
