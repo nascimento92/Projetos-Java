@@ -107,7 +107,13 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 				vlr = VO.asBigDecimal("VLRUNIT");
 				VO.setProperty("QTDNEG", qtdfinal);
 				VO.setProperty("VLRTOT", vlr.multiply(qtdfinal));
-			}	
+			}
+			
+			String unidade = getTgfpro(produto).asString("AD_CODVOL");
+			
+			if(unidade!=null) {
+				VO.setProperty("CODVOL", unidade);;
+			}
 		
 		}
 		

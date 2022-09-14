@@ -100,8 +100,16 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 		String tipoContrato = TCSCON.asString("AD_TIPCONT");
 		
 		DynamicVO TGFPRO = getTGFPRO(produto);
-		String unidadePadrao = TGFPRO.asString("CODVOL");
+		String unidadePadrao = "";
+		String unidade = TGFPRO.asString("CODVOL");
+		String unidadeDeVenda = TGFPRO.asString("AD_CODVOL");
 		BigDecimal grupo = TGFPRO.asBigDecimal("CODGRUPOPROD");
+		
+		if(unidadeDeVenda!=null) {
+			unidadePadrao = unidadeDeVenda;
+		}else {
+			unidadePadrao = unidade;
+		}
 		
 		if("A".equals(tipoContrato)) {
 			
