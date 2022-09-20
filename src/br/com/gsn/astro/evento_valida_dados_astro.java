@@ -1,14 +1,19 @@
 package br.com.gsn.astro;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
+import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
+import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class evento_valida_dados_astro implements EventoProgramavelJava {
 
@@ -114,7 +119,16 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			if(unidade!=null) {
 				VO.setProperty("CODVOL", unidade);;
 			}
-		
+			
+			//TODO:: Verificar o local do produto
+			BigDecimal empresa = getTgfcab(numeroUnico).asBigDecimal("CODEMP");
+			if(empresa!=null) {
+				BigDecimal localOrig = validaLocal(empresa,produto);
+				if(localOrig!=null && localOrig.intValue() >0) {
+					VO.setProperty("CODLOCALORIG", localOrig);
+				}
+			}
+			
 		}
 		
 		if(top.intValue()==10002) {
@@ -124,6 +138,35 @@ public class evento_valida_dados_astro implements EventoProgramavelJava {
 			}
 		}
 		
+	}
+	
+	private BigDecimal validaLocal(BigDecimal empresa, BigDecimal codprod) {
+		BigDecimal local = BigDecimal.ZERO;
+		
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+			"SELECT "+
+			"CASE WHEN EXISTS(SELECT 1 FROM TGFPEM WHERE CODPROD="+codprod+" AND CODEMP="+empresa+") "+
+			"THEN (SELECT CODLOCALPAD FROM TGFPEM WHERE CODPROD="+codprod+" AND CODEMP="+empresa+") END LOCAL "+
+			"FROM DUAL");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				BigDecimal Xlocal = contagem.getBigDecimal("LOCAL");
+				if(Xlocal!=null) {
+					local = Xlocal;
+				}
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return local;
 	}
 	
 	private DynamicVO getTgfcab(BigDecimal numeroUnico) throws Exception {
