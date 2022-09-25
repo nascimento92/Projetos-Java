@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
+import com.sankhya.util.StringUtils;
 import com.sankhya.util.TimeUtils;
 
 public class teste {
@@ -45,14 +46,22 @@ public class teste {
 		Timestamp dataAgendamento = buildData(Hora);
 		Timestamp novaData = TimeUtils.dataAddDay(dataAgendamento, QtdDias);
 		
-		System.out.println(
+		/*System.out.println(
 				"Valor: "+valor+
 				"\nHora: "+Hora+
 				"\nQtd Dias: "+QtdDias+
 				"\nDt. Agendamento: "+dataAgendamento+
-				"\nDt. Atendimento: "+novaData);		
+				"\nDt. Atendimento: "+novaData);*/	
 		
+		String st = "[]";
+		//System.out.println(st);
+		//System.out.println(StringUtils.replaceAll(st, ",]", "]"));
 		
+		String chave = "0000001314003";
+		int numcontrato = Integer.parseInt(chave.substring(1, 10));
+		int planta = Integer.parseInt(chave.substring(11, 13));
+		//String idPLanta = chave.substring(11, 3);
+		System.out.println(numcontrato+"\n"+planta);
 
 	}
 	
