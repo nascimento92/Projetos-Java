@@ -60,7 +60,8 @@ public class btn_enviarPlan_verti implements AcaoRotinaJava{
 		Timer timer = new Timer(5000, new ActionListener() {	
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				chamaPentaho();				
+				chamaPentaho();	
+				//TODO :: Colocar para o pentaho, salvar no endereçamento o ID do planograma gerado
 			}
 		});
 		timer.setRepeats(false);

@@ -17,6 +17,8 @@ import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
@@ -77,49 +79,44 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 
 		return valida;
 	}
-
+	
 	private void verificaTeclas(BigDecimal numos, BigDecimal id, String patrimonio) {
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-
-			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("AD_APPCONTAGEM", "this.NUMOS = ? ", new Object[] { numos }));
-
-			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
-
-				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal qtdcontada = DynamicVO.asBigDecimal("QTDCONTAGEM");
-				
-				atualizaDados(numos,produto,tecla,qtdcontada,id,patrimonio);
-			}
-
-		} catch (Exception e) {
-			salvarException("[verificaTeclas] nao foi possivel verificar as teclas! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
-		}
-	}
-	
-	private void atualizaDados(BigDecimal numos, BigDecimal produto, String tecla, BigDecimal qtdcontada, BigDecimal id, String patrimonio) {
-		try {
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_ITENSRETABAST",
-					"this.ID=? AND this.CODBEM=? AND this.TECLA=? AND this.CODPROD=? ", new Object[] { id, patrimonio,tecla, produto }));
+					"this.ID=?", new Object[] { id }));
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				DynamicVO VO = (DynamicVO) NVO;
 
-				VO.setProperty("CONTAGEM", qtdcontada);
+				String tecla = VO.asString("TECLA");
+				BigDecimal produto = VO.asBigDecimal("CODPROD");
+				BigDecimal qtdContagem = null;
+				String ajustado = VO.asString("AJUSTADO");
+				
+				DynamicVO contagem = getContagem(numos,tecla,produto);
+				if(contagem!=null) {
+					qtdContagem = contagem.asBigDecimal("QTDCONTAGEM");
+				}else {
+					qtdContagem = new BigDecimal(0);
+				}
+				
+				if(!"S".equals(ajustado)) {
+					VO.setProperty("CONTAGEM", qtdContagem);
+				}
 
 				itemEntity.setValueObject(NVO);
-				
 			}
 		} catch (Exception e) {
-			salvarException("[atualizaDados] nao foi possivel atualizar os dados das teclas! patrimonio: "+patrimonio+" tecla: "+tecla+" produto: "+produto+"\n"+e.getMessage()+"\n"+e.getCause());
+			salvarException("[verificaTeclas] nao foi possivel verificar as teclas! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
+	}
+	
+	private DynamicVO getContagem(BigDecimal numos, String tecla, BigDecimal produto) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("AD_APPCONTAGEM");
+		DynamicVO VO = DAO.findOne("this.NUMOS=? AND this.CODPROD=? AND this.TECLA=?",new Object[] { numos, produto, tecla });
+		return VO;
 	}
 	
 	private void salvarException(String mensagem) {

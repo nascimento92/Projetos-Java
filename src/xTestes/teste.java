@@ -4,19 +4,16 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.text.DateFormat;
-import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-
-import org.jsoup.internal.StringUtil;
 
 import com.sankhya.util.StringUtils;
 import com.sankhya.util.TimeUtils;
 
 public class teste {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
 
 		/*
 		 * BigDecimal qtdMinima = new BigDecimal(1); BigDecimal falta = new
@@ -49,24 +46,23 @@ public class teste {
 		Timestamp dataAgendamento = buildData(Hora);
 		Timestamp novaData = TimeUtils.dataAddDay(dataAgendamento, QtdDias);
 		
-		System.out.println(
+		/*System.out.println(
 				"Valor: "+valor+
 				"\nHora: "+Hora+
 				"\nQtd Dias: "+QtdDias+
 				"\nDt. Agendamento: "+dataAgendamento+
-				"\nDt. Atendimento: "+novaData);
+				"\nDt. Atendimento: "+novaData);*/	
 		
-		String a = "TÉRREO ESPAÇO MARKET HONEST";
-		String removerCaracteresEspeciais = StringUtils.removerCaracteresEspeciais(a);
-		String removerAcentos = removerAcentos(a);
-		System.out.println(removerAcentos);
+		String st = "[]";
+		//System.out.println(st);
+		//System.out.println(StringUtils.replaceAll(st, ",]", "]"));
 		
-		
+		String chave = "0000001314003";
+		int numcontrato = Integer.parseInt(chave.substring(1, 10));
+		int planta = Integer.parseInt(chave.substring(11, 13));
+		//String idPLanta = chave.substring(11, 3);
+		System.out.println(numcontrato+"\n"+planta);
 
-	}
-	
-	public static String removerAcentos(String str) {
-	    return Normalizer.normalize(str, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
 	}
 	
 	private static Timestamp buildData(String hora) {
