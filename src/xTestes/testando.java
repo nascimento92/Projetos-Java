@@ -23,6 +23,12 @@ public class testando {
 		System.out.println("PROXIMA DATA: "+dt2);
 		System.out.println("DURATION MINUTES: "+diff);
 		System.out.println("RESULT: "+r);
+		
+		int dia = 1;
+		int mes = 2;
+		int ano = 2022;
+		
+		System.out.println(TimeUtils.buildData(dia, mes, ano));
 	}
 	
 	private double diff (Timestamp dtinicial, Timestamp dtfinal) {

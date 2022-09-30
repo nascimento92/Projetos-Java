@@ -153,9 +153,16 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 	}
 	
 	private BigDecimal getEstoque(String patrimonio, String tecla, BigDecimal produto) throws Exception {
+		
+		BigDecimal estoque = null;
 		JapeWrapper DAO = JapeFactory.dao("AD_ESTOQUE");
 		DynamicVO VO = DAO.findOne("this.CODBEM=? AND this.TECLA=? AND this.CODPROD=?",new Object[] { patrimonio, tecla, produto });
-		BigDecimal estoque = VO.asBigDecimal("ESTOQUE");
+		if(VO!=null) {
+			estoque = VO.asBigDecimal("ESTOQUE");
+		}else {
+			estoque = new BigDecimal(0);
+		}
+		
 		return estoque;
 	}
 	
@@ -222,12 +229,13 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 	private void inserirTecla(PersistenceEvent arg0) throws Exception {
 		DynamicVO teclas = (DynamicVO) arg0.getVo();
 		String patrimonio = teclas.asString("CODBEM");
-		BigDecimal estoque = BigDecimalUtil.getValueOrZero(getEstoque(patrimonio, teclas.asBigDecimal("TECLA").toString(), teclas.asBigDecimal("CODPROD")));
-		
+
 		if(validaSeOhPatrimonioEstaNaTelaDeInstalacoes(patrimonio)) {
 			String micromarketing = validaSeEhMicroMarketing(patrimonio);
 			
 			try {
+				
+				BigDecimal estoque = BigDecimalUtil.getValueOrZero(getEstoque(patrimonio, teclas.asBigDecimal("TECLA").toString(), teclas.asBigDecimal("CODPROD")));
 				
 				EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 				EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("GCPlanograma");

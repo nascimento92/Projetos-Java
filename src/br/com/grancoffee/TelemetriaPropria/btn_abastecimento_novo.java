@@ -49,6 +49,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 26/04/2022 vs 2.5 Retirada a validação do Estoque direto da API
 	 * 10/05/2022 vs 2.6 Ajuste na rotina de abastecimento, quando o item tinha quantidade minima, o valor faltante tinha que ser > que a quantidade minima, foi alterado para ser >=
 	 * 01/06/2022 vs 2.7 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
+	 * 30/09/2022 vs 2.8 Ajuste da data de atendimento
 	 */
 	
 	String retornoNegativo = "";
@@ -83,7 +84,10 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			}
 
 			if (dtAbastecimentoX != null) {
-				if (dtvisita.before(dtAbastecimentoX)) {
+				
+				Timestamp dataSemHoras = ajustaDataRetirandoHoras(dtAbastecimentoX);
+				
+				if (dtvisita.before(dataSemHoras)) {
 					dtvisita = addDias(dtAbastecimentoX, new BigDecimal(1));
 				}
 			}
@@ -767,42 +771,16 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			
 		}
 	}
-	/*
-	private String request(String url) throws IOException, ParseException {
-		OkHttpClient client = new OkHttpClient().newBuilder().build();
-		Request request = new Request.Builder()
-				.url(url)
-				.get()
-				//.method(method, null)
-				.addHeader("token","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcGlhY2Nlc3MifQ.BlvnsLa4kDAAlyxYuLRc1qo-hd72YqHPdr3SKnCxxqI")
-				.build();
-
-		try (Response response = client.newCall(request).execute()) {
-			return response.body().string();
-		}
-	}
 	
+	private Timestamp ajustaDataRetirandoHoras(Timestamp data) {
+		int day = TimeUtils.getDay(data);
+		int month = TimeUtils.getMonth(data);
+		int year = TimeUtils.getYear(data);
 		
-	private void chamaPentaho() {
-
-		try {
-
-			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");
-			;
-			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
-			WSPentaho si = new WSPentaho(site, Key);
-
-			String path = "home/GC_New/Transformation/Sankhya-Pedido/";
-			String objName = "J-Loop_visitas_pendentes";
-
-			si.runJob(path, objName);
-
-		} catch (Exception e) {
-			salvarException(
-					"[chamaPentaho] nao foi possivel chamar o pentaho! " + e.getMessage() + "\n" + e.getCause());
-		}
+		Timestamp buildData = TimeUtils.buildData(day, month-1, year);
+		
+		return buildData;
 	}
-*/
 	
 	//VALIDAÇÕES
 	
