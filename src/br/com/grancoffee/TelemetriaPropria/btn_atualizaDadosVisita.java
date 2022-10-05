@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.Iterator;
 
+import com.sankhya.util.BigDecimalUtil;
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
@@ -97,13 +98,37 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 				
 				DynamicVO contagem = getContagem(numos,tecla,produto);
 				if(contagem!=null) {
-					qtdContagem = contagem.asBigDecimal("QTDCONTAGEM");
+					qtdContagem = BigDecimalUtil.getValueOrZero(contagem.asBigDecimal("QTDCONTAGEM"));
 				}else {
 					qtdContagem = new BigDecimal(0);
 				}
 				
 				if(!"S".equals(ajustado)) {
+					BigDecimal saldoAntes = BigDecimalUtil.getValueOrZero(VO.asBigDecimal("SALDOANTERIOR"));
+					BigDecimal qtdpedido = BigDecimalUtil.getValueOrZero(VO.asBigDecimal("QTDPEDIDO"));
+					BigDecimal retorno = BigDecimalUtil.getValueOrZero(VO.asBigDecimal("QTDRETORNO"));
+					
+					BigDecimal diferenca = null;
+					BigDecimal saldoapos = null;
+					BigDecimal saldoesperado = saldoAntes.add(qtdpedido);
+					BigDecimal retornosAhSeremIgnorados = getRetornosAhSeremIgnorados(id,produto,tecla);
+					BigDecimal retornoParaCalculo = retorno.subtract(retornosAhSeremIgnorados);
+					
+					if(qtdContagem.intValue() > 0) {
+	
+						BigDecimal conteretorno = contagem.asBigDecimal("QTDCONTAGEM").add(retornoParaCalculo);
+						diferenca = conteretorno.subtract(saldoesperado);
+						saldoapos = contagem.asBigDecimal("QTDCONTAGEM");
+						
+					}else {
+						diferenca = new BigDecimal(0);
+						saldoapos = saldoesperado.subtract(retornoParaCalculo);
+					}
+					
 					VO.setProperty("CONTAGEM", qtdContagem);
+					VO.setProperty("DIFERENCA", diferenca);
+					VO.setProperty("SALDOAPOS", saldoapos);	
+					
 				}
 
 				itemEntity.setValueObject(NVO);
@@ -111,6 +136,37 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 		} catch (Exception e) {
 			salvarException("[verificaTeclas] nao foi possivel verificar as teclas! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
+	}
+	
+	private BigDecimal getRetornosAhSeremIgnorados(BigDecimal id, BigDecimal produto, String tecla) {
+		BigDecimal qtd = null;
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+					"SELECT NVL(SUM(QTD),0) AS QTD FROM AD_PRODRETABAST WHERE ID="+id+" AND CODPROD="+produto+" AND TECLA='"+tecla+"' AND IDRETORNO IN (SELECT ID FROM AD_MOTIVOSRETORNO WHERE REDUZESTOQUE='N')");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				BigDecimal count = contagem.getBigDecimal("QTD");
+				if(count!=null) {
+					qtd = count;
+				}
+			}
+		} catch (Exception e) {
+			salvarException(
+					"[getRetornosAhSeremIgnorados] não foi possível verificar a quantidade de retornos a serem ignorados. id " + id + "produto "+produto
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
+		if(qtd==null) {
+			qtd = new BigDecimal(0);
+		}
+		
+		return qtd;
 	}
 	
 	private DynamicVO getContagem(BigDecimal numos, String tecla, BigDecimal produto) throws Exception {

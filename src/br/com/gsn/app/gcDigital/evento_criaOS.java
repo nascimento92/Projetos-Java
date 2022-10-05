@@ -84,74 +84,86 @@ public class evento_criaOS implements EventoProgramavelJava{
 		
 		if(patrimonio!=null && tipo!=null) {
 			
-			enderecoMaquina = getEnderecoDaMaquina(patrimonio);
-			contrato = getContrato(patrimonio);
-			parceiro = getParceiro(patrimonio);
-			codparc = getCodParc(patrimonio);
+			if(validaSeEhUmaMaquinaValida(patrimonio)) {
+				enderecoMaquina = getEnderecoDaMaquina(patrimonio);
+				contrato = getContrato(patrimonio);
+				parceiro = getParceiro(patrimonio);
+				codparc = getCodParc(patrimonio);
+						
+				if("1".equals(tipo)) { //Chamado Técnico
+					servico = new BigDecimal(515315);
+					motivo = new BigDecimal(4);
+					//TODO: obter o executante baseado na operação da planta do contrato
+					executante = getExecutanteChamadoTecnico(patrimonio);
+					t = "Chamado Técnico";
+					osModelo = new BigDecimal(629042);
 					
-			if("1".equals(tipo)) { //Chamado Técnico
-				servico = new BigDecimal(515315);
-				motivo = new BigDecimal(4);
-				//TODO: obter o executante baseado na operação da planta do contrato
-				executante = getExecutanteChamadoTecnico(patrimonio);
-				t = "Chamado Técnico";
-				osModelo = new BigDecimal(629042);
+				}else if("2".equals(tipo)) { //Sugestão/Reclamação
+					servico = new BigDecimal(200000);
+					motivo = new BigDecimal(106);
+					executante = new BigDecimal(2028);
+					t = "Sugestão/Reclamação";
+					osModelo = new BigDecimal(629042);
+					
+				}else { //Reembolso
+					servico = new BigDecimal(200000);
+					motivo = new BigDecimal(8);
+					executante = new BigDecimal(54);
+					t = "Reembolso";
+					osModelo = new BigDecimal(629042);
+				}
 				
-			}else if("2".equals(tipo)) { //Sugestão/Reclamação
-				servico = new BigDecimal(200000);
-				motivo = new BigDecimal(106);
-				executante = new BigDecimal(2028);
-				t = "Sugestão/Reclamação";
-				osModelo = new BigDecimal(629042);
-				
-			}else { //Reembolso
-				servico = new BigDecimal(200000);
-				motivo = new BigDecimal(8);
-				executante = new BigDecimal(54);
-				t = "Reembolso";
-				osModelo = new BigDecimal(629042);
-			}
-			
-			problema = "Tipo de solicitação: "+t+
-					"\nPatrimônio: "+patrimonio+
-					"\nData Solicitação: "+TimeUtils.buildPrintableTimestamp(dataSolicitacao.getTime(), "dd/MM/yyyy HH:mm:ss")+
-					"\nContrato: "+contrato+
-					"\nParceiro: "+parceiro+
-					"\nSolicitante: "+nome+
-					"\nTelefone: "+telefone+
-					"\nE-mail: "+email+
-					"\nEndereço da máquina: "+enderecoMaquina+
-					"\nSolicitação: "+descricao;
+				problema = "Tipo de solicitação: "+t+
+						"\nPatrimônio: "+patrimonio+
+						"\nData Solicitação: "+TimeUtils.buildPrintableTimestamp(dataSolicitacao.getTime(), "dd/MM/yyyy HH:mm:ss")+
+						"\nContrato: "+contrato+
+						"\nParceiro: "+parceiro+
+						"\nSolicitante: "+nome+
+						"\nTelefone: "+telefone+
+						"\nE-mail: "+email+
+						"\nEndereço da máquina: "+enderecoMaquina+
+						"\nSolicitação: "+descricao;
 
-			codprod = getCodprod(patrimonio);
+				codprod = getCodprod(patrimonio);
+				
+				BigDecimal numos = gerarCabecalhoOS(problema,osModelo,patrimonio,contrato,codparc);
+				if(numos.intValue()!=0) {
+					geraItemOS(numos,osModelo,motivo,servico,executante, codprod, patrimonio);
+					VO.setProperty("NUMOS", numos);
+				}
+			}else {
+				VO.setProperty("ERRO", "Máquina "+patrimonio+" inválida!");
+			}
+	
+		}
+	}
+	
+	private boolean validaSeEhUmaMaquinaValida(String patrimonio) {
+		boolean valida = false;
+		
+		try {
 			
-			BigDecimal numos = gerarCabecalhoOS(problema,osModelo,patrimonio,contrato,codparc);
-			if(numos.intValue()!=0) {
-				geraItemOS(numos,osModelo,motivo,servico,executante, codprod, patrimonio);
-				VO.setProperty("NUMOS", numos);
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+					"SELECT COUNT(*) AS QTD FROM AD_PATRIMONIO WHERE codbem='"+patrimonio+"'");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count >= 1) {
+					valida = true;
+				}
 			}
 			
-			/*
-			 * 	throw new Error(
-					"Patrimonio: "+patrimonio+
-					"\nNome: "+nome+
-					"\nTelefone: "+telefone+
-					"\nDt. solicitação: "+TimeUtils.buildPrintableTimestamp(dataSolicitacao.getTime(), "dd/MM/yyyy HH:mm:ss")+
-					"\nEmail: "+email+
-					"\nDescrição: "+descricao+
-					"\nTipo: "+tipo+
-					"\nEndereco: "+enderecoMaquina+
-					"\nContrato: "+contrato+
-					"\nParceiro: "+parceiro+
-					"\nCód. parc: "+codparc+
-					"\nServiço: "+servico+
-					"\nMotivo: "+motivo+
-					"\nExecutante: "+executante+
-					"\nNome tipo: "+t+
-					"\nosModelo: "+osModelo+
-					"\n\nProblema: "+problema);
-			 */
+		} catch (Exception e) {
+			// TODO: handle exception
 		}
+		
+		return valida;
 	}
 	
 	private BigDecimal gerarCabecalhoOS (String solicitacao, BigDecimal osModelo, String patrimonio, 
