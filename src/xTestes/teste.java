@@ -8,61 +8,26 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import com.sankhya.util.StringUtils;
 import com.sankhya.util.TimeUtils;
 
 public class teste {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws JSONException {
 
-		/*
-		 * BigDecimal qtdMinima = new BigDecimal(1); BigDecimal falta = new
-		 * BigDecimal(3);
-		 * 
-		 * 
-		 * if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()==1) {
-		 * System.out.println("pode"); }else { System.out.println("nao pode"); }
-		 * 
-		 * 
-		 * 
-		 * if(falta.doubleValue()%qtdMinima.doubleValue()==0) {
-		 * System.out.println("numero inteiro"); }else {
-		 * System.out.println("numero quebrado"); }
-		 * 
-		 * 
-		 * 
-		 * System.out.println("Qtd minima: "+qtdMinima+ "\nfalta: "+falta);
-		 * 
-		 * 
-		 * String Hora_Ag = "122"; String Data_Ag = getData(Hora_Ag, "dd/MM/yyyy");
-		 * 
-		 * System.out.println(Data_Ag);
-		 */
-		
-		//03-05-22 teste sobre extração de uma string.
-		String valor = "014";
-		String Hora = valor.substring(1)+":00:00";
-		int QtdDias = Integer.valueOf(valor.substring(0, 1));
-		Timestamp dataAgendamento = buildData(Hora);
-		Timestamp novaData = TimeUtils.dataAddDay(dataAgendamento, QtdDias);
-		
-		/*System.out.println(
-				"Valor: "+valor+
-				"\nHora: "+Hora+
-				"\nQtd Dias: "+QtdDias+
-				"\nDt. Agendamento: "+dataAgendamento+
-				"\nDt. Atendimento: "+novaData);*/	
-		
-		String st = "[]";
-		//System.out.println(st);
-		//System.out.println(StringUtils.replaceAll(st, ",]", "]"));
-		
-		String chave = "0000001314003";
-		int numcontrato = Integer.parseInt(chave.substring(1, 10));
-		int planta = Integer.parseInt(chave.substring(11, 13));
-		//String idPLanta = chave.substring(11, 3);
-		System.out.println(numcontrato+"\n"+planta);
-
+		String retorno = "{\"id\":16257,\"created_at\":\"2018-01-26T13:48:18.000Z\",\"updated_at\":\"2021-10-25T21:18:17.000Z\",\"type\":\"Product\",\"manufacturer_id\":74960,\"category_id\":116,\"name\":\"IOGURTE CAFE DA MANHA LINHACA MORANGO E BANANA ACTIVIA 170G\",\"upc_code\":\"100136\",\"barcode\":null,\"external_id\":\"100136\",\"weight\":null,\"cost_price\":null,\"vendible_balance\":-32817.0,\"tags\":[],\"additional_barcodes\":[{\"id\":210,\"value\":\"7891025107170\"},{\"id\":609,\"value\":\"7891025112174\"},{\"id\":718,\"value\":\"7891025117742\"}],\"ncm_code\":null,\"cest_code\":null,\"url\":\"http://vmpay.vertitecnologia.com.br/api/v1/products/16257\",\"inventories\":[{\"distribution_center_id\":23,\"total_quantity\":120.0,\"committed_quantity\":0.0},{\"distribution_center_id\":128,\"total_quantity\":63.0,\"committed_quantity\":0.0},{\"distribution_center_id\":132,\"total_quantity\":0.0,\"committed_quantity\":0.0}]}";
+		JSONObject j = new JSONObject(retorno);
+		JSONArray jsonArray = j.getJSONArray("additional_barcodes");
+		for(int i = 0; i < jsonArray.length(); i++) {
+			JSONObject x = jsonArray.getJSONObject(i);
+			int int1 = x.getInt("id");
+			String string = x.getString("value");
+			System.out.println("ID: "+int1+"\nVALOR: "+string);
+		}
 	}
 	
 	private static Timestamp buildData(String hora) {
