@@ -114,20 +114,15 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 					BigDecimal retornosAhSeremIgnorados = getRetornosAhSeremIgnorados(id,produto,tecla);
 					BigDecimal retornoParaCalculo = retorno.subtract(retornosAhSeremIgnorados);
 					
-					if(qtdContagem.intValue() > 0) {
-	
-						BigDecimal conteretorno = contagem.asBigDecimal("QTDCONTAGEM").add(retornoParaCalculo);
-						diferenca = conteretorno.subtract(saldoesperado);
-						saldoapos = contagem.asBigDecimal("QTDCONTAGEM");
-						
-					}else {
-						diferenca = new BigDecimal(0);
-						saldoapos = saldoesperado.subtract(retornoParaCalculo);
-					}
-					
+					BigDecimal conteretorno = qtdContagem.add(retornoParaCalculo);
+					diferenca = conteretorno.subtract(saldoesperado);
+					saldoapos = qtdContagem;
+										
 					VO.setProperty("CONTAGEM", qtdContagem);
 					VO.setProperty("DIFERENCA", diferenca);
-					VO.setProperty("SALDOAPOS", saldoapos);	
+					VO.setProperty("SALDOAPOS", saldoapos);
+					
+					atualizaHistorico(id,produto,tecla,qtdContagem,diferenca,saldoapos, retornoParaCalculo);
 					
 				}
 
@@ -135,6 +130,28 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 			}
 		} catch (Exception e) {
 			salvarException("[verificaTeclas] nao foi possivel verificar as teclas! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void atualizaHistorico(BigDecimal id, BigDecimal produto, String tecla, BigDecimal contagem, BigDecimal diferenca, BigDecimal saldoapos, BigDecimal retorno) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_HISTRETABAST",
+					"this.ID=? AND this.CODPROD=? AND this.TECLA=? ", new Object[] { id, produto,tecla }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				VO.setProperty("CONTAGEM", contagem);
+				VO.setProperty("DIFERENCA", diferenca);
+				VO.setProperty("SALDOAPOS", saldoapos);
+				VO.setProperty("QTDRETORNO", retorno);
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
 		}
 	}
 	
@@ -170,9 +187,20 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 	}
 	
 	private DynamicVO getContagem(BigDecimal numos, String tecla, BigDecimal produto) throws Exception {
-		JapeWrapper DAO = JapeFactory.dao("AD_APPCONTAGEM");
-		DynamicVO VO = DAO.findOne("this.NUMOS=? AND this.CODPROD=? AND this.TECLA=?",new Object[] { numos, produto, tecla });
-		return VO;
+		DynamicVO VS = null;
+		
+		try {
+			JapeWrapper DAO = JapeFactory.dao("AD_APPCONTAGEM");
+			DynamicVO VO = DAO.findOne("this.NUMOS=? AND this.CODPROD=? AND this.TECLA=?",new Object[] { numos, produto, tecla });
+			if(VO!=null) {
+				VS = VO;
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return VS;
 	}
 	
 	private void salvarException(String mensagem) {
