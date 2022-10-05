@@ -40,18 +40,19 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 		
 	}
 
-	private void start(Registro linhas, ContextoAcao arg0) {
+	private void start(Registro linhas, ContextoAcao arg0) throws Exception {
 		BigDecimal numos = (BigDecimal) linhas.getCampo("NUMOS");
 		BigDecimal id = (BigDecimal) linhas.getCampo("ID");
 		String patrimonio = (String) linhas.getCampo("CODBEM");
 		
 		if (verificaSeHouveContagem(numos)) {
 			c++;
-			//arg0.setMensagemRetorno("Houve contagem, "+c+" visitas atualizadas.");
+			linhas.setCampo("CONTAGEM", "S");
 			verificaTeclas(numos,id,patrimonio);
 		} else {
+			linhas.setCampo("CONTAGEM", "N");
+			verificaTeclasNaoContadas(numos, id, patrimonio);
 			c2++;
-			//arg0.setMensagemRetorno("Não houve contagem!");
 		}
 
 	}
@@ -66,13 +67,32 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("SELECT COUNT(QTDCONTAGEM) AS QTD FROM AD_APPCONTAGEM WHERE NUMOS=" + numos);
+			nativeSql.appendSql("WITH "+
+			"LISTA_TECLAS_CONTADAS AS (SELECT NUMOS, QTDCONTAGEM FROM AD_APPCONTAGEM WHERE NUMOS="+numos+"), "+
+			"LISTA_PLANOGRAMA AS (SELECT R.NUMOS, COUNT(*) AS QTD FROM AD_RETABAST R JOIN AD_ITENSRETABAST I ON (I.ID=R.ID) WHERE R.NUMOS="+numos+" GROUP BY R.NUMOS) "+
+			"SELECT "+
+			"(SELECT COUNT(*) AS QTD FROM LISTA_TECLAS_CONTADAS WHERE QTDCONTAGEM > 0) AS TECLAS_CONTADAS, "+
+			"(SELECT COUNT(*) AS QTD FROM LISTA_TECLAS_CONTADAS) AS TECLAS_INFORMADAS, "+
+			"(SELECT QTD FROM LISTA_PLANOGRAMA) AS TECLAS_PLANOGRAMA "+
+			"FROM DUAL");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
-				int count = contagem.getInt("QTD");
-				if (count >= 1) {
+				int teclasContadas = contagem.getInt("TECLAS_CONTADAS");
+				int teclasInformadas = contagem.getInt("TECLAS_INFORMADAS");
+				int teclasplanograma = contagem.getInt("TECLAS_PLANOGRAMA");
+				
+				if(teclasContadas==0 && (teclasInformadas < teclasplanograma)) {
+					valida = false;
+				}
+				
+				if(teclasContadas > 0) {
 					valida = true;
 				}
+				
+				if(teclasContadas==0 && (teclasInformadas >= teclasplanograma)) {
+					valida = true;
+				}
+				
 			}
 		} catch (Exception e) {
 			// TODO: handle exception
@@ -117,8 +137,50 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 					BigDecimal conteretorno = qtdContagem.add(retornoParaCalculo);
 					diferenca = conteretorno.subtract(saldoesperado);
 					saldoapos = qtdContagem;
-										
+														
 					VO.setProperty("CONTAGEM", qtdContagem);
+					VO.setProperty("DIFERENCA", diferenca);
+					VO.setProperty("SALDOAPOS", saldoapos);
+					
+					atualizaHistorico(id,produto,tecla,qtdContagem,diferenca,saldoapos, retornoParaCalculo);
+					
+				}
+
+				itemEntity.setValueObject(NVO);
+			}
+		} catch (Exception e) {
+			salvarException("[verificaTeclas] nao foi possivel verificar as teclas! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
+		}
+	}
+	
+	private void verificaTeclasNaoContadas(BigDecimal numos, BigDecimal id, String patrimonio) {
+		try {
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_ITENSRETABAST",
+					"this.ID=?", new Object[] { id }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+
+				String tecla = VO.asString("TECLA");
+				BigDecimal produto = VO.asBigDecimal("CODPROD");
+				BigDecimal qtdContagem = new BigDecimal(0);
+				String ajustado = VO.asString("AJUSTADO");
+				
+					
+				if(!"S".equals(ajustado)) {
+					BigDecimal saldoAntes = BigDecimalUtil.getValueOrZero(VO.asBigDecimal("SALDOANTERIOR"));
+					BigDecimal qtdpedido = BigDecimalUtil.getValueOrZero(VO.asBigDecimal("QTDPEDIDO"));
+					BigDecimal saldoesperado = saldoAntes.add(qtdpedido);
+					
+					BigDecimal retorno = BigDecimalUtil.getValueOrZero(VO.asBigDecimal("QTDRETORNO"));
+					BigDecimal retornosAhSeremIgnorados = getRetornosAhSeremIgnorados(id,produto,tecla);
+					BigDecimal retornoParaCalculo = retorno.subtract(retornosAhSeremIgnorados);
+					
+					BigDecimal diferenca = new BigDecimal(0);
+					BigDecimal saldoapos = saldoesperado.subtract(retornoParaCalculo);
+												
 					VO.setProperty("DIFERENCA", diferenca);
 					VO.setProperty("SALDOAPOS", saldoapos);
 					
