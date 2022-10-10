@@ -35,21 +35,22 @@ import br.com.sankhya.ws.ServiceContext;
 public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 	/**
-	 * 15/10/2021 vs 1.0 Botao para gerar o abastecimento, além disso realizará a geração da nota e da OS de visita.
-	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para inserir os itens que precisavam ser abastecidos porém não tinha a quantidade em estoque
-	 * 03/11/2021 vs 1.2 Ajustado o método validaPedido estava permitindo a criação de 2 pedidos de congelados, estava errado o Where da segunda validação ANTES: NVL(AD_TIPOPRODUTOS,'1')='1' DEPOIS: NVL(AD_TIPOPRODUTOS,'1')='2'
-	 * 08/11/2021 vs 1.3 Inserido a validação para não gerar o pedido se a máquina esta totalmente vazia e houve um pedido de abastecimento nos últimos 15 dias.
-	 * 24/11/2021 vs 1.5 Ajustado a geração dos pedidos considerando a quantidade mínima.
-	 * 21/01/2022 vs 1.9 Ajuste na inserção dos itens de ruptura.
-	 * 12/02/2022 vs 2.0 Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
-	 * 08/03/2022 vs 2.1 Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
-	 * 22/03/2022 vs 2.2 Inserida a obtenção da data de atendimento (parametro DTVISIT)
-	 * 27/03/2022 vs 2.3 Pegar o valor do item da TGFCUS preço sem ICMS
-	 * 08/04/2022 vs 2.4 Inserido método para obter o estoque do item diretamente da API do MID.
-	 * 26/04/2022 vs 2.5 Retirada a validação do Estoque direto da API
-	 * 10/05/2022 vs 2.6 Ajuste na rotina de abastecimento, quando o item tinha quantidade minima, o valor faltante tinha que ser > que a quantidade minima, foi alterado para ser >=
-	 * 01/06/2022 vs 2.7 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
-	 * 30/09/2022 vs 2.8 Ajuste da data de atendimento
+	 * 15/10/2021 vs 1.0 - Gabriel Nascimento - Botao para gerar o abastecimento, além disso realizará a geração da nota e da OS de visita.
+	 * 23/10/2021 vs 1.1 - Gabriel Nascimento - Inserido método insereItemEmRuptura para inserir os itens que precisavam ser abastecidos porém não tinha a quantidade em estoque
+	 * 03/11/2021 vs 1.2 - Gabriel Nascimento - Ajustado o método validaPedido estava permitindo a criação de 2 pedidos de congelados, estava errado o Where da segunda validação ANTES: NVL(AD_TIPOPRODUTOS,'1')='1' DEPOIS: NVL(AD_TIPOPRODUTOS,'1')='2'
+	 * 08/11/2021 vs 1.3 - Gabriel Nascimento - Inserido a validação para não gerar o pedido se a máquina esta totalmente vazia e houve um pedido de abastecimento nos últimos 15 dias.
+	 * 24/11/2021 vs 1.5 - Gabriel Nascimento - Ajustado a geração dos pedidos considerando a quantidade mínima.
+	 * 21/01/2022 vs 1.9 - Gabriel Nascimento - Ajuste na inserção dos itens de ruptura.
+	 * 12/02/2022 vs 2.0 - Gabriel Nascimento - Inserido o método verificaSeAhMaquinaPossuiPlanograma, para verificar se a máquina possui um planograma.
+	 * 08/03/2022 vs 2.1 - Gabriel Nascimento - Inserida as validações de teclas duplicadas para máquinas ou produtos duplicados para lojas.
+	 * 22/03/2022 vs 2.2 - Gabriel Nascimento - Inserida a obtenção da data de atendimento (parametro DTVISIT)
+	 * 27/03/2022 vs 2.3 - Gabriel Nascimento - Pegar o valor do item da TGFCUS preço sem ICMS
+	 * 08/04/2022 vs 2.4 - Gabriel Nascimento - Inserido método para obter o estoque do item diretamente da API do MID.
+	 * 26/04/2022 vs 2.5 - Gabriel Nascimento - Retirada a validação do Estoque direto da API
+	 * 10/05/2022 vs 2.6 - Gabriel Nascimento - Ajuste na rotina de abastecimento, quando o item tinha quantidade minima, o valor faltante tinha que ser > que a quantidade minima, foi alterado para ser >=
+	 * 01/06/2022 vs 2.7 - Gabriel Nascimento - Inserida diversas modificações para o sistema gerar um pedido de tabaco.
+	 * 30/09/2022 vs 2.8 - Gabriel Nascimento - Ajuste da data de atendimento.
+	 * 
 	 */
 	
 	String retornoNegativo = "";
@@ -2058,7 +2059,7 @@ FROM(
 		try {
 			
 			//TODO::Verifica o local de abastecimento a partir dos cadastros do endereçamento.
-			//01/06 --inicio
+			//01/06/22 --inicio
 			String tipoProduto = gc_solicitabast.asString("AD_TIPOPRODUTOS");
 			BigDecimal localAbast = null;
 			if("1".equals(tipoProduto)) { //secos
@@ -2070,7 +2071,7 @@ FROM(
 			}else {
 				localAbast = new BigDecimal(1110);
 			}
-			//01/06 -- fim
+			//01/06/22 -- fim
 			
 			BigDecimal empresaAbast = getEmpresaAbast(patrimonio, gc_solicitabast);
 			BigDecimal top = getTop(empresaAbast, localAbast);
@@ -2125,7 +2126,19 @@ FROM(
 			BigDecimal valorTotal = falta.multiply(valor);
 			
 			//validacao
-			//if(falta.divide(qtdMinima, 2, RoundingMode.HALF_EVEN).doubleValue()>0) {
+			
+			//vs 2.9 - Considerar a quantidade de estoque da filial, mesmo que não tenha atingido a quantidade exata que falta.
+			//09/10/22 -- inicio
+			if(estoqueNaEmpresa.doubleValue() > 0) {
+				
+				if(estoqueNaEmpresa.doubleValue() < falta.doubleValue()) {
+					
+				}
+				
+				
+			}else {
+				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoque);
+			}
 			
 			if(falta.doubleValue() <= estoqueNaEmpresa.doubleValue() && falta.doubleValue()>0) {
 				
