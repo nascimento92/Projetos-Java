@@ -50,7 +50,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 10/05/2022 vs 2.6 - Gabriel Nascimento - Ajuste na rotina de abastecimento, quando o item tinha quantidade minima, o valor faltante tinha que ser > que a quantidade minima, foi alterado para ser >=
 	 * 01/06/2022 vs 2.7 - Gabriel Nascimento - Inserida diversas modificações para o sistema gerar um pedido de tabaco.
 	 * 30/09/2022 vs 2.8 - Gabriel Nascimento - Ajuste da data de atendimento.
-	 * 
+	 * 06/10/2022 vs 2.8 - Gabriel Nascimento - Ajuste para inserir no pedido a quantidade de itens que tiver na filial, mesmo que seja menor que o nível par.
 	 */
 	
 	String retornoNegativo = "";
@@ -241,11 +241,13 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		return VO;
 	}
 	
+	/*
 	private DynamicVO getGCINSTALACAO(String patrimonio) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("GCInstalacao");
 		DynamicVO VO = DAO.findOne("CODBEM=?", new Object[] { patrimonio });
 		return VO;
 	}
+	*/
 	
 	private DynamicVO getTGFGRU(BigDecimal grupo) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("GrupoProduto");
@@ -2122,8 +2124,7 @@ FROM(
 			//qtd minima para abastecimento
 			BigDecimal qtdMinima = validaQtdMinDoItem(produto);
 			
-			//valor total
-			BigDecimal valorTotal = falta.multiply(valor);
+			BigDecimal valorTotal = null;
 			
 			//validacao
 			
@@ -2131,15 +2132,47 @@ FROM(
 			//09/10/22 -- inicio
 			if(estoqueNaEmpresa.doubleValue() > 0) {
 				
+				BigDecimal valorParaCalculo = null;
+				
 				if(estoqueNaEmpresa.doubleValue() < falta.doubleValue()) {
-					
+					valorParaCalculo = estoqueNaEmpresa;
+				}else {
+					valorParaCalculo = falta;
 				}
 				
-				
+				if(qtdMinima.doubleValue()>1) { //possui qtd minima
+					if(valorParaCalculo.doubleValue()>=qtdMinima.intValue()) {
+						BigDecimal qtdVezes = valorParaCalculo.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
+						BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
+						
+						if(qtdParaNota.doubleValue()<=nivelpar.doubleValue()) {
+							sequencia++;
+							valorTotal = qtdParaNota.multiply(valor);
+							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+						}else {
+							sequencia++;
+							valorTotal = nivelpar.multiply(valor);
+							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, nivelpar, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+						}
+					}else { //n atingiu a qtd minima
+						valorTotal = valorParaCalculo.multiply(valor);
+						insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.", nivelpar, estoque);
+					}
+					
+				}else { //não possui qtd mínima, pode inserir direto
+					sequencia++;
+					valorTotal = valorParaCalculo.multiply(valor);
+					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+				}
+					
 			}else {
+				//cortado zerado na filial
 				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoque);
 			}
+			// vs 2.9 - /09/10/22 -- fim
 			
+			/* - validação até versão 2.8 neste caso o item só vai para a nota se na empresa tiver estoque >=
+			 * 
 			if(falta.doubleValue() <= estoqueNaEmpresa.doubleValue() && falta.doubleValue()>0) {
 				
 				if(qtdMinima.doubleValue()>1) { //possui qtd minima
@@ -2170,7 +2203,7 @@ FROM(
 				//cortado
 				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoque);
 			}
-			
+			*/
 			//TODO :: 15/07/22 PENDENTE ! Criar um log que registre todas as informações da visita, para que possamos avaliar se as informações do pedido não foram alteradas.
 			
 			
