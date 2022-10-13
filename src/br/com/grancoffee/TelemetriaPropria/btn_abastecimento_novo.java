@@ -1963,6 +1963,7 @@ FROM(
 	
 	private void insereItemNaNota(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
 			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast) {
+		
 		try {
 			
 			String PedidoSecosCongelados = gc_solicitabast.asString("AD_TIPOPRODUTOS");
@@ -2130,27 +2131,28 @@ FROM(
 			
 			//vs 2.9 - Considerar a quantidade de estoque da filial, mesmo que não tenha atingido a quantidade exata que falta.
 			//09/10/22 -- inicio
-			if(estoqueNaEmpresa.doubleValue() >= 1) {
+			if(estoqueNaEmpresa.intValue() >= 1) {
 				
 				BigDecimal valorParaCalculo = null;
 				
-				if(estoqueNaEmpresa.doubleValue() < falta.doubleValue()) {
-					valorParaCalculo = estoqueNaEmpresa;
+				if(estoqueNaEmpresa.intValue() < falta.intValue()) {
+					valorParaCalculo = new BigDecimal(estoqueNaEmpresa.intValue());
 				}else {
-					valorParaCalculo = falta;
+					valorParaCalculo = new BigDecimal(falta.intValue());
 				}
 				
-				if(valorParaCalculo.doubleValue() >= 1) {
+				if(valorParaCalculo.intValue() >= 1) {
 					
 					if(qtdMinima.doubleValue()>1) { //possui qtd minima
 						if(valorParaCalculo.doubleValue()>=qtdMinima.intValue()) {
 							BigDecimal qtdVezes = valorParaCalculo.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
 							BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
+							BigDecimal qtdParaNotaInt = new BigDecimal(qtdParaNota.intValue());
 							
-							if(qtdParaNota.doubleValue()<=nivelpar.doubleValue()) {
+							if(qtdParaNotaInt.intValue()<=nivelpar.intValue()) {
 								sequencia++;
-								valorTotal = qtdParaNota.multiply(valor);
-								insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+								valorTotal = qtdParaNotaInt.multiply(valor);
+								insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNotaInt, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
 							}else {
 								sequencia++;
 								valorTotal = nivelpar.multiply(valor);

@@ -1,6 +1,8 @@
 package xTestes;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.text.DateFormat;
@@ -19,10 +21,14 @@ public class teste {
 
 	public static void main(String[] args) throws JSONException {
 
-		String retorno = "{\"serviceName\":\"MobileLoginSP.login\",\"status\":\"1\",\"pendingPrinting\":\"false\",\"transactionId\":\"39868C2AC9106E6B0C60423F1C8E3B8A\",\"responseBody\":{\"callID\":{\"$\":\"31E59C0195EE35E24836CF33D4940D2C\"},\"jsessionid\":{\"$\":\"UFGI5u_rHocQaKXD1ctP_XUWztWzlm4DPXbCxE5T\"},\"kID\":{\"$\":\"NEMzRjc5QTU0QTM0Njc4MzIwNkY1MzIxQzU1NEQwMjc=\\n\"},\"idusu\":{\"$\":\"NjQ4\\n\"}}}";
-		JSONObject j = new JSONObject(retorno);
-		String string = j.getJSONObject("responseBody").getJSONObject("jsessionid").getString("$");
-		System.out.println(string);
+		BigDecimal b1 = new BigDecimal("0.1");
+		BigDecimal c1 = new BigDecimal(b1.intValue());
+		System.out.println(""+c1);
+		
+		//String retorno = "{\"serviceName\":\"MobileLoginSP.login\",\"status\":\"1\",\"pendingPrinting\":\"false\",\"transactionId\":\"39868C2AC9106E6B0C60423F1C8E3B8A\",\"responseBody\":{\"callID\":{\"$\":\"31E59C0195EE35E24836CF33D4940D2C\"},\"jsessionid\":{\"$\":\"UFGI5u_rHocQaKXD1ctP_XUWztWzlm4DPXbCxE5T\"},\"kID\":{\"$\":\"NEMzRjc5QTU0QTM0Njc4MzIwNkY1MzIxQzU1NEQwMjc=\\n\"},\"idusu\":{\"$\":\"NjQ4\\n\"}}}";
+		//JSONObject j = new JSONObject(retorno);
+		//String string = j.getJSONObject("responseBody").getJSONObject("jsessionid").getString("$");
+		//System.out.println(string);
 		
 		/*
 		JSONArray jsonArray = j.getJSONArray("additional_barcodes");
