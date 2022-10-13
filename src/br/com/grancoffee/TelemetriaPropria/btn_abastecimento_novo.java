@@ -2130,7 +2130,7 @@ FROM(
 			
 			//vs 2.9 - Considerar a quantidade de estoque da filial, mesmo que não tenha atingido a quantidade exata que falta.
 			//09/10/22 -- inicio
-			if(estoqueNaEmpresa.doubleValue() > 0) {
+			if(estoqueNaEmpresa.doubleValue() >= 1) {
 				
 				BigDecimal valorParaCalculo = null;
 				
@@ -2140,29 +2140,32 @@ FROM(
 					valorParaCalculo = falta;
 				}
 				
-				if(qtdMinima.doubleValue()>1) { //possui qtd minima
-					if(valorParaCalculo.doubleValue()>=qtdMinima.intValue()) {
-						BigDecimal qtdVezes = valorParaCalculo.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
-						BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
-						
-						if(qtdParaNota.doubleValue()<=nivelpar.doubleValue()) {
-							sequencia++;
-							valorTotal = qtdParaNota.multiply(valor);
-							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
-						}else {
-							sequencia++;
-							valorTotal = nivelpar.multiply(valor);
-							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, nivelpar, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
-						}
-					}else { //n atingiu a qtd minima
-						valorTotal = valorParaCalculo.multiply(valor);
-						insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.", nivelpar, estoque);
-					}
+				if(valorParaCalculo.doubleValue() >= 1) {
 					
-				}else { //não possui qtd mínima, pode inserir direto
-					sequencia++;
-					valorTotal = valorParaCalculo.multiply(valor);
-					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+					if(qtdMinima.doubleValue()>1) { //possui qtd minima
+						if(valorParaCalculo.doubleValue()>=qtdMinima.intValue()) {
+							BigDecimal qtdVezes = valorParaCalculo.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
+							BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
+							
+							if(qtdParaNota.doubleValue()<=nivelpar.doubleValue()) {
+								sequencia++;
+								valorTotal = qtdParaNota.multiply(valor);
+								insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+							}else {
+								sequencia++;
+								valorTotal = nivelpar.multiply(valor);
+								insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, nivelpar, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+							}
+						}else { //n atingiu a qtd minima
+							valorTotal = valorParaCalculo.multiply(valor);
+							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.", nivelpar, estoque);
+						}
+						
+					}else { //não possui qtd mínima, pode inserir direto
+						sequencia++;
+						valorTotal = valorParaCalculo.multiply(valor);
+						insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+					}	
 				}
 					
 			}else {
