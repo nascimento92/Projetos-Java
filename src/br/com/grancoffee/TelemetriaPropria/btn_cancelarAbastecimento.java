@@ -74,6 +74,9 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 							DynamicVO tgfVar = getTgfVar(nunota);
 							if (tgfVar != null) {
 								confirmarNotaJaFaturada = arg0.confirmarSimNao("Atenção", "Pedido já faturada, será apenas cancelada a visita, continuar?", 1);
+								BigDecimal nunotaTopDestino = tgfVar.asBigDecimal("NUNOTA");
+								// TODO :: 1° utiliza essa nota como exemplo para criação do cabeçalho de devolução.
+								// 25/10/22 aguardando resposta do e-mail enviado para o fiscal, pedindo o nro da top
 							}else {
 								excluirNota(nunota);
 							}
