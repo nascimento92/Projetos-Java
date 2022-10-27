@@ -3,11 +3,10 @@ package br.com.grancoffee.TelemetriaPropria;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
-
 import com.sankhya.util.TimeUtils;
-
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
+import br.com.sankhya.extensions.actionbutton.QueryExecutor;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
@@ -17,6 +16,8 @@ import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
+import br.com.sankhya.modelcore.comercial.ComercialUtils;
+import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 
@@ -36,29 +37,51 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			BigDecimal idretorno = (BigDecimal) linhas[0].getCampo("IDABASTECIMENTO");
 			
 			boolean confirmarSimNao = false;
-			boolean confirmarNotaJaFaturada = false;
-			
+
 			if ("1".equals(status)) {
 				if (nunota == null && numos == null) {
 					confirmarSimNao = arg0.confirmarSimNao("Atenção", "A solicitação ainda não possui um pedido nem uma OS, mesmo assim deseja cancelar?", 1);
 				}else {
-					confirmarSimNao = arg0.confirmarSimNao("Atenção", "O pedido <b>"+nunota+"</b> será excluido do portal de vendas, e a OS <b>"+numos+"</b> será cancelada, continuar?", 1);
+					
+					if (nunota != null && numos != null) {
+						DynamicVO tgfVar = getTgfVar(nunota);
+						if(tgfVar!=null) {
+							confirmarSimNao = arg0.confirmarSimNao("Atenção", "Pedido <b>"+nunota+"</b> já faturada, deseja cancelar apenas a OS ? O sistema automáticamente criará uma nota de devolução, continuar ?", 1);
+						}else {
+							confirmarSimNao = arg0.confirmarSimNao("Atenção", "O pedido <b>"+nunota+"</b> será excluido do portal de vendas, e a OS <b>"+numos+"</b> será cancelada, continuar?", 1);
+						}
+						
+					}else if(nunota != null && numos == null) {
+						DynamicVO tgfVar = getTgfVar(nunota);
+						if(tgfVar!=null) {
+							confirmarSimNao = arg0.confirmarSimNao("Atenção", "O pedido <b>"+nunota+"</b> já foi faturado, será gerada uma nota de devolução, continuar?", 1);	
+						}else {
+							confirmarSimNao = arg0.confirmarSimNao("Atenção", "O pedido <b>"+nunota+"</b> jserá excluido, continuar?", 1);
+						}
+						
+					}else if(nunota == null && numos != null) {
+						confirmarSimNao = arg0.confirmarSimNao("Atenção", "A OS <b>"+numos+"</b> será cancelada, continuar?", 1);	
+					}
 				}
 				
 				if(confirmarSimNao) {
 					if (nunota != null && numos != null) {
 						
 						DynamicVO tgfVar = getTgfVar(nunota);
-						if (tgfVar != null) {
-							confirmarNotaJaFaturada = arg0.confirmarSimNao("Atenção", "Pedido já faturada, deseja cancelar apenas a OS?", 1);
-							
-							if(confirmarNotaJaFaturada) {
-								DynamicVO tabelaTcsite = getTcsite(numos);
-								BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
-								insertTcsrus(numos,codusurel);
-								cancelarSubOS(numos);
-								cancelarOS(numos);		
+						if (tgfVar != null) {	
+							BigDecimal nunotaTopDestino = tgfVar.asBigDecimal("NUNOTA");
+							BigDecimal nunotaDev = geraNotaDevolucao(nunotaTopDestino);
+							if (nunotaDev != null) {
+								listaItensNotaModelo(nunotaTopDestino,nunotaDev);
+								linhas[0].setCampo("AD_NUNOTADEV", nunotaDev);
 							}
+							
+							DynamicVO tabelaTcsite = getTcsite(numos);
+							BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
+							insertTcsrus(numos,codusurel);
+							cancelarSubOS(numos);
+							cancelarOS(numos);		
+							
 						}else {
 							DynamicVO tabelaTcsite = getTcsite(numos);
 							BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
@@ -73,10 +96,14 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 							
 							DynamicVO tgfVar = getTgfVar(nunota);
 							if (tgfVar != null) {
-								confirmarNotaJaFaturada = arg0.confirmarSimNao("Atenção", "Pedido já faturada, será apenas cancelada a visita, continuar?", 1);
+								
 								BigDecimal nunotaTopDestino = tgfVar.asBigDecimal("NUNOTA");
-								// TODO :: 1° utiliza essa nota como exemplo para criação do cabeçalho de devolução.
-								// 25/10/22 aguardando resposta do e-mail enviado para o fiscal, pedindo o nro da top
+								BigDecimal nunotaDev = geraNotaDevolucao(nunotaTopDestino);
+								if (nunotaDev != null) {
+									listaItensNotaModelo(nunotaTopDestino,nunotaDev);
+									linhas[0].setCampo("AD_NUNOTADEV", nunotaDev);
+								}
+								
 							}else {
 								excluirNota(nunota);
 							}
@@ -108,6 +135,139 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		}else {
 			arg0.setMensagemRetorno("Ops, algo deu errado!");
 		}
+		
+	}
+	
+	private BigDecimal geraNotaDevolucao(BigDecimal nunotaFaturada) {
+		
+		  BigDecimal nunota = null;
+		  
+		  BigDecimal nuNotaModelo = nunotaFaturada;
+		  
+		  try { 
+			 
+			  EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade(); 
+			  EntityVO padraoNPVO = dwfFacade.getDefaultValueObjectInstance(DynamicEntityNames.CABECALHO_NOTA);
+			  DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("CabecalhoNota", nuNotaModelo);
+			  DynamicVO NotaProdVO = (DynamicVO) padraoNPVO;
+		  
+			  DynamicVO topRVO = ComercialUtils.getTipoOperacao(new BigDecimal(1854)); 
+			  String tipoMovimento = topRVO.asString("TIPMOV");
+			  
+			  BigDecimal empresa = ModeloNPVO.asBigDecimal("CODEMP");
+			  DynamicVO tsiemp = getTSIEMP(empresa);
+			  BigDecimal codparc = null;
+			  if(tsiemp!=null) {
+				  BigDecimal codparcEmpresa = tsiemp.asBigDecimal("CODPARC");
+				  if(codparcEmpresa!=null) {
+					  codparc = codparcEmpresa; 
+				  }else {
+					  codparc = new BigDecimal(2);
+				  }
+			  }else {
+				  codparc = new BigDecimal(2);
+			  }
+			  
+			  NotaProdVO.setProperty("CODEMP", empresa);
+			  NotaProdVO.setProperty("CODTIPOPER", topRVO.asBigDecimal("CODTIPOPER"));
+			  NotaProdVO.setProperty("TIPMOV", tipoMovimento);
+			  NotaProdVO.setProperty("SERIENOTA", ModeloNPVO.asString("SERIENOTA"));
+			  NotaProdVO.setProperty("CODPARC", codparc);
+			  NotaProdVO.setProperty("NUMCONTRATO", ModeloNPVO.asBigDecimal("NUMCONTRATO"));
+			  NotaProdVO.setProperty("CODTIPVENDA", ModeloNPVO.asBigDecimal("CODTIPVENDA")); 
+			  NotaProdVO.setProperty("CODNAT", ModeloNPVO.asBigDecimal("CODNAT"));
+			  NotaProdVO.setProperty("CODCENCUS", ModeloNPVO.asBigDecimal("CODCENCUS"));
+			  NotaProdVO.setProperty("NUMNOTA", new java.math.BigDecimal(0));
+			  NotaProdVO.setProperty("APROVADO", ModeloNPVO.asString("APROVADO"));
+			  NotaProdVO.setProperty("PENDENTE", "S"); 
+			  NotaProdVO.setProperty("CIF_FOB", ModeloNPVO.asString("CIF_FOB")); 
+			  NotaProdVO.setProperty("DTNEG", TimeUtils.getNow());
+			  NotaProdVO.setProperty("AD_CODLOCAL", ModeloNPVO.asBigDecimal("AD_CODLOCAL"));
+			  NotaProdVO.setProperty("AD_CODBEM", ModeloNPVO.asString("AD_CODBEM"));
+			  NotaProdVO.setProperty("OBSERVACAO", "Devolução da nota NU: "+nunotaFaturada);
+			  NotaProdVO.setProperty("CODVEND", ModeloNPVO.asBigDecimal("CODVEND"));
+			  NotaProdVO.setProperty("CODUSUINC", new BigDecimal(3082));
+			  NotaProdVO.setProperty("CODEMPNEGOC", empresa); 
+			  NotaProdVO.setProperty("TIPFRETE", "N");
+	
+			  dwfFacade.createEntity(DynamicEntityNames.CABECALHO_NOTA, (EntityVO) NotaProdVO); 
+			  nunota = NotaProdVO.asBigDecimal("NUNOTA");
+	
+		  } catch (Exception e) {
+		  salvarException("[geraCabecalho] Nao foi possivel gerar cabecalho!"+e.getMessage()+"\n"+e.getCause()); 
+		  } 
+		  
+		  return nunota;
+	}
+	
+	
+	private void listaItensNotaModelo(BigDecimal nunotaModelo, BigDecimal nunotaDevolucao) {
+		
+		try {
+			DynamicVO tgfcabModelo = getTGFCAB(nunotaModelo);
+			BigDecimal localDestino = tgfcabModelo.asBigDecimal("AD_CODLOCAL");
+			
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("ItemNota","this.NUNOTA = ? AND this.SEQUENCIA > 0", new Object[] { nunotaModelo }));
+
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+			
+			BigDecimal codprod = DynamicVO.asBigDecimal("CODPROD");
+			BigDecimal localorig = DynamicVO.asBigDecimal("CODLOCALORIG");
+			String codvol = DynamicVO.asString("CODVOL");
+			BigDecimal qtdneg = DynamicVO.asBigDecimal("QTDNEG");
+			BigDecimal sequencia = DynamicVO.asBigDecimal("SEQUENCIA");
+			BigDecimal vlrtot = DynamicVO.asBigDecimal("VLRTOT");
+			BigDecimal vlrunit = DynamicVO.asBigDecimal("VLRUNIT");
+			String reserva = DynamicVO.asString("RESERVA");
+			BigDecimal atualestoque = DynamicVO.asBigDecimal("ATUALESTOQUE");
+			br.com.sankhya.jape.vo.DynamicVO tgfcab = getTGFCAB(nunotaDevolucao);
+			
+			insereItemNaNotaDevolucao(nunotaDevolucao, tgfcab.asBigDecimal("CODEMP"), localorig, codprod, codvol, qtdneg, sequencia, vlrtot, vlrunit, reserva, atualestoque, localDestino);
+			
+			}
+	
+		} catch (Exception e) {
+			salvarException(
+					"[listaItensNotaModelo] Nao foi possivel pegar a lista de itens da nota: "+nunotaModelo
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+	}
+	
+	private void insereItemNaNotaDevolucao(BigDecimal nunotaDev, BigDecimal empresa, BigDecimal local, BigDecimal produto, String volume, BigDecimal qtdneg, BigDecimal sequencia,
+			BigDecimal vlrtot, BigDecimal vlrunit, String reserva, BigDecimal atualestoque, BigDecimal localDestino) {
+		
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("NUNOTA", nunotaDev);
+			VO.setProperty("CODEMP", empresa);
+			VO.setProperty("CODLOCALORIG", local);
+			VO.setProperty("CODPROD", produto);
+			VO.setProperty("CODVOL", volume);
+			VO.setProperty("QTDNEG", qtdneg);
+			VO.setProperty("SEQUENCIA", sequencia);
+			VO.setProperty("VLRTOT", vlrtot);
+			VO.setProperty("VLRUNIT", vlrunit);
+			VO.setProperty("RESERVA", reserva);
+			VO.setProperty("ATUALESTOQUE", atualestoque);
+			VO.setProperty("CODLOCALDEST", localDestino);
+			
+			dwfFacade.createEntity("ItemNota", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			salvarException(
+					"[insereItemNaNotaDevolucao] Nao foi possivel inserir itens da nota: "+nunotaDev
+							+ e.getMessage() + "\n" + e.getCause());
+		}
+		
 		
 	}
 	
@@ -227,11 +387,23 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		DynamicVO VO = DAO.findOne("NUNOTAORIG=? AND SEQUENCIAORIG=1", new Object[] { nunota });
 		return VO;
 	}
+	
+	private DynamicVO getTSIEMP(BigDecimal empresa) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("Empresa");
+		DynamicVO VO = DAO.findOne("CODEMP=?", new Object[] { empresa });
+		return VO;
+	}
 
 	private BigDecimal getUsuLogado() {
 		BigDecimal codUsuLogado = BigDecimal.ZERO;
 		codUsuLogado = ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID();
 		return codUsuLogado;
+	}
+	
+	private DynamicVO getTGFCAB(BigDecimal nunota) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
+		DynamicVO VO = DAO.findOne("NUNOTA=?", new Object[] { nunota });
+		return VO;
 	}
 	
 	private void salvarException(String mensagem) {
