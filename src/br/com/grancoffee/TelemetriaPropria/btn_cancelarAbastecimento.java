@@ -227,7 +227,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			BigDecimal atualestoque = DynamicVO.asBigDecimal("ATUALESTOQUE");
 			br.com.sankhya.jape.vo.DynamicVO tgfcab = getTGFCAB(nunotaDevolucao);
 			
-			insereItemNaNotaDevolucao(nunotaDevolucao, tgfcab.asBigDecimal("CODEMP"), localorig, codprod, codvol, qtdneg, sequencia, vlrtot, vlrunit, reserva, atualestoque, localDestino);
+			insereItemNaNotaDevolucao(nunotaDevolucao, tgfcab.asBigDecimal("CODEMP"), localDestino, codprod, codvol, qtdneg, sequencia, vlrtot, vlrunit, reserva, atualestoque, localorig);
 			
 			}
 	
