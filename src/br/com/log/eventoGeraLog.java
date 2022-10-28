@@ -35,8 +35,8 @@ public class eventoGeraLog implements EventoProgramavelJava {
 	}
 
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		tipo = "insert";
+		start(arg0,tipo);
 	}
 
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
@@ -55,7 +55,6 @@ public class eventoGeraLog implements EventoProgramavelJava {
 	}
 
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
 		
 	}
 
@@ -83,7 +82,21 @@ public class eventoGeraLog implements EventoProgramavelJava {
 				
 				if(valoresDosCamposDeletados!="") {
 					BigDecimal usuario = getUsuLogado();
+					if(usuario==null) {
+						usuario = new BigDecimal(0);
+					}
 					registrarDadosExcluidos(tabela,usuario,valoresDosCamposDeletados,primaryKey);
+				}
+			}else if ("insert".equals(tipo)) {
+				String vericaCamposInclusao = verificaCamposInsert(tabela,VO);
+				
+				if(vericaCamposInclusao!="") {
+					BigDecimal usuario = getUsuLogado();
+					if(usuario==null) {
+						usuario = new BigDecimal(0);
+					}
+
+					registrarDadosIncluidos(tabela,usuario,vericaCamposInclusao,primaryKey);
 				}
 			}
 			
@@ -203,7 +216,7 @@ public class eventoGeraLog implements EventoProgramavelJava {
 			dwfFacade.createEntity("AD_LOG", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			System.out.println("** [br.com.log.eventoGeraLog] - NAO FOI POSSIVEL SALVAR DADOS ALTERADOS! "+e.getMessage());
+			System.out.println("** [br.com.log.eventoGeraLog] - NAO FOI POSSIVEL SALVAR DADOS ALTERADOS! "+e.getMessage()+"\n"+e.getCause());
 			e.printStackTrace();
 		}
 	
@@ -225,9 +238,38 @@ public class eventoGeraLog implements EventoProgramavelJava {
 			String campo = DynamicVO.asString("NOMECAMPO");
 			String tipo = DynamicVO.asString("TIPO");
 			
-			if("E".equals(tipo) || "AE".equals(tipo)) {
-				Object valor = VO.getProperty(campo);		
-				campos = campos+campo+":"+valor+";";
+			if(tipo.contains("E")) {
+				Object valor = VO.getProperty(campo);
+				if(valor!=null) {
+					campos = campos+campo+":"+valor+";";
+				}	
+			}
+		}
+		
+		return campos;
+	}
+	
+	private String verificaCamposInsert(String tabela, DynamicVO VO) throws Exception {
+		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+
+		Collection<?> parceiro = dwfEntityFacade
+				.findByDynamicFinder(new FinderWrapper("AD_CAMPOSLOG", "this.NOMETAB = ? ", new Object[] { tabela }));
+		
+		String campos="";
+
+		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+
+			PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+
+			String campo = DynamicVO.asString("NOMECAMPO");
+			String tipo = DynamicVO.asString("TIPO");
+			
+			if(tipo.contains("I")) {
+				Object valor = VO.getProperty(campo);
+				if(valor!=null) {
+					campos = campos+campo+":"+valor+";";
+				}	
 			}
 		}
 		
@@ -256,9 +298,39 @@ public class eventoGeraLog implements EventoProgramavelJava {
 			dwfFacade.createEntity("AD_LOG", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			System.out.println("** [br.com.log.eventoGeraLog] - NAO FOI POSSIVEL SALVAR DADOS EXCLUIDOS! "+e.getMessage());
+			System.out.println("** [br.com.log.eventoGeraLog] - NAO FOI POSSIVEL SALVAR DADOS EXCLUIDOS! "+e.getMessage()+"\n"+e.getCause());
 			e.printStackTrace();
 		}
+	}
+	
+	private void registrarDadosIncluidos(String tabela, BigDecimal usuario, String dadosIncluidos, Object pk) throws Exception{
+		
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_LOG");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			String stringPK = pk.toString();
+			String novaPK = stringPK.substring(stringPK.indexOf("[")+1,stringPK.lastIndexOf("]"));
+					
+			VO.setProperty("TABELA", tabela);
+			VO.setProperty("CAMPO", "INCLUSÃO");
+			VO.setProperty("VLROLD", "");
+			VO.setProperty("VLRNEW", "");
+			VO.setProperty("CODUSU", usuario);
+			VO.setProperty("DTALTER", new Timestamp(System.currentTimeMillis()));
+			VO.setProperty("PKTABELA", novaPK);
+			VO.setProperty("INCLUSAO", dadosIncluidos);
+			
+			dwfFacade.createEntity("AD_LOG", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			System.out.println("** [br.com.log.eventoGeraLog] - NAO FOI POSSIVEL SALVAR DADOS INCLUIDOS! "+e.getMessage()+"\n"+e.getCause());
+			e.printStackTrace();
+		}
+		
+	
 	}
 	
 }
