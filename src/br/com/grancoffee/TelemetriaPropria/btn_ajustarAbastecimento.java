@@ -29,6 +29,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 	/**
 	 * 21/09/21 vs 1.6 inserido o método salvarNoHistorico e chamaPentaho.
 	 * 11/03/22 vs 1.7 inserido método validaSeExisteAjusteMaisRecente para impedir que um ajuste antigo seja realizado.
+	 * 31/10/22 vs 1.9 Ajuste do método para verificar se existem ajustes mais atuais
 	 */
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -91,7 +92,7 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 			"UNION ALL "+
 			"SELECT COUNT(*) AS QTD FROM ("+
 			"SELECT R.ID,A.CODBEM,A.AD_TIPOPRODUTOS,A.DTABAST FROM AD_RETABAST R JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)) X "+
-			"WHERE X.DTABAST > (SELECT DTABAST FROM AD_RETABAST WHERE ID="+idabastecimento+") AND X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID="+idabastecimento+") AND (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO="+idabastecimento+") IN ('1','2') AND X.AD_TIPOPRODUTOS IS NULL AND X.DTABAST IS NOT NULL)"
+			"WHERE X.DTABAST > (SELECT DTABAST FROM AD_RETABAST WHERE ID="+idabastecimento+") AND X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID="+idabastecimento+") AND (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO="+idabastecimento+") IN ('1','2') AND X.AD_TIPOPRODUTOS IS NULL AND X.DTABAST IS NOT NULL AND (SELECT STATUSVALIDACAO FROM AD_RETABAST WHERE ID=X.ID)='1')"
 			 );
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
