@@ -20,33 +20,13 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		
-		BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
-		BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
-		
-		BigDecimal produto = VO.asBigDecimal("CODPROD");
-		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
-		DynamicVO TCSCON = getTCSCON(contrato);
-		String tipoContrato = TCSCON.asString("AD_TIPCONT");
-		
-		if("A".equals(tipoContrato)) {
-			
-			if(produto.intValue()!=515613) {
-				if(qtdprev!=null && qtdEmKg!=null) {
-					if(qtdprev.intValue()==0 && qtdEmKg.intValue()==0) {
-						throw new Error("<br/><b>OPS</b><br/><br/>tipo de contrato <b>Assinatura</b>! Valor 0 não é válido ! Preencha o campo <b>Qtd. Prevista</b> ou <b>Qtd. Em KG</b>!");
-						
-					}
-				}
-			}
-			
-		}	
+				
 	}
 
 	@Override
 	public void afterUpdate(PersistenceEvent arg0) throws Exception {
 		
+		
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		
 		BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
@@ -61,12 +41,13 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 			if(produto.intValue()!=515613) {
 				if(qtdprev!=null && qtdEmKg!=null) {
 					if(qtdprev.intValue()==0 && qtdEmKg.intValue()==0) {
-						throw new Error("<br/><b>OPS</b><br/><br/>tipo de contrato <b>Assinatura</b>! Valor 0 não é válido ! Preencha o campo <b>Qtd. Prevista</b> ou <b>Qtd. Em KG</b>!");
+						throw new Error("<br/><b>OPS</b><br/><br/>tipo de contrato <b>Assinatura</b>! Valor 0 não é válido ! Preencha o campo <b>Qtd. Prevista</b> ou <b>Qtd. Em KG</b> com uma quantidade maior que zero!");
 						
 					}
 				}
 			}
 		}
+		
 	}
 
 	@Override
@@ -94,30 +75,30 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 	private void update(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
-		
-		BigDecimal produto = VO.asBigDecimal("CODPROD");
 		DynamicVO TCSCON = getTCSCON(contrato);
 		String tipoContrato = TCSCON.asString("AD_TIPCONT");
-		
-		DynamicVO TGFPRO = getTGFPRO(produto);
-		String unidadePadrao = "";
-		String unidade = TGFPRO.asString("CODVOL");
-		String unidadeDeVenda = TGFPRO.asString("AD_CODVOL");
-		BigDecimal grupo = TGFPRO.asBigDecimal("CODGRUPOPROD");
-		
-		if(unidadeDeVenda!=null) {
-			unidadePadrao = unidadeDeVenda;
-		}else {
-			unidadePadrao = unidade;
-		}
-		
+
 		if("A".equals(tipoContrato)) {
 			
-			if(grupo.intValue()<500000 && grupo.intValue()>=600000) {
+			BigDecimal produto = VO.asBigDecimal("CODPROD");
+			DynamicVO TGFPRO = getTGFPRO(produto);
+			String unidadePadrao = "";
+			String unidade = TGFPRO.asString("CODVOL");
+			String unidadeDeVenda = TGFPRO.asString("AD_CODVOL");
+			BigDecimal grupo = TGFPRO.asBigDecimal("CODGRUPOPROD");
+			
+			if(unidadeDeVenda!=null) {
+				unidadePadrao = unidadeDeVenda;
+			}else {
+				unidadePadrao = unidade;
+			}
+			
+			
+			if(grupo.intValue()<500000 || grupo.intValue()>=600000) {
 				
-				VO.setProperty("AD_FRANQUIA", "S");
+				//VO.setProperty("AD_FRANQUIA", "S");
 				String tipoFranquia = VO.asString("AD_FRANQUIA");
-				
+	
 				if("S".equals(tipoFranquia)) {
 					
 					if(produto.intValue()!=515613) {
@@ -137,14 +118,26 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 						if(!"KG".equals(unidadePadrao)) { //unidade padrão não é quilo
 							DynamicVO TGFVOA = getTGFVOA(produto);
 							
+							if(qtdprev!=null && qtdEmKg==null) {
+								BigDecimal qtd = calculo(qtdprev,qtdEmKg,TGFVOA,VO,"P");
+								VO.setProperty("AD_QTDEMKG", qtd);
+							}
+							
+							if(qtdprev==null && qtdEmKg!=null) {
+								BigDecimal qtd = calculo(qtdprev,qtdEmKg,TGFVOA,VO,"K");
+								VO.setProperty("QTDEPREVISTA", qtd);
+							}
+							
 							if(qtdprev!=oldqtdprev && qtdEmKg==oldqtdEmKg) {
-								calculaPelaQuantidade(qtdprev,qtdEmKg,TGFVOA,VO);
+								BigDecimal qtd = calculo(qtdprev,qtdEmKg,TGFVOA,VO,"P"); 
+								VO.setProperty("AD_QTDEMKG", qtd);
 							}
 							
 							if(qtdEmKg!=oldqtdEmKg && qtdprev==oldqtdprev) {
-								calcularPeloKg(qtdprev,qtdEmKg,TGFVOA,VO);
+								BigDecimal qtd = calculo(qtdprev,qtdEmKg,TGFVOA,VO,"K");
+								VO.setProperty("QTDEPREVISTA", qtd);
 							}
-							
+								
 							
 						}else { //unidade padrão já é quilo
 							
@@ -162,28 +155,28 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 							
 						}
 					}	
-				}
+				}	
 			}
 		}
+		
 	}
 	
 	public void insert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		BigDecimal contrato = VO.asBigDecimal("NUMCONTRATO");
-		BigDecimal produto = VO.asBigDecimal("CODPROD");
-		
 		DynamicVO TCSCON = getTCSCON(contrato);
 		String tipoContrato = TCSCON.asString("AD_TIPCONT"); //contrato tipo A - Assinatura
-		
-		DynamicVO TGFPRO = getTGFPRO(produto);
-		String unidadePadrao = TGFPRO.asString("CODVOL");
-		BigDecimal grupo = TGFPRO.asBigDecimal("CODGRUPOPROD");
-		
+
 		if("A".equals(tipoContrato)) {
 			
-			if(grupo.intValue()<500000 && grupo.intValue()>=600000) { //valida apenas produtos que não são máquinas
+			BigDecimal produto = VO.asBigDecimal("CODPROD");
+			DynamicVO TGFPRO = getTGFPRO(produto);
+			String unidadePadrao = TGFPRO.asString("CODVOL");
+			BigDecimal grupo = TGFPRO.asBigDecimal("CODGRUPOPROD");
+			
+			if(grupo.intValue()<500000 || grupo.intValue()>=600000) { //valida apenas produtos que não são máquinas
 				
-				VO.setProperty("AD_FRANQUIA", "S");
+				//VO.setProperty("AD_FRANQUIA", "S");
 				String tipoFranquia = VO.asString("AD_FRANQUIA"); 
 				
 				if("S".equals(tipoFranquia)) {
@@ -192,9 +185,9 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 						
 						BigDecimal qtdprev = VO.asBigDecimal("QTDEPREVISTA");
 						BigDecimal qtdEmKg = VO.asBigDecimal("AD_QTDEMKG");
-						
+
 						ValidaNullEZero(qtdprev,qtdEmKg);
-						
+					
 						if(!"KG".equals(unidadePadrao)) {
 							DynamicVO TGFVOA = getTGFVOA(produto);
 							
@@ -205,70 +198,74 @@ public class evento_valida_prod_serv implements EventoProgramavelJava{
 							if(TGFVOA!=null) {
 								
 								if(qtdprev!=null && qtdEmKg==null) {
-									calculaPelaQuantidade(qtdprev,qtdEmKg,TGFVOA,VO);
+									BigDecimal qtd = calculo(qtdprev,qtdEmKg,TGFVOA,VO,"P"); //quantidade prevista preenchida
+									VO.setProperty("AD_QTDEMKG", qtd);
 								}
 								
-								if(qtdEmKg!=null) {
-									calcularPeloKg(qtdprev,qtdEmKg,TGFVOA,VO);
+								if(qtdprev==null && qtdEmKg!=null) {
+									BigDecimal qtd = calculo(qtdprev,qtdEmKg,TGFVOA,VO,"K"); //qtd em quilo preenchida
+									VO.setProperty("QTDEPREVISTA", qtd);
 								}
-				
+															
 							}
 
 						}else {
 							
-							if(qtdprev!=null) {
+							if(qtdprev!=null && qtdEmKg==null) {
 								VO.setProperty("AD_QTDEMKG", qtdprev);
 							}
 							
-							if (qtdprev==null && qtdEmKg!=null) {
+							if(qtdprev==null && qtdEmKg!=null) {
 								VO.setProperty("QTDEPREVISTA", qtdEmKg);
 							}
 						}
-						
 					}	
-				}
-				
+				}	
 			}	
-		}
+		}	
 	}
 	
-	private void calculaPelaQuantidade(BigDecimal qtdprev, BigDecimal qtdEmKg, DynamicVO TGFVOA, DynamicVO VO) {
+	private BigDecimal calculo(BigDecimal qtdprev, BigDecimal qtdEmKg, DynamicVO TGFVOA, DynamicVO VO, String tipo) {
 		 //preenchendo atraves da qtd prevista.
 			String opcao = TGFVOA.asString("DIVIDEMULTIPLICA");//M = multiplica D=Divide
 			BigDecimal qtdTgfvoa = TGFVOA.asBigDecimal("QUANTIDADE").setScale(2, RoundingMode.HALF_EVEN);
-			BigDecimal qtdEmKG = null;
+			BigDecimal qtdparaCalculo = null;
 			
-			if("M".equals(opcao)) {
-				qtdEmKG = qtdprev.divide(qtdTgfvoa, 2, RoundingMode.HALF_UP);
-			}else if("D".equals(opcao)) {
-				qtdEmKG = qtdprev.multiply(qtdTgfvoa);
+			if(qtdTgfvoa==null) {
+				qtdparaCalculo = new BigDecimal(1);
+			}else if(qtdTgfvoa.intValue()==0) {
+				qtdparaCalculo = new BigDecimal(1);
 			}else {
-				qtdEmKG = qtdprev;
+				qtdparaCalculo = qtdTgfvoa;
 			}
 			
-			VO.setProperty("AD_QTDEMKG", qtdEmKG);
+			BigDecimal qtd = null;
+			
+			if("P".equals(tipo)) {
+				if("M".equals(opcao)) {
+					qtd = qtdprev.divide(qtdparaCalculo, 2, RoundingMode.HALF_UP);
+				}else if("D".equals(opcao)) {
+					qtd = qtdprev.multiply(qtdparaCalculo);
+				}else {
+					qtd = qtdprev;
+				}
+			}else {
+				if("M".equals(opcao)) {
+					qtd = qtdEmKg.multiply(qtdparaCalculo);
+				}else if("D".equals(opcao)) {
+					qtd = qtdEmKg.divide(qtdparaCalculo, 2, RoundingMode.HALF_UP);
+				}else {
+					qtd = qtdEmKg;
+				}
+			}
+			
+			return qtd;
 	}
 	
-	private void calcularPeloKg(BigDecimal qtdprev, BigDecimal qtdEmKg, DynamicVO TGFVOA, DynamicVO VO) {
-		String opcao = TGFVOA.asString("DIVIDEMULTIPLICA");//M = multiplica D=Divide
-		BigDecimal qtdTgfvoa = TGFVOA.asBigDecimal("QUANTIDADE").setScale(2, RoundingMode.HALF_EVEN);
-		BigDecimal qtdEmKG = null;
-		
-		if("M".equals(opcao)) {
-			qtdEmKG = qtdEmKg.multiply(qtdTgfvoa);
-		}else if("D".equals(opcao)) {
-			qtdEmKG = qtdEmKg.divide(qtdTgfvoa, 2, RoundingMode.HALF_UP);
-		}else {
-			qtdEmKG = qtdprev;
-		}
-		
-		VO.setProperty("QTDEPREVISTA", qtdEmKG);
-	}
 	
 	private void ValidaNullEZero(BigDecimal qtdprev, BigDecimal qtdEmKg) {
 		if(qtdprev==null && qtdEmKg==null) {
 			throw new Error("<br/><b>OPS</b><br/><br/>tipo de contrato <b>Assinatura</b>! Preencha o campo <b>Qtd. Prevista</b> ou <b>Qtd. Em KG</b>!");
-		}else {
 		}
 	}
 	
