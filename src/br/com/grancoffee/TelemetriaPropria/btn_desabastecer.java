@@ -45,8 +45,31 @@ public class btn_desabastecer implements AcaoRotinaJava{
 		if("S".equals(ajustado)) {
 			arg0.mostraErro("<b>Erro! Teclas já ajustadas</b>");
 		}else {
+			forcarValor(id, patrimonio);
 			zerarTeclas(id, patrimonio);
 			marcarVisitaDesabastecida(id, patrimonio);
+		}
+	}
+	
+	private void forcarValor(Object id, Object patrimonio) {
+		try {
+
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_ITENSRETABAST",
+					"this.ID=? AND this.CODBEM=? ", new Object[] { id, patrimonio }));
+			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
+				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
+				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
+				DynamicVO VO = (DynamicVO) NVO;
+				
+				VO.setProperty("CONTAGEM", new BigDecimal(1));
+
+				itemEntity.setValueObject(NVO);
+			}
+
+		} catch (Exception e) {
+			String msg = "Nao foi possivel zerar a máquina! "+e.getMessage()+"\n"+e.getCause();
+			salvarException(msg);
 		}
 	}
 	
@@ -60,7 +83,7 @@ public class btn_desabastecer implements AcaoRotinaJava{
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 				DynamicVO VO = (DynamicVO) NVO;
-								
+									
 				VO.setProperty("CONTAGEM", new BigDecimal(0));
 
 				itemEntity.setValueObject(NVO);
