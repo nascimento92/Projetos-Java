@@ -6,7 +6,6 @@ import java.util.Iterator;
 import com.sankhya.util.TimeUtils;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
-import br.com.sankhya.extensions.actionbutton.QueryExecutor;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
@@ -69,12 +68,15 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 						
 						DynamicVO tgfVar = getTgfVar(nunota);
 						if (tgfVar != null) {	
+							
+							/*
 							BigDecimal nunotaTopDestino = tgfVar.asBigDecimal("NUNOTA");
 							BigDecimal nunotaDev = geraNotaDevolucao(nunotaTopDestino);
 							if (nunotaDev != null) {
 								listaItensNotaModelo(nunotaTopDestino,nunotaDev);
 								linhas[0].setCampo("AD_NUNOTADEV", nunotaDev);
 							}
+							*/
 							
 							DynamicVO tabelaTcsite = getTcsite(numos);
 							BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
@@ -97,12 +99,15 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 							DynamicVO tgfVar = getTgfVar(nunota);
 							if (tgfVar != null) {
 								
+								System.out.println(" ");
+								/*
 								BigDecimal nunotaTopDestino = tgfVar.asBigDecimal("NUNOTA");
 								BigDecimal nunotaDev = geraNotaDevolucao(nunotaTopDestino);
 								if (nunotaDev != null) {
 									listaItensNotaModelo(nunotaTopDestino,nunotaDev);
 									linhas[0].setCampo("AD_NUNOTADEV", nunotaDev);
 								}
+								*/
 								
 							}else {
 								excluirNota(nunota);
@@ -259,6 +264,8 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			VO.setProperty("RESERVA", reserva);
 			VO.setProperty("ATUALESTOQUE", atualestoque);
 			VO.setProperty("CODLOCALDEST", localDestino);
+			VO.setProperty("CODCFO", new BigDecimal(1415));
+			VO.setProperty("CODTRIB", new BigDecimal(60));
 			
 			dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 			
