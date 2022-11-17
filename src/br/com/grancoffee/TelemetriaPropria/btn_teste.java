@@ -13,11 +13,11 @@ public class btn_teste implements AcaoRotinaJava{
 	private void testaMensagens(ContextoAcao arg0) {
 		int cont = 1;
 		String tipo = (String) arg0.getParam("TIPO");
-		if("1".equals(tipo)) {
+		if("1".equals(tipo)) { //erro
 			arg0.setMensagemRetorno("<center><img src=\"https://icons.iconarchive.com/icons/paomedia/small-n-flat/1024/sign-error-icon.png\" width=\"30\" height=\"30\"><br/> \n<b>Não foram agendadas visitas!</b><br/></center>");
-		}else if("2".equals(tipo)) {
+		}else if("2".equals(tipo)) { //sucesso
 			arg0.setMensagemRetorno("<center><img src=\"https://cdn-icons-png.flaticon.com/512/148/148767.png\" width=\"30\" height=\"30\"><br/> \nForam solicitado(s) <b>" + cont + "</b> abastecimento(s)!<br/></center>");
-		}else {
+		}else { //gif
 			arg0.setMensagemRetorno(
 					"<center>"+
 					"<img src=\"https://media.tenor.com/PYQdx807FXAAAAAC/sucess-transparent.gif\" width=\"150\" height=\"100\"><br/><br/>"+
