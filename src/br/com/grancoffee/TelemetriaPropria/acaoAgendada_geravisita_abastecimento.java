@@ -47,6 +47,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 01/06/2022 vs 1.9 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
 	 * 20/06/2022 vs 2.0 A pedido da Vania, foi retirada a validação de visita ajustada para as visistas automáticas.
 	 * 13/07/2022 vs 2.1 Ajuste do método getListaPendente.
+	 * 22/11/2022 vs 2.2 Ajustado método getList para considerar apenas this.NUMOS IS NULL
 	 */
 	
 	@Override
@@ -88,7 +89,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
 			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS=? AND this.REABASTECIMENTO=? ", new Object[] { "1","S" }));
+					.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS=? AND this.REABASTECIMENTO=? AND this.NUMOS IS NULL", new Object[] { "1","S" }));
 
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 

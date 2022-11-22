@@ -4,8 +4,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -44,7 +42,7 @@ public class btn_teste implements AcaoRotinaJava{
 		EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
 		Collection<?> parceiro = dwfEntityFacade
-				.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS=? AND this.REABASTECIMENTO=? ", new Object[] { "1","S" }));
+				.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS=? AND this.REABASTECIMENTO=? AND this.NUMOS IS NULL", new Object[] { "1","S" }));
 
 		for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
@@ -54,7 +52,15 @@ public class btn_teste implements AcaoRotinaJava{
 			
 			BigDecimal numosx = DynamicVO.asBigDecimal("NUMOS");
 			
+			/*
+			 * System.out.println("\n\n\n*********************\n\n\n"+
+			 * " PATRIMONIOS: "+DynamicVO.asString("CODBEM")+ " NUMOS : "+numosx+
+			 * //" DATA: "+data+ //" COMPARE: "+compareTo+
+			 * " \n\n\n ****************************** \n\n\n");
+			 */
+			
 			if(numosx==null) {
+				
 				String patrimonio = DynamicVO.asString("CODBEM");
 				if(patrimonio!=null) {
 					Timestamp data = DynamicVO.asTimestamp("DTAGENDAMENTO");
@@ -64,8 +70,9 @@ public class btn_teste implements AcaoRotinaJava{
 					
 					int compareTo = data.compareTo(TimeUtils.getNow()); // comparação das datas
 					
-					if(compareTo < 0) { //GERAR AGORA
+					if(compareTo < 0) {
 						
+						//GERAR AGORA
 						try {
 							
 							BigDecimal solicitante = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODUSU"));
