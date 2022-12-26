@@ -48,6 +48,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 20/06/2022 vs 2.0 A pedido da Vania, foi retirada a validação de visita ajustada para as visistas automáticas.
 	 * 13/07/2022 vs 2.1 Ajuste do método getListaPendente.
 	 * 22/11/2022 vs 2.2 Ajustado método getList para considerar apenas this.NUMOS IS NULL
+	 * 23/12/2022 vs 2.3 - Gabriel Nascimento - Inserido a validação do BigDecimalUtil.getValueOrZero para garantir que mesmo se alguma informação estiver nula, o sistema irá obter o dado.
 	 */
 	
 	@Override
@@ -114,8 +115,8 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 							try {
 								
 								BigDecimal solicitante = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODUSU"));
-								BigDecimal idretorno = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("IDABASTECIMENTO"));
-								BigDecimal id = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("ID"));
+								BigDecimal idretorno = DynamicVO.asBigDecimal("IDABASTECIMENTO");
+								BigDecimal id = DynamicVO.asBigDecimal("ID");
 								BigDecimal nunota = DynamicVO.asBigDecimal("NUNOTA");
 								BigDecimal substituto = DynamicVO.asBigDecimal("AD_USUSUB");
 								Timestamp dataAtendimento = DynamicVO.asTimestamp("AD_DTATENDIMENTO");
@@ -294,13 +295,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 
 			String tecla = DynamicVO.asString("TECLA");
-			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-			BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-			BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-			BigDecimal valorFinal = vlrpar.add(vlrfun);	
-			BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-			BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-			BigDecimal nivelalerta = DynamicVO.asBigDecimal("NIVELALERTA");
+			BigDecimal produto = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODPROD"));
+			BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+			BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+			BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));	
+			BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
+			BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
+			BigDecimal nivelalerta = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELALERTA"));
 			
 			boolean existeNoPlanogramaPendente = validaSeExisteNaPlanogramaPendenteOuAtual(patrimonio,produto,tecla,numos, "AD_PLANOGRAMAPENDENTE");
 			
@@ -328,10 +329,10 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 			String tecla = DynamicVO.asString("TECLA");
 			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-			BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-			BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-			BigDecimal valorFinal = vlrpar.add(vlrfun);	
-			BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+			BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+			BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+			BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));	
+			BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
 			
 			boolean existeNaPlanogramaAtual = validaSeExisteNaPlanogramaPendenteOuAtual(patrimonio,produto,tecla,null,"AD_PLANOGRAMAATUAL");
 			
@@ -454,13 +455,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 						.wrapInterface(DynamicVO.class);
 
 				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-				BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-				BigDecimal valorFinal = vlrpar.add(vlrfun);
-				BigDecimal nivelalerta = DynamicVO.asBigDecimal("NIVELALERTA");
+				BigDecimal produto = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODPROD"));
+				BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
+				BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
+				BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+				BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+				BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));
+				BigDecimal nivelalerta = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELALERTA"));
 
 				BigDecimal qtdabast = null;
 				if (nunota != null) {
@@ -513,12 +514,12 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 			String tecla = (String) DynamicVO.getProperty("TECLA");
 			BigDecimal produto = (BigDecimal) DynamicVO.getProperty("CODPROD");
-			BigDecimal capacidade = (BigDecimal) DynamicVO.getProperty("CAPACIDADE");
-			BigDecimal nivelpar = (BigDecimal) DynamicVO.getProperty("NIVELPAR");
-			BigDecimal nivelalerta = (BigDecimal) DynamicVO.getProperty("NIVELALERTA");
-			BigDecimal estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
-			BigDecimal vlrpar = (BigDecimal) DynamicVO.getProperty("VLRPAR");
-			BigDecimal vlrfun = (BigDecimal) DynamicVO.getProperty("VLRFUN");
+			BigDecimal capacidade = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("CAPACIDADE"));
+			BigDecimal nivelpar = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("NIVELPAR"));
+			BigDecimal nivelalerta = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("NIVELALERTA"));
+			BigDecimal estoque = validaEstoqueDoItem(BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("ESTOQUE")));
+			BigDecimal vlrpar = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("VLRPAR"));
+			BigDecimal vlrfun = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("VLRFUN"));
 			
 			salvaPlanogramaPendente(patrimonio,tecla,produto,numos,nunota,idSolicitacao,idRetorno,capacidade,nivelpar,nivelalerta,estoque,vlrpar,vlrfun);
 			

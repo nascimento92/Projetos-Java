@@ -52,15 +52,7 @@ public class btn_teste implements AcaoRotinaJava{
 			
 			BigDecimal numosx = DynamicVO.asBigDecimal("NUMOS");
 			
-			/*
-			 * System.out.println("\n\n\n*********************\n\n\n"+
-			 * " PATRIMONIOS: "+DynamicVO.asString("CODBEM")+ " NUMOS : "+numosx+
-			 * //" DATA: "+data+ //" COMPARE: "+compareTo+
-			 * " \n\n\n ****************************** \n\n\n");
-			 */
-			
 			if(numosx==null) {
-				
 				String patrimonio = DynamicVO.asString("CODBEM");
 				if(patrimonio!=null) {
 					Timestamp data = DynamicVO.asTimestamp("DTAGENDAMENTO");
@@ -70,9 +62,8 @@ public class btn_teste implements AcaoRotinaJava{
 					
 					int compareTo = data.compareTo(TimeUtils.getNow()); // comparação das datas
 					
-					if(compareTo < 0) {
+					if(compareTo < 0) { //GERAR AGORA
 						
-						//GERAR AGORA
 						try {
 							
 							BigDecimal solicitante = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODUSU"));
@@ -256,13 +247,13 @@ private void validaItensDaTrocaDeGrade(String patrimonio, BigDecimal numos) {
 		DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
 
 		String tecla = DynamicVO.asString("TECLA");
-		BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-		BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-		BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-		BigDecimal valorFinal = vlrpar.add(vlrfun);	
-		BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-		BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-		BigDecimal nivelalerta = DynamicVO.asBigDecimal("NIVELALERTA");
+		BigDecimal produto = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODPROD"));
+		BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+		BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+		BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));	
+		BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
+		BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
+		BigDecimal nivelalerta = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELALERTA"));
 		
 		boolean existeNoPlanogramaPendente = validaSeExisteNaPlanogramaPendenteOuAtual(patrimonio,produto,tecla,numos, "AD_PLANOGRAMAPENDENTE");
 		
@@ -290,10 +281,10 @@ private void validaItensDaTrocaDeGrade(String patrimonio, BigDecimal numos) {
 
 		String tecla = DynamicVO.asString("TECLA");
 		BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-		BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-		BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-		BigDecimal valorFinal = vlrpar.add(vlrfun);	
-		BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
+		BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+		BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+		BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));	
+		BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
 		
 		boolean existeNaPlanogramaAtual = validaSeExisteNaPlanogramaPendenteOuAtual(patrimonio,produto,tecla,null,"AD_PLANOGRAMAATUAL");
 		
@@ -416,13 +407,13 @@ private void validaAD_TROCADEGRADE(String patrimonio, BigDecimal numos, BigDecim
 					.wrapInterface(DynamicVO.class);
 
 			String tecla = DynamicVO.asString("TECLA");
-			BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-			BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-			BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-			BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-			BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-			BigDecimal valorFinal = vlrpar.add(vlrfun);
-			BigDecimal nivelalerta = DynamicVO.asBigDecimal("NIVELALERTA");
+			BigDecimal produto = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODPROD"));
+			BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
+			BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
+			BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+			BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+			BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));
+			BigDecimal nivelalerta = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELALERTA"));
 
 			BigDecimal qtdabast = null;
 			if (nunota != null) {
@@ -475,12 +466,12 @@ private void verificaPlanogramaPendente(String patrimonio, BigDecimal numos, Big
 		
 		String tecla = (String) DynamicVO.getProperty("TECLA");
 		BigDecimal produto = (BigDecimal) DynamicVO.getProperty("CODPROD");
-		BigDecimal capacidade = (BigDecimal) DynamicVO.getProperty("CAPACIDADE");
-		BigDecimal nivelpar = (BigDecimal) DynamicVO.getProperty("NIVELPAR");
-		BigDecimal nivelalerta = (BigDecimal) DynamicVO.getProperty("NIVELALERTA");
-		BigDecimal estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
-		BigDecimal vlrpar = (BigDecimal) DynamicVO.getProperty("VLRPAR");
-		BigDecimal vlrfun = (BigDecimal) DynamicVO.getProperty("VLRFUN");
+		BigDecimal capacidade = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("CAPACIDADE"));
+		BigDecimal nivelpar = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("NIVELPAR"));
+		BigDecimal nivelalerta = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("NIVELALERTA"));
+		BigDecimal estoque = validaEstoqueDoItem(BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("ESTOQUE")));
+		BigDecimal vlrpar = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("VLRPAR"));
+		BigDecimal vlrfun = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("VLRFUN"));
 		
 		salvaPlanogramaPendente(patrimonio,tecla,produto,numos,nunota,idSolicitacao,idRetorno,capacidade,nivelpar,nivelalerta,estoque,vlrpar,vlrfun);
 		
@@ -1758,6 +1749,5 @@ private BigDecimal DescobrePedidoPendente(String patrimonio, String secosCongela
 }
 
 //--- FIM VALIDAÇÕES
-
 
 }
