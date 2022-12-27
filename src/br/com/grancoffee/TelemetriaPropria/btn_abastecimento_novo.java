@@ -9,6 +9,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
+
+import com.sankhya.util.BigDecimalUtil;
 import com.sankhya.util.TimeUtils;
 //import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
@@ -51,6 +53,8 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 01/06/2022 vs 2.7 - Gabriel Nascimento - Inserida diversas modificações para o sistema gerar um pedido de tabaco.
 	 * 30/09/2022 vs 2.8 - Gabriel Nascimento - Ajuste da data de atendimento.
 	 * 06/10/2022 vs 2.8 - Gabriel Nascimento - Ajuste para inserir no pedido a quantidade de itens que tiver na filial, mesmo que seja menor que o nível par.
+	 * ??/??/???? vs 2.9 - ?
+	 * 22/12/2022 vs 3.0 - Gabriel Nascimento - Ajuste NPE os métodos apenas secos, apenas congelados e tabaco estavam recebendo valores Nulos no campo VLRPAR inserido o método BigDecimalUtil.getvalueorzero
 	 */
 	
 	String retornoNegativo = "";
@@ -76,7 +80,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		DynamicVO gc_solicitabast = null;
 		BigDecimal idRetorno = null;
 		
-		//TODO :: Implementar a data da visita
+		//Implementar a data da visita
 		Timestamp dtvisita = (Timestamp) arg0.getParam("DTVISIT");
 		
 		if (dtvisita != null) {
@@ -105,11 +109,11 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			dtvisita = addDias(datatemp, new BigDecimal(1));
 		}
 		
-		//TODO :: Verifica todas as visitas selecionadas
+		//Verifica todas as visitas selecionadas
 
 		for (int i = 0; i < linhas.length; i++) {
 			
-			//TODO :: Verificar se o estoque está todo zerado, se tiver fazer a pergunta para o usuário, se ele quer de fato continuar...
+			//Verificar se o estoque está todo zerado, se tiver fazer a pergunta para o usuário, se ele quer de fato continuar...
 			boolean maquinaDesabastecida = verificarSeAhMaquinaEstaTotalmenteDesabastecida(linhas[i].getCampo("CODBEM").toString());
 			
 			boolean confirmarSimNao = true;
@@ -790,20 +794,20 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	private Timestamp validacoes(Registro linhas, ContextoAcao arg0, String tipoAbastecimento, String secosCongelados)
 			throws Exception {
 		
-		//TODO:: valida se a máquina está na rota.
+		// valida se a máquina está na rota.
 		boolean maquinaNaRota = validaSeAhMaquinaEstaNaRota(linhas.getCampo("CODBEM").toString());
 		if (!maquinaNaRota) {
 			throw new Error("O patrimônio " + linhas.getCampo("CODBEM").toString()
 					+ " não está em rota, não pode ser gerado o abastecimento!");
 		}
 		
-		//TODO:: valida se a máquina possuí planograma.
+		//valida se a máquina possuí planograma.
 		boolean maquinaSemPlanograma = verificaSeAhMaquinaPossuiPlanograma(linhas.getCampo("CODBEM").toString());
 		if(maquinaSemPlanograma) {
 			throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas.getCampo("CODBEM").toString()+" não possui um planograma cadastrado, não é possível gerar a visita!");
 		}
 		
-		//TODO:: se for loja, valida se não existem produtos repetidos.
+		//se for loja, valida se não existem produtos repetidos.
 		String loja = (String) linhas.getCampo("TOTEM");
 		if("S".equals(loja)) {
 			if(seExistemProdutosDuplicadoLojas(linhas.getCampo("CODBEM").toString())) {
@@ -815,7 +819,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			}
 		}
 		
-		//TODO:: verifica se existe visita pendente sem ajste.
+		//verifica se existe visita pendente sem ajste.
 		if(validaSeExisteVisitaSemAjusteReabastecimento(linhas.getCampo("CODBEM").toString())) {
 			throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas.getCampo("CODBEM").toString()+" possuí uma visita de reabastecimento finalizada, porém pendente de ajuste por parte do setor de controladoria, não é possível gerar um novo abastecimento até que o setor de controladoria finalize o ajuste da visita! <br/><br/>");
 		}
@@ -928,7 +932,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				}
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
+			
 		}
 		return valida;
 	}
@@ -952,7 +956,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				}
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
+		
 		}
 		return valida;
 	}
@@ -976,7 +980,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				}
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
+	
 		}
 		return valida;
 	}
@@ -1406,7 +1410,7 @@ FROM(
 	
 	private void validaItensDaTrocaDeGrade(String patrimonio, BigDecimal numos) {
 		
-		//TODO :: verificar itens para retirar
+		//verificar itens para retirar
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
@@ -1429,10 +1433,10 @@ FROM(
 			boolean existeNoPlanogramaPendente = validaSeExisteNaPlanogramaPendenteOuAtual(patrimonio,produto,tecla,numos, "AD_PLANOGRAMAPENDENTE");
 			
 			if(!existeNoPlanogramaPendente) {
-				//TODO :: inserir para retirar
+				//inserir para retirar
 				insertAD_TROCADEGRADE(patrimonio, numos, produto, tecla, valorFinal, capacidade, nivelpar, new BigDecimal(0), "RETIRAR", "RETIRAR", nivelalerta, vlrpar, vlrfun);
 				
-				//TODO :: Para visita de secos, deve ser retirado apenas os secos e para congelados os congelados.
+				//Para visita de secos, deve ser retirado apenas os secos e para congelados os congelados.
 				//?? pendente
 			}
 
@@ -1442,7 +1446,7 @@ FROM(
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 		
-		//TODO :: verificar itens novos e já existentes
+		//verificar itens novos e já existentes
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
@@ -1575,12 +1579,12 @@ FROM(
 						.wrapInterface(DynamicVO.class);
 
 				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-				BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-				BigDecimal valorFinal = vlrpar.add(vlrfun);
+				BigDecimal produto = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODPROD"));
+				BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
+				BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
+				BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+				BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+				BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));
 				
 				if (congelado(produto)) {
 					try {
@@ -1624,12 +1628,12 @@ FROM(
 						.wrapInterface(DynamicVO.class);
 
 				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-				BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-				BigDecimal valorFinal = vlrpar.add(vlrfun);
+				BigDecimal produto = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODPROD"));
+				BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
+				BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
+				BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+				BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+				BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));
 				
 				if (tabaco(produto)) {
 					try {
@@ -1673,12 +1677,12 @@ FROM(
 						.wrapInterface(DynamicVO.class);
 
 				String tecla = DynamicVO.asString("TECLA");
-				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				BigDecimal capacidade = DynamicVO.asBigDecimal("CAPACIDADE");
-				BigDecimal nivelpar = DynamicVO.asBigDecimal("NIVELPAR");
-				BigDecimal vlrpar = DynamicVO.asBigDecimal("VLRPAR");
-				BigDecimal vlrfun = DynamicVO.asBigDecimal("VLRFUN");
-				BigDecimal valorFinal = vlrpar.add(vlrfun);
+				BigDecimal produto = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CODPROD"));
+				BigDecimal capacidade = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("CAPACIDADE"));
+				BigDecimal nivelpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("NIVELPAR"));
+				BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRPAR"));
+				BigDecimal vlrfun = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("VLRFUN"));
+				BigDecimal valorFinal = BigDecimalUtil.getValueOrZero(vlrpar.add(vlrfun));
 				
 				//if (!congelado(produto)) {
 					try {
@@ -2061,7 +2065,7 @@ FROM(
 	private void identificaItens(BigDecimal nunota, String patrimonio, DynamicVO gc_solicitabast) {
 		try {
 			
-			//TODO::Verifica o local de abastecimento a partir dos cadastros do endereçamento.
+			//Verifica o local de abastecimento a partir dos cadastros do endereçamento.
 			//01/06/22 --inicio
 			String tipoProduto = gc_solicitabast.asString("AD_TIPOPRODUTOS");
 			BigDecimal localAbast = null;
@@ -2098,7 +2102,7 @@ FROM(
 			
 			BigDecimal estoque = null;
 			
-			//TODO :: se a máquina estiver liberada, pegar o estoque a partir da API
+			//se a máquina estiver liberada, pegar o estoque a partir da API
 			// 26/04 - desabilitado.
 			/*
 			if("S".equals(liberada)) {
