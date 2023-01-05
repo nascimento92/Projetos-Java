@@ -55,6 +55,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 06/10/2022 vs 2.8 - Gabriel Nascimento - Ajuste para inserir no pedido a quantidade de itens que tiver na filial, mesmo que seja menor que o nível par.
 	 * ??/??/???? vs 2.9 - ?
 	 * 22/12/2022 vs 3.0 - Gabriel Nascimento - Ajuste NPE os métodos apenas secos, apenas congelados e tabaco estavam recebendo valores Nulos no campo VLRPAR inserido o método BigDecimalUtil.getvalueorzero
+	 * 05/01/2023 vs 3.1 - Gabriel Nascimento - Implementado método validaSeExistemAjustesPendentesRealizadosPeloSistema para verificar se o sistema ainda não ajustou a máquinas após ajuste da controladoria.
 	 */
 	
 	String retornoNegativo = "";
@@ -819,6 +820,11 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			}
 		}
 		
+		// vs 3.1 - Verifica se o sistema já realizou os ajustes da controladoria.
+		if(validaSeExistemAjustesPendentesRealizadosPeloSistema(linhas.getCampo("CODBEM").toString())) {
+			throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas.getCampo("CODBEM").toString()+" já foi ajustada pelo setor de controladoria, porém o sistema ainda não efetivou os ajustes, a rotina é executada de 5 em 5 minutos, aguardar a finalização para a geração do novo reabastecimento! <br/><br/>");
+		}
+		
 		//verifica se existe visita pendente sem ajste.
 		if(validaSeExisteVisitaSemAjusteReabastecimento(linhas.getCampo("CODBEM").toString())) {
 			throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas.getCampo("CODBEM").toString()+" possuí uma visita de reabastecimento finalizada, porém pendente de ajuste por parte do setor de controladoria, não é possível gerar um novo abastecimento até que o setor de controladoria finalize o ajuste da visita! <br/><br/>");
@@ -924,6 +930,30 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			+ " FROM GC_SOLICITABAST S"
 			+ " JOIN AD_RETABAST R ON (R.ID=S.IDABASTECIMENTO)"
 			+ " WHERE S.CODBEM='"+patrimonio+"' AND R.NUMOS IS NOT NULL AND S.REABASTECIMENTO='S' AND S.STATUS='3') WHERE OK='N'");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count >= 1) {
+					valida = true;
+				}
+			}
+		} catch (Exception e) {
+			
+		}
+		return valida;
+	}
+	
+	private boolean validaSeExistemAjustesPendentesRealizadosPeloSistema(String patrimonio) {
+		boolean valida = false;
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+			"SELECT COUNT(*) AS QTD FROM GC_SOLICITAJUST gs WHERE DTAJUSTE IS NULL AND CODBEM='"+patrimonio+"'");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				int count = contagem.getInt("QTD");
