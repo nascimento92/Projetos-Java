@@ -16,6 +16,7 @@ import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.comercial.ComercialUtils;
+import br.com.sankhya.modelcore.comercial.impostos.ImpostosHelpper;
 import br.com.sankhya.modelcore.util.DynamicEntityNames;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
@@ -69,14 +70,14 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 						DynamicVO tgfVar = getTgfVar(nunota);
 						if (tgfVar != null) {	
 							
-							/*
 							BigDecimal nunotaTopDestino = tgfVar.asBigDecimal("NUNOTA");
 							BigDecimal nunotaDev = geraNotaDevolucao(nunotaTopDestino);
 							if (nunotaDev != null) {
 								listaItensNotaModelo(nunotaTopDestino,nunotaDev);
 								linhas[0].setCampo("AD_NUNOTADEV", nunotaDev);
+								totalizaImpostos(nunotaDev);
 							}
-							*/
+							
 							
 							DynamicVO tabelaTcsite = getTcsite(numos);
 							BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
@@ -100,14 +101,14 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 							if (tgfVar != null) {
 								
 								System.out.println(" ");
-								/*
+								
 								BigDecimal nunotaTopDestino = tgfVar.asBigDecimal("NUNOTA");
 								BigDecimal nunotaDev = geraNotaDevolucao(nunotaTopDestino);
 								if (nunotaDev != null) {
 									listaItensNotaModelo(nunotaTopDestino,nunotaDev);
 									linhas[0].setCampo("AD_NUNOTADEV", nunotaDev);
+									totalizaImpostos(nunotaDev);
 								}
-								*/
 								
 							}else {
 								excluirNota(nunota);
@@ -252,9 +253,11 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ItemNota");
 			DynamicVO VO = (DynamicVO) NPVO;
 			
+			DynamicVO tgfpro = getTGFPRO(produto);
+		
 			VO.setProperty("NUNOTA", nunotaDev);
 			VO.setProperty("CODEMP", empresa);
-			VO.setProperty("CODLOCALORIG", local);
+			VO.setProperty("CODLOCALORIG", localDestino);
 			VO.setProperty("CODPROD", produto);
 			VO.setProperty("CODVOL", volume);
 			VO.setProperty("QTDNEG", qtdneg);
@@ -262,10 +265,11 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			VO.setProperty("VLRTOT", vlrtot);
 			VO.setProperty("VLRUNIT", vlrunit);
 			VO.setProperty("RESERVA", reserva);
-			VO.setProperty("ATUALESTOQUE", atualestoque);
-			VO.setProperty("CODLOCALDEST", localDestino);
+			VO.setProperty("ATUALESTOQUE", new BigDecimal(0));
+			VO.setProperty("CODLOCALDEST", local);
 			VO.setProperty("CODCFO", new BigDecimal(1415));
 			VO.setProperty("CODTRIB", new BigDecimal(60));
+			VO.setProperty("USOPROD", tgfpro.asString("USOPROD"));
 			
 			dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 			
@@ -395,6 +399,12 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		return VO;
 	}
 	
+	private DynamicVO getTGFPRO(BigDecimal codprod) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("Produto");
+		DynamicVO VO = DAO.findOne("CODPROD=?", new Object[] { codprod });
+		return VO;
+	}
+	
 	private DynamicVO getTSIEMP(BigDecimal empresa) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("Empresa");
 		DynamicVO VO = DAO.findOne("CODEMP=?", new Object[] { empresa });
@@ -411,6 +421,16 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		JapeWrapper DAO = JapeFactory.dao("CabecalhoNota");
 		DynamicVO VO = DAO.findOne("NUNOTA=?", new Object[] { nunota });
 		return VO;
+	}
+	
+	public void totalizaImpostos(BigDecimal nunota) throws Exception{
+        ImpostosHelpper impostos = new ImpostosHelpper();
+        impostos.carregarNota(nunota);
+        impostos.setForcarRecalculo(true);
+        impostos.calcularTotalItens(nunota, true);
+        impostos.totalizarNota(nunota);
+        impostos.calcularImpostos(nunota);
+        impostos.salvarNota();
 	}
 	
 	private void salvarException(String mensagem) {
