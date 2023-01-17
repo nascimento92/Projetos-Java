@@ -1,5 +1,6 @@
 package br.com.grancoffee.ChamadosTI;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
@@ -31,6 +32,11 @@ public class btn_classificar implements AcaoRotinaJava {
 		Timestamp dataFinal = (Timestamp) linhas[0].getCampo("DTFECHAMENTO");
 		//String descricaoAbreviada = StringUtils.substr(linhas[0].getCampo("DESCRICAO").toString(), 0, 100);
 		//String area = validaArea((String) arg0.getParam("AREA"));
+		BigDecimal idFlow = (BigDecimal) linhas[0].getCampo("IDFLOW");
+		
+		if(idFlow!=null) {
+			arg0.mostraErro("<br/><br/>Chamado aberto pelo Flow \"Chamados / Projetos\" deverá ser classificado pela tela <b>Lista de Tarefas</b>!<br/><br/>");
+		}
 		
 		if(dataFinal!=null) {
 			arg0.mostraErro("Chamado encerrado, não pode ser classificado!");

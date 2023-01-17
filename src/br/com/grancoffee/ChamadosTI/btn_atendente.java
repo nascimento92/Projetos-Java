@@ -40,6 +40,12 @@ public class btn_atendente implements AcaoRotinaJava {
 		Timestamp dtAtual = new Timestamp(System.currentTimeMillis());
 		String descricaoAbreviada = StringUtils.substr(linhas[0].getCampo("DESCRICAO").toString(), 0, 100);
 		
+		BigDecimal idFlow = (BigDecimal) linhas[0].getCampo("IDFLOW");
+		
+		if(idFlow!=null) {
+			arg0.mostraErro("<br/><br/>Chamado aberto pelo Flow \"Chamados / Projetos\" O atendente será determinado de acordo com as regras do FLOW!<br/><br/>");
+		}
+		
 		/* comentário temporário
 		if(data.before(reduzUmDia(dtAtual))) {
 			arg0.mostraErro("Quer atender um chamado no passado rapá? da não!");
