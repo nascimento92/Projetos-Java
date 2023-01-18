@@ -1,6 +1,7 @@
 package br.com.grancoffee.TelemetriaPropria;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.Iterator;
 import com.sankhya.util.TimeUtils;
@@ -9,6 +10,8 @@ import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
+import br.com.sankhya.jape.dao.JdbcWrapper;
+import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.util.FinderWrapper;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
@@ -86,12 +89,18 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 							cancelarOS(numos);		
 							
 						}else {
-							DynamicVO tabelaTcsite = getTcsite(numos);
-							BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
-							insertTcsrus(numos,codusurel);
-							excluirNota(nunota);
-							cancelarSubOS(numos);
-							cancelarOS(numos);
+							
+							if(validaSeOhPedidoEstaEmOrdemDeCarga(nunota)) {
+								throw new Error("<br/><b>ATENÇÃO</b><br/><br/>O pedido <b>"+nunota+"</b> está em ordem de carga, não é possível prosseguir com o cancelamento da visita, retire o pedido da O.C para prosseguir! <br/><br/>");
+							}else {
+								DynamicVO tabelaTcsite = getTcsite(numos);
+								BigDecimal codusurel = tabelaTcsite.asBigDecimal("CODUSU");
+								insertTcsrus(numos,codusurel);
+								excluirNota(nunota);
+								cancelarSubOS(numos);
+								cancelarOS(numos);
+							}
+	
 						}
 						
 					}else
@@ -111,7 +120,11 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 								}
 								
 							}else {
-								excluirNota(nunota);
+								if(validaSeOhPedidoEstaEmOrdemDeCarga(nunota)) {
+									throw new Error("<br/><b>ATENÇÃO</b><br/><br/>O pedido <b>"+nunota+"</b> está em ordem de carga, não é possível prosseguir com o cancelamento da visita, retire o pedido da O.C para prosseguir! <br/><br/>");
+								}else {
+									excluirNota(nunota);
+								}
 							}
 							
 						}
@@ -395,7 +408,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 
 	private DynamicVO getTgfVar(BigDecimal nunota) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("CompraVendavariosPedido");
-		DynamicVO VO = DAO.findOne("NUNOTAORIG=? AND SEQUENCIAORIG=1", new Object[] { nunota });
+		DynamicVO VO = DAO.findOne("NUNOTAORIG=? AND SEQUENCIA=1", new Object[] { nunota });
 		return VO;
 	}
 	
@@ -423,6 +436,12 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		return VO;
 	}
 	
+	private DynamicVO getTcsite(BigDecimal NumOs) throws Exception {
+		JapeWrapper DAO = JapeFactory.dao("ItemOrdemServico");
+		DynamicVO VO = DAO.findOne("NUMOS=?", new Object[] { NumOs });
+		return VO;
+	}
+	
 	public void totalizaImpostos(BigDecimal nunota) throws Exception{
         ImpostosHelpper impostos = new ImpostosHelpper();
         impostos.carregarNota(nunota);
@@ -431,6 +450,31 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
         impostos.totalizarNota(nunota);
         impostos.calcularImpostos(nunota);
         impostos.salvarNota();
+	}
+	
+	private boolean validaSeOhPedidoEstaEmOrdemDeCarga(BigDecimal nunota) {
+		boolean valida = false;
+		try {
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql("SELECT CASE WHEN ORDEMCARGA IS NOT NULL THEN 1 ELSE 0 END AS QTD FROM TGFCAB WHERE nunota="+nunota);
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count == 0) {
+					valida = true;
+				}
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return valida;
 	}
 	
 	private void salvarException(String mensagem) {
@@ -454,9 +498,5 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 		}
 	}
 	
-	private DynamicVO getTcsite(BigDecimal NumOs) throws Exception {
-		JapeWrapper DAO = JapeFactory.dao("ItemOrdemServico");
-		DynamicVO VO = DAO.findOne("NUMOS=?", new Object[] { NumOs });
-		return VO;
-	}
+	
 }
