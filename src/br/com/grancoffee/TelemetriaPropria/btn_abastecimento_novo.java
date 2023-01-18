@@ -56,6 +56,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * ??/??/???? vs 2.9 - ?
 	 * 22/12/2022 vs 3.0 - Gabriel Nascimento - Ajuste NPE os métodos apenas secos, apenas congelados e tabaco estavam recebendo valores Nulos no campo VLRPAR inserido o método BigDecimalUtil.getvalueorzero
 	 * 05/01/2023 vs 3.1 - Gabriel Nascimento - Implementado método validaSeExistemAjustesPendentesRealizadosPeloSistema para verificar se o sistema ainda não ajustou a máquinas após ajuste da controladoria.
+	 * 18/01/2023 vs 3.2 - Gabriel Nascimento - Implementado o método validaSeExistemLocaisInativos para verificar se os locais das máquinas estão ativos, caso não, o sistema não deixa criar o pedido de abastecimento.
 	 */
 	
 	String retornoNegativo = "";
@@ -825,6 +826,11 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas.getCampo("CODBEM").toString()+" já foi ajustada pelo setor de controladoria, porém o sistema ainda não efetivou os ajustes, a rotina é executada de 5 em 5 minutos, aguardar a finalização para a geração do novo reabastecimento! <br/><br/>");
 		}
 		
+		// vs 3.2 - Verifica se o local de abastecimento está ativo
+		if(validaSeExistemLocaisInativos(linhas.getCampo("CODBEM").toString())) {
+			throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas.getCampo("CODBEM").toString()+" Está vinculado a algum local de abastecimento inativo, verificar no endereçamento os campos: <br/> <b>- Local Abastecimento (Secos)</b><br/><b>- Local Abastecimento (Congelados)</b><br/><b>- Local Abastecimento (Tabaco)</b> <br/><br/>");
+		}
+		
 		//verifica se existe visita pendente sem ajste.
 		if(validaSeExisteVisitaSemAjusteReabastecimento(linhas.getCampo("CODBEM").toString())) {
 			throw new Error("<br/><b>ATENÇÃO</b><br/><br/>A máquina "+linhas.getCampo("CODBEM").toString()+" possuí uma visita de reabastecimento finalizada, porém pendente de ajuste por parte do setor de controladoria, não é possível gerar um novo abastecimento até que o setor de controladoria finalize o ajuste da visita! <br/><br/>");
@@ -965,6 +971,66 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			
 		}
 		return valida;
+	}
+	
+	private boolean validaSeExistemLocaisInativos(String patrimonio) {
+		boolean valida = false;
+		try {
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+			"WITH "+
+			"LISTA_LOCAIS AS ( "+
+			"SELECT "+
+			"NVL(L1.ATIVO,'S') AS CONGELADOS, "+
+			"NVL(L2.ATIVO,'S') AS SECOS, "+
+			"NVL(L3.ATIVO,'S') AS TABACO "+
+			"FROM AD_ENDERECAMENTO T "+
+			"LEFT JOIN TGFLOC L1 ON (L1.CODLOCAL=T.CODLOCALCONGELADOS) "+
+			"LEFT JOIN TGFLOC L2 ON (L2.CODLOCAL=T.CODLOCALABAST) "+
+			"LEFT JOIN TGFLOC L3 ON (L3.CODLOCAL=T.CODLOCALTABACO) "+
+			"WHERE CODBEM='"+patrimonio+"') "+
+			"SELECT SUM(QTD) AS QTD FROM ( "+
+			"SELECT COUNT(*) AS QTD FROM LISTA_LOCAIS WHERE CONGELADOS='N' UNION "+
+			"SELECT COUNT(*) AS QTD FROM LISTA_LOCAIS WHERE SECOS='N' UNION "+
+			"SELECT COUNT(*) AS QTD FROM LISTA_LOCAIS WHERE TABACO='N')");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count >= 1) {
+					valida = true;
+				}
+			}
+		} catch (Exception e) {
+			
+		}
+		return valida;
+		
+		/*
+		 * WITH 
+LISTA_LOCAIS AS (
+	SELECT 
+	NVL(L1.ATIVO,'S') AS CONGELADOS,
+	NVL(L2.ATIVO,'S') AS SECOS,
+	NVL(L3.ATIVO,'S') AS TABACO
+	FROM AD_ENDERECAMENTO T
+	LEFT JOIN TGFLOC L1 ON (L1.CODLOCAL=T.CODLOCALCONGELADOS)
+	LEFT JOIN TGFLOC L2 ON (L2.CODLOCAL=T.CODLOCALABAST)
+	LEFT JOIN TGFLOC L3 ON (L3.CODLOCAL=T.CODLOCALTABACO)
+	WHERE CODBEM='082746'
+	)
+SELECT SUM(QTD) AS QTD FROM (
+SELECT COUNT(*) AS QTD FROM LISTA_LOCAIS WHERE CONGELADOS='N'
+UNION 
+SELECT COUNT(*) AS QTD FROM LISTA_LOCAIS WHERE SECOS='N'
+UNION 
+SELECT COUNT(*) AS QTD FROM LISTA_LOCAIS WHERE TABACO='N'
+)
+		 */
 	}
 	
 	private boolean seExistemProdutosDuplicadoLojas(String patrimonio) {
