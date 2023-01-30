@@ -76,11 +76,18 @@ public class evento_criaOS implements EventoProgramavelJava {
 		
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		String descricao = VO.asString("DESCRICAO");
+		BigDecimal idFlow = VO.asBigDecimal("IDFLOW");
 		
-		BigDecimal osGerada = gerarCabecalhoOS(descricao);
-		geraItemOS(osGerada);
-		enviarEmail(osGerada);
-		salvaDadosNaTela(VO, osGerada);
+		if(idFlow!=null) {
+			BigDecimal osGerada = gerarCabecalhoOS(descricao);
+			geraItemOS(osGerada);
+			//enviarEmail(osGerada);
+			salvaDadosNaTela(VO, osGerada);
+		}else {
+			throw new Error("<br/><br/>Realize a abertura do chamado pela tela <b>Lista de Tarefas</b> Flow - Chamados/Projetos! Qualquer dúvida, enviar um e-mail para: sistemas@grancoffee.com.br</b>!<br/><br/>");
+		}
+		
+		
 
 	}
 	

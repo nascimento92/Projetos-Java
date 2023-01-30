@@ -33,6 +33,11 @@ public class btn_solicitante implements AcaoRotinaJava {
 		Timestamp dataFinal = (Timestamp) linhas[0].getCampo("DTFECHAMENTO");
 		BigDecimal numos = (BigDecimal) linhas[0].getCampo("NUMOS");
 		String descricaoAbreviada = StringUtils.substr(linhas[0].getCampo("DESCRICAO").toString(), 0, 100);
+		BigDecimal idFlow = (BigDecimal) linhas[0].getCampo("IDFLOW");
+		
+		if(idFlow!=null) {
+			arg0.mostraErro("<br/><br/>Chamado aberto pelo Flow \"Chamados / Projetos\" não será possível alterar o solicitante!</b>!<br/><br/>");
+		}
 		
 		if(dataFinal!=null) {
 			arg0.mostraErro("Chamado encerrado, não pode ser alterado o solicitante!");

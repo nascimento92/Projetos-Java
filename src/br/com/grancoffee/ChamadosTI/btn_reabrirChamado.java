@@ -23,6 +23,9 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class btn_reabrirChamado implements AcaoRotinaJava {
 	
+	/**
+	 * 30/01/2023 - Gabriel Nascimento - Botão será inativado, pois as solicitações serão tratadas via flow.
+	 */
 	int cont=0;
 	String retorno="";
 	
@@ -53,7 +56,7 @@ public class btn_reabrirChamado implements AcaoRotinaJava {
 			reabrirOS(numos);
 			alterarSubOs(numos);
 			alteraInformacoesLocais(linhas);
-			enviarEmail(numos,descricao,email);
+			//enviarEmail(numos,descricao,email);
 		} else {
 			throw new PersistenceError("Chamado não está concluído, não pode ser reaberto!");
 		}
