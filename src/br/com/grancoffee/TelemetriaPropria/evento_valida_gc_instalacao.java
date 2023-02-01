@@ -2,7 +2,12 @@ package br.com.grancoffee.TelemetriaPropria;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.Iterator;
 
 import com.sankhya.util.BigDecimalUtil;
@@ -119,7 +124,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			}
 		}
 		
-		ajustesGerais(arg0);
+		validaInventarioObrigatorio(arg0);
 	}
 	
 	//Valiações
@@ -149,19 +154,109 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		return valida;
 	}
 	
-	private void ajustesGerais(PersistenceEvent arg0) {
+	private void validaInventarioObrigatorio(PersistenceEvent arg0) {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		String frequencia = VO.asString("AD_FREQCONTAGEM");
-		String dia = VO.asString("AD_DIAINVENTARIO");
+		Timestamp dtUltimoInventario = VO.asTimestamp("AD_DTULTCONTAGEM");
+		ArrayList<String> diasParaSeremConsiderados = diasParaSeremConsiderados(VO);
+		Timestamp dataFinal = null;
 		
-		if("1".equals(frequencia)) {
-			VO.setProperty("AD_DIAINVENTARIO", null);
-		}else {
-			if(frequencia!=null && dia==null) {
-				VO.setProperty("AD_DIAINVENTARIO", "2");
+		
+		if(frequencia!=null) { //realiza inventário obrigatório.
+			if(diasParaSeremConsiderados.size()>0) {
+				if("1".equals(frequencia)) { //Diário
+					dataFinal = validaInventDiario(dtUltimoInventario, 1, diasParaSeremConsiderados);
+				}else if("2".equals(frequencia)) { //A cada 2 dias
+					dataFinal = validaInventDiario(dtUltimoInventario, 2, diasParaSeremConsiderados);
+				}
 			}
 		}
+		
+		if(dataFinal!=null) {
+			VO.setProperty("AD_DTPROXINVENT", dataFinal);
+		}
+		
 	}
+	
+	private Timestamp validaInventDiario(Timestamp dtUltimoInventario, int frequencia, ArrayList<String> diasParaSeremConsiderados) {
+		Timestamp dataTemp = addDias(dtUltimoInventario, new BigDecimal(frequencia));
+		String diaSemana = getDiaDaSemana(dataTemp);
+		
+		boolean dataValida = false;
+		int somaDia = 1;
+		Timestamp dataFinal = null;
+		
+		while(dataValida==false) {
+			if(diasParaSeremConsiderados.contains(diaSemana)) {
+				dataValida = true;
+				dataFinal = dataTemp;
+			}else {
+				dataTemp = addDias(dataTemp, new BigDecimal(somaDia));
+				diaSemana = getDiaDaSemana(dataTemp);
+			}
+		}
+		
+		return dataFinal;
+		
+	}
+	
+	
+	private Timestamp addDias(Timestamp datainicial,BigDecimal prazo){
+		GregorianCalendar gcm = new GregorianCalendar();
+		Date data = new Date(datainicial.getTime());
+		gcm.setTime(data);
+		gcm.add(Calendar.DAY_OF_MONTH, prazo.intValue());
+		data = gcm.getTime();
+		Timestamp dataInicialMaisPrazo = new Timestamp(data.getTime());
+		
+		return dataInicialMaisPrazo;
+	}
+	
+	private static String getDiaDaSemana(Timestamp datainicial) {
+		Calendar cal = Calendar.getInstance();
+		Date data = new Date(datainicial.getTime());
+		cal.setTime(data);
+		String dia="";
+		
+		String[] strDays = new String[] { "Domingo", "Segunda", "Terça","Quarta", "Quinta", "Sexta", "Sabado"};
+		dia = strDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
+		
+		return dia;
+	}
+	
+	private ArrayList<String> diasParaSeremConsiderados(DynamicVO VO) {
+		ArrayList<String> listaDeDias = new ArrayList<String>();
+		String segunda = VO.asString("AD_SEGUNDA");
+		if("S".equals(segunda)) {
+			listaDeDias.add("Segunda");
+		}
+		String terca = VO.asString("AD_TERCA");
+		if("S".equals(terca)) {
+			listaDeDias.add("Terça");
+		}
+		String quarta = VO.asString("AD_QUARTA");
+		if("S".equals(quarta)) {
+			listaDeDias.add("Quarta");
+		}
+		String quinta = VO.asString("AD_QUINTA");
+		if("S".equals(quinta)) {
+			listaDeDias.add("Quinta");
+		}
+		String sexta = VO.asString("AD_SEXTA");
+		if("S".equals(sexta)) {
+			listaDeDias.add("Sexta");
+		}
+		String sabado = VO.asString("AD_SABADO");
+		if("S".equals(sabado)) {
+			listaDeDias.add("Sabado");
+		}
+		String domingo = VO.asString("AD_DOMINGO");
+		if("S".equals(domingo)) {
+			listaDeDias.add("Domingo");
+		}
+		return listaDeDias;
+	}
+	
 	
 	private boolean verificaVisitaPendente(String patrimonio) {
 		boolean valida = false;
@@ -324,7 +419,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			}
 		}
 		
-		ajustesGerais(arg0);
+		validaInventarioObrigatorio(arg0);
 	}
 	
 	private void cadastraTelemetrias(BigDecimal idTelemetria, String codbem) {
