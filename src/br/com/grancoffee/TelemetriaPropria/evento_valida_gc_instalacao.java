@@ -161,24 +161,22 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		ArrayList<String> diasParaSeremConsiderados = diasParaSeremConsiderados(VO);
 		Timestamp dataFinal = null;
 		
-		
-		if(frequencia!=null) { //realiza inventário obrigatório.
+		if(!"99".equals(frequencia) && frequencia!=null) { //frequencia diferente de informada manualmente.
 			if(diasParaSeremConsiderados.size()>0) {
-				if("1".equals(frequencia)) { //Diário
-					dataFinal = validaInventDiario(dtUltimoInventario, 1, diasParaSeremConsiderados);
-				}else if("2".equals(frequencia)) { //A cada 2 dias
-					dataFinal = validaInventDiario(dtUltimoInventario, 2, diasParaSeremConsiderados);
-				}
+				dataFinal = validaInventDiario(dtUltimoInventario, new BigDecimal(frequencia).intValue(), diasParaSeremConsiderados);
 			}
-		}
-		
-		if(dataFinal!=null) {
-			VO.setProperty("AD_DTPROXINVENT", dataFinal);
-		}
+			
+			if(dataFinal!=null) {
+				VO.setProperty("AD_DTPROXINVENT", dataFinal);
+			}
+		}	
 		
 	}
 	
 	private Timestamp validaInventDiario(Timestamp dtUltimoInventario, int frequencia, ArrayList<String> diasParaSeremConsiderados) {
+		if(dtUltimoInventario==null) {
+			dtUltimoInventario = TimeUtils.getNow();
+		}
 		Timestamp dataTemp = addDias(dtUltimoInventario, new BigDecimal(frequencia));
 		String diaSemana = getDiaDaSemana(dataTemp);
 		
