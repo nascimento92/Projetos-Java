@@ -1,7 +1,9 @@
 package br.com.gsn.Projetos;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
+import com.sankhya.util.StringUtils;
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
@@ -46,6 +48,7 @@ public class evento_valida_req_proj implements EventoProgramavelJava{
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
+		
 		VO.setProperty("CRONOGRAMA", "1");
 		VO.setProperty("STATUS", "1");
 		start(arg0);
@@ -58,11 +61,12 @@ public class evento_valida_req_proj implements EventoProgramavelJava{
 	
 	private void start(PersistenceEvent arg0) {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
+		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
 		
-		validacoes(VO);
+		validacoes(VO,oldVO);
 	}
 	
-	private void validacoes(DynamicVO VO) {
+	private void validacoes(DynamicVO VO, DynamicVO oldVO) {
 		String status = VO.asString("STATUS");
 		Timestamp dtPrevFim = VO.asTimestamp("DTPREVFIM");
 		Timestamp dtfim = VO.asTimestamp("DTFINALIZACAO");
@@ -87,6 +91,48 @@ public class evento_valida_req_proj implements EventoProgramavelJava{
 			}
 		}
 		
+		//TODO :: se alguns dados forem alterados o gant precisa voltar a ficar pendente, para podermos atualizar o monday tbm
+		String nome = VO.asString("NOME");
+		String oldNome = oldVO.asString("NOME");
+		String obsGantt = VO.asString("OBSGANTT");
+		String gantt = VO.asString("GANTT");
+		String oldStatus = oldVO.asString("STATUS");
+		BigDecimal diretor = VO.asBigDecimal("DIRETOR");
+		BigDecimal oldDiretor = oldVO.asBigDecimal("DIRETOR");
+		String categoria = VO.asString("TIPOPROJ");
+		String oldCategoria = oldVO.asString("TIPOPROJ");
+		
+		if("1".equals(gantt)){
+			String texto = "";
+			boolean alterado = false;
+			
+			if(nome!=oldNome) {
+				alterado = true;
+				texto = "Nome alterado";
+			}
+			
+			if(status!=oldStatus) {
+				alterado = true;
+				texto = "Status alterado";
+			}
+			
+			if(diretor!=oldDiretor) {
+				alterado = true;
+				texto = "Diretor alterado";
+			}
+			
+			if(categoria!=oldCategoria) {
+				alterado = true;
+				texto = "Categoria alterado";
+			}
+			
+			if(alterado) {
+				VO.setProperty("GANTT", "3"); //altera para pendente
+				obsGantt =" "+StringUtils.blankWhenEmpty(obsGantt)+TimeUtils.formataDDMMYYYY(TimeUtils.getNow())+" - "+texto+";";
+				VO.setProperty("OBSGANTT", obsGantt);
+			}
+		}
+			
 	}
 
 }
