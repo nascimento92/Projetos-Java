@@ -27,8 +27,8 @@
 	<classpathentry kind="lib" path="/api_custom/Leitor-Planilha/java-lib/jxl.jar"/>
 	<classpathentry kind="lib" path="/api_custom/SankhyaW-extensions.jar"/>
 	<classpathentry kind="lib" path="/api_custom/Novo/javax.servlet-api-4.0.0.jar"/>
-	<classpathentry kind="lib" path="/api_custom/okHttp/okhttp-3.9.0.jar"/>
-	<classpathentry kind="lib" path="/api_custom/okHttp/okio-1.13.0.jar"/>
 	<classpathentry kind="lib" path="/api_custom/orgJson/org.json-chargebee-1.0.jar"/>
+	<classpathentry kind="lib" path="/api_custom/okHttp/java0lib/okhttp-3.9.0.jar"/>
+	<classpathentry kind="lib" path="/api_custom/okHttp/java0lib/okio-1.13.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
