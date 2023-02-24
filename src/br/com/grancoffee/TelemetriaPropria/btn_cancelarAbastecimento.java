@@ -466,7 +466,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				int count = contagem.getInt("QTD");
-				if (count == 0) {
+				if (count == 1) {
 					valida = true;
 				}
 			}
