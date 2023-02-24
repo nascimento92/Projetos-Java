@@ -30,8 +30,8 @@ import br.com.sankhya.ws.ServiceContext;
 public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 	
 	/**
-	 * 27/05/2022 vs 1.4 Inserida no before insert para já marcar a máquina como liberada.
-	 * 03/06/2022 vs 1.5 Inserido o método para as validações gerais
+	 * 27/05/2022 vs 1.4 Inserida no before insert para jï¿½ marcar a mï¿½quina como liberada.
+	 * 03/06/2022 vs 1.5 Inserido o mï¿½todo para as validaï¿½ï¿½es gerais
 	 */
 
 	@Override
@@ -106,16 +106,16 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			if("S".equals(loja)) {
 				
 				if(!verificaGrupoProdutoDaMaquina(patrimonio)) {
-					throw new Error("<br/><b>ATENÇÃO</b><br/>Patrimônio não pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrimônio o campo Loja não está tickado!<br/><br/>");
+					throw new Error("<br/><b>ATENï¿½ï¿½O</b><br/>Patrimï¿½nio nï¿½o pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrimï¿½nio o campo Loja nï¿½o estï¿½ tickado!<br/><br/>");
 				}
 				
 				if(verificaTeclasDuplicadas(patrimonio)) {
-					throw new Error("<br/><b>ATENÇÃO</b><br/>O patrimônio possuí teclas com produtos repetidos, não é possível transforma-lo em uma loja! Ajuste o planograma.<br/><br/>");
+					throw new Error("<br/><b>ATENï¿½ï¿½O</b><br/>O patrimï¿½nio possuï¿½ teclas com produtos repetidos, nï¿½o ï¿½ possï¿½vel transforma-lo em uma loja! Ajuste o planograma.<br/><br/>");
 				}
 			}
 			
 			if(verificaVisitaPendente(patrimonio)) {
-				throw new Error("<br/><b>ATENÇÃO</b><br/>O patrimônio possuí visitas pendentes! não é possível alterar de loja para máquina ou vice e versa.<br/><br/>");
+				throw new Error("<br/><b>ATENï¿½ï¿½O</b><br/>O patrimï¿½nio possuï¿½ visitas pendentes! nï¿½o ï¿½ possï¿½vel alterar de loja para mï¿½quina ou vice e versa.<br/><br/>");
 			}else {
 				
 				//TODO::Excluir teclas 
@@ -127,7 +127,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		validaInventarioObrigatorio(arg0);
 	}
 	
-	//Valiações
+	//Valiaï¿½ï¿½es
 	private boolean verificaTeclasDuplicadas(String patrimonio) {
 		boolean valida = false;
 		
@@ -216,7 +216,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		cal.setTime(data);
 		String dia="";
 		
-		String[] strDays = new String[] { "Domingo", "Segunda", "Terça","Quarta", "Quinta", "Sexta", "Sabado"};
+		String[] strDays = new String[] { "Domingo", "Segunda", "TerÃ§a","Quarta", "Quinta", "Sexta", "Sabado"};
 		dia = strDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
 		
 		return dia;
@@ -230,7 +230,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		}
 		String terca = VO.asString("AD_TERCA");
 		if("S".equals(terca)) {
-			listaDeDias.add("Terça");
+			listaDeDias.add("Terï¿½a");
 		}
 		String quarta = VO.asString("AD_QUARTA");
 		if("S".equals(quarta)) {
@@ -281,8 +281,8 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		return valida;
 	}
 	
-	//ALTERAR MÁQUINA P/LOJA
-	//1° exclui as teclas
+	//ALTERAR Mï¿½QUINA P/LOJA
+	//1ï¿½ exclui as teclas
 	private void excluirTeclas(String codbem) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
@@ -292,7 +292,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		}
 	}
 	
-	//2° Pega a lista de teclas do contrato
+	//2ï¿½ Pega a lista de teclas do contrato
 	private void verificaTeclasContrato(String codbem, String loja) {
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -358,7 +358,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		return valor;
 	}
 	
-	//3° Cadastra as teclas na gc_planograma
+	//3ï¿½ Cadastra as teclas na gc_planograma
 	private void insereTecla(String codbem, String tecla, BigDecimal produto, BigDecimal nivelpar, BigDecimal capacidade, 
 			BigDecimal nivelalerta, BigDecimal vlrpar, BigDecimal vlrfun, BigDecimal estoque) {
 		try {
@@ -413,7 +413,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		
 		if("S".equals(loja)) {
 			if(!verificaGrupoProdutoDaMaquina(patrimonio)) {
-				throw new Error("<br/><b>ATENÇÃO</b><br/>Patrimônio não pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrimônio o campo Loja não está tickado!<br/><br/>");
+				throw new Error("<br/><b>ATENï¿½ï¿½O</b><br/>Patrimï¿½nio nï¿½o pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrimï¿½nio o campo Loja nï¿½o estï¿½ tickado!<br/><br/>");
 			}
 		}
 		
