@@ -33,9 +33,10 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 
 	/**
 	 * @autor Gabriel
-	 * @motivo Bot„o para envio do planograma para a Verti / Uppay
+	 * @motivo BotÔøΩo para envio do planograma para a Verti / Uppay
 	 * 
-	 * 27/07/22 vs 1.1 - Gabriel Nascimento - UnificaÁ„o do bot„o para enviar para a Verti e para a Uppay.
+	 * 27/07/22 vs 1.1 - Gabriel Nascimento - UnificaÔøΩÔøΩo do botÔøΩo para enviar para a Verti e para a Uppay.
+	 * 24/02/23 vs 1.3 - Gabriel Nascimento - Implementada valida√ß√£o para impedir que seja enviado o planograma, caso existam visitas pendentes.
 	 */
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -43,51 +44,82 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 		String patrimonio = (String) linhas[0].getCampo("CODBEM");
 		String body = "";
 		
-		boolean confirmarSimNao = arg0.confirmarSimNao("ATEN«√O", "<br/><br/>O planograma ser· enviado para a Uppay (APP) e para a Verti (Totem) de forma <b>forÁada</b>!"+
-		"<br/><br/>Este planograma ser· efetivado imediatamente ! (No caso da Verti È obrigatÛrio que n„o tenha <b>NENHUM</b> picklist ou planograma pendente, consultar se deu certo na tela \"Planogramas Verti - TP\""
-		+ "<br/><br/>Se neste planograma atual ocorreu uma troca de grade, cuidado, pois se existir produtos fÌsicos no cliente que estavam na grade anterior porÈm, nesta n„o, eles n„o passar„o no totem na hora da bipagem."
-		+ "<br/><br/>Esta aÁ„o n„o pode ser desfeita, deseja continuar ?<br/><br/>", 0);
-		
-		if(confirmarSimNao) {
-			//TODO :: Envio para a Verti
-			DynamicVO instalacaoVO = getGcInstalacao(patrimonio);
-			String micromarketing = instalacaoVO.asString("TOTEM");
+		if(validaSeExistemPedidosPendentes(patrimonio)) { //existem pedidos pendentes
+			arg0.mostraErro("<b>ATEN√á√ÉO</b><br/>Existem visitas pendentes! <br/><br/>n√£o √© poss√≠vel efetivar um novo planograma com uma visita em andamento devido aos riscos de inconsist√™ncias de dados! <br/><br/>cancele a visita ou aguarde a sua finaliza√ß√£o.<br/><br/>" );
+		}else {
+			boolean confirmarSimNao = arg0.confirmarSimNao("ATEN√á√ÉO", "<br/><br/>O planograma ser√° enviado para a Uppay (APP) e para a Verti (Totem) de forma <b>for√ßada</b>!"+
+					"<br/><br/>Este planograma ser√° efetivado imediatamente ! (No caso da Verti √© obrigat√≥rio que n√£o tenha <b>NENHUM</b> picklist ou planograma pendente, consultar se deu certo na tela \"Planogramas Verti - TP\""
+					+ "<br/><br/>Se neste planograma atual ocorreu uma troca de grade, cuidado, pois se existir produtos f√≠sicos no cliente que estavam na grade anterior por√©m, nesta n√£o, eles n√£o passar√£o no totem na hora da bipagem."
+					+ "<br/><br/>Esta a√ß√£o n√£o pode ser desfeita, deseja continuar ?<br/><br/>", 0);
+					
+					if(confirmarSimNao) {
+						//TODO :: Envio para a Verti
+						DynamicVO instalacaoVO = getGcInstalacao(patrimonio);
+						String micromarketing = instalacaoVO.asString("TOTEM");
+						
+						if("S".equals(micromarketing)) {
+							body = montarBody(patrimonio);
+							cadastrarTeclas(patrimonio,body);
+						}else {
+							if(validaSeExistemTeclasDuplicadas(patrimonio)) {
+								arg0.mostraErro("<br/><b>Existem teclas repetidas! n√£o √© poss√≠vel continuar</b><br/>");
+							}else {
+								body = montarBody(patrimonio);
+								cadastrarTeclas(patrimonio,body);
+							}
+						}
+						
+						//TODO :: Atualizar no Sankhya
+						
+						//if("S".equals(micromarketing)) {
+						marcarBotaoPendente(patrimonio);
+						//}
+						
+						arg0.setMensagemRetorno("Planograma Enviado!");
+						
+						//TODO :: Chamar pentaho
+						
+						Timer timer = new Timer(2000, new ActionListener() {
+
+							@Override
+							public void actionPerformed(ActionEvent e) {
+								chamaPentaho();
+							}
+						});
+						timer.setRepeats(false);
+						timer.start();
+
+						//chamaPentaho();
+					}
+		}
+				
+	}
+	
+	private boolean validaSeExistemPedidosPendentes(String patrimonio) {
+		boolean valida = false;
+		try {
 			
-			if("S".equals(micromarketing)) {
-				body = montarBody(patrimonio);
-				cadastrarTeclas(patrimonio,body);
-			}else {
-				if(validaSeExistemTeclasDuplicadas(patrimonio)) {
-					arg0.mostraErro("<br/><b>Existem teclas repetidas! n„o È possÌvel continuar</b><br/>");
-				}else {
-					body = montarBody(patrimonio);
-					cadastrarTeclas(patrimonio,body);
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+					"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS='1'");
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("COUNT(*)");
+				if (count >= 1) {
+					valida = true;
 				}
 			}
 			
-			//TODO :: Atualizar no Sankhya
-			
-			if("S".equals(micromarketing)) {
-				marcarBotaoPendente(patrimonio);
-			}
-			
-			arg0.setMensagemRetorno("Planograma Enviado!");
-			
-			//TODO :: Chamar pentaho
-			
-			Timer timer = new Timer(2000, new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					chamaPentaho();
-				}
-			});
-			timer.setRepeats(false);
-			timer.start();
-
-			//chamaPentaho();
+		} catch (Exception e) {
+			salvarException("[validaSeExistemPedidosPendentes] N√£o foi poss√≠vel validar as teclas do patrimonio: "+patrimonio+"\n"+e.getMessage()+" "+e.getCause());
 		}
 		
+		return valida;
 	}
 	
 	//Envio para a Verti
