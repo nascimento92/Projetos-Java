@@ -20,7 +20,10 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.modelcore.util.MGECoreParameter;
 
 public class btn_forcarPlanograma implements AcaoRotinaJava {
-
+	
+	/**
+	 * 03/03/2023 - Gabriel Nascimento - Alterado o pentaho para apenas atualizar/cadastrar máquinas no MID e UPPAY
+	 */
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
