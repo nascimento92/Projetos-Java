@@ -21,7 +21,12 @@ import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
-
+	
+	/**
+	 * 
+	 * 17/03/2023 - vs 1.7 - Gabriel Nascimento - inserido código para ajuste das promissórias.
+	 */
+	
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
@@ -139,8 +144,12 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 	        			BigDecimal sugestaoTipNeg = BigDecimalUtil.getValueOrZero(tgfcpl.asBigDecimal("SUGTIPNEGSAID"));
 	        			if(sugestaoTipNeg.intValue()>0) {
 	        				VO.setProperty("CODTIPVENDA", sugestaoTipNeg);
+	        			}else {
+	        				VO.setProperty("CODTIPVENDA", new BigDecimal(1263));
 	        			}
-	        		}
+	        		}else {
+        				VO.setProperty("CODTIPVENDA", new BigDecimal(1263));
+        			}
 	        	}
 				
 				//TODO :: Verificar se tem observações adicionais

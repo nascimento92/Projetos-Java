@@ -26,6 +26,8 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 public class flow_rel_inst_evento_FinalizacaoOS implements EventoProgramavelJava {
 	/**
 	 * Evento que fica verificando as Ordens de serviço, quando uma for finalizada e esta foi gerada pelo flow, irá encerrar a tarefa do flow;
+	 * 
+	 * 17/03/2023 - vs ? - Gabriel Nascimento - Desabilitado ação para salvar no log.
 	 */
 	private String campoNome = "SISTEMA_NROS";
 	private BigDecimal idProcesso = null;
@@ -94,7 +96,7 @@ public class flow_rel_inst_evento_FinalizacaoOS implements EventoProgramavelJava
 			
 			BigDecimal usuFechamento = VO.asBigDecimal("CODUSUFECH");
 
-			insereOhEncerramentoNoLog(numos,usuFechamento);
+			//insereOhEncerramentoNoLog(numos,usuFechamento);
 		}
 	}
 	
