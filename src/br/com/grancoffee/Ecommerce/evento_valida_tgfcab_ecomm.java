@@ -35,16 +35,7 @@ public class evento_valida_tgfcab_ecomm implements EventoProgramavelJava {
 
 	@Override
 	public void afterInsert(PersistenceEvent arg0) throws Exception {
-		DynamicVO VO = (DynamicVO) arg0.getVo();
-		BigDecimal usuarioInclusao = VO.asBigDecimal("CODUSUINC");
-		
-		if(usuarioInclusao.intValue() == 3538) {
-			BigDecimal tipoPagamento = VO.asBigDecimal("CODTIPVENDA");
-			if(tipoPagamento.intValue() == 1333) {
 				
-			}
-		}
-		
 	}
 
 	@Override
