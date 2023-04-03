@@ -2,6 +2,8 @@ package xTestes;
 
 import java.math.BigDecimal;
 
+import javax.swing.JOptionPane;
+
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.event.PersistenceEvent;
 import br.com.sankhya.jape.event.TransactionContext;
@@ -41,7 +43,8 @@ public class eventoTESTE implements EventoProgramavelJava {
 	}
 
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
-		System.out.println("=========> USUARIO: "+getUsuLogado());		
+		throw new Error("mensahem");
+		//JOptionPane.showMessageDialog(null, " O Usuário é: " + getUsuLogado());
 	}
 	
 	private BigDecimal getUsuLogado() {
