@@ -4,8 +4,12 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.sankhya.util.StringUtils;
 import com.sankhya.util.TimeUtils;
 
 public class Main {
@@ -32,6 +36,31 @@ public class Main {
 		int year = TimeUtils.getYear(TimeUtils.getNow());
 
 		System.out.println(TimeUtils.buildData(day, month-1, year)+" - "+month);
+		
+		ArrayList<String> emails = new ArrayList<String>();  
+        emails.add("javaTpoint@@domain.co.in@.com");  
+        emails.add("javaTpoint@domain.com");  
+        emails.add("javaTpoint.name@domain.com");  
+        emails.add("javaTpoint#@domain.co.in");  
+        emails.add("javaTpoint@domain.com");  
+        emails.add("javaTpoint@domaincom");  
+        //Add invalid emails in list  
+        emails.add("@yahoo.com");  
+        emails.add("javaTpoint#domain.com"); 
+        //Regular Expression   
+        //String regex = "^(.+)@(.+)$";
+        String regex = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$";  
+        Pattern pattern = Pattern.compile(regex);
+        for(String email : emails){  
+            //Create instance of matcher   
+            Matcher matcher = pattern.matcher(email);  
+            System.out.println(email +" : "+ matcher.matches()+"\n");  
+        } 
+        
+        String cpf="419.356.648-08";
+        String formataCgcCpf = StringUtils.removePontuacao(cpf).replace("-", "").replace("/", "");
+        
+        System.out.println(formataCgcCpf);
 	}
 	
 	/*

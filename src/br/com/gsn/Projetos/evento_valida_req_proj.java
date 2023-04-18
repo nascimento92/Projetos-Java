@@ -49,9 +49,18 @@ public class evento_valida_req_proj implements EventoProgramavelJava{
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		
-		VO.setProperty("CRONOGRAMA", "1");
-		VO.setProperty("STATUS", "1");
-		start(arg0);
+		Object cronograma = VO.getProperty("CRONOGRAMA");
+		Object status = VO.getProperty("STATUS");
+		
+		if(cronograma==null) {
+			VO.setProperty("CRONOGRAMA", "1");
+		}
+		
+		if(status==null) {
+			VO.setProperty("STATUS", "1");
+		}
+
+		//start(arg0);
 	}
 
 	@Override

@@ -17,7 +17,9 @@ import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 
 public class evento_valida_dados_ecomm implements EventoProgramavelJava{
-
+	/**
+	 * 13/04/2023 - vs 2.0 - Gabriel Nascimento - Alteração do recebimento do campo CODVOL pelo campo AD_UNIDADELV o e-comm está enviando assim.
+	 */
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
