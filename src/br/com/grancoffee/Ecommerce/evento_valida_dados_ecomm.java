@@ -65,6 +65,7 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 		DynamicVO VO = (DynamicVO)arg0.getVo();
 	    BigDecimal nunota = VO.asBigDecimal("NUNOTA");
 	    BigDecimal produto = VO.asBigDecimal("CODPROD");
+	    //14-04-23 a VTEX não envia o CODVOL nós sempre pegamos o do cad. do produto
 	    String codvol = VO.asString("CODVOL");
 	    BigDecimal quantidadeOriginal = VO.asBigDecimal("QTDNEG");
 	    BigDecimal valorOriginal = VO.asBigDecimal("VLRUNIT");

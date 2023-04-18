@@ -1,6 +1,9 @@
 package br.com.ManutencaoPreventiva;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.PersistenceException;
@@ -13,7 +16,11 @@ import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.ws.ServiceContext;
 
 public class validaUsuarioQueAlteraPrazo implements EventoProgramavelJava {
-
+	
+	/**
+	 * 14/04/2023 - vs 1.1 - Gabriel Nascimento - Inserida função para calcular o prazo das máquinas recem inseridas.
+	 */
+	
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
 		// TODO Auto-generated method stub
 		
@@ -40,13 +47,21 @@ public class validaUsuarioQueAlteraPrazo implements EventoProgramavelJava {
 	}
 
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-		
+		calculaPrazoInicial(arg0);		
 	}
 
 	public void beforeUpdate(PersistenceEvent arg0) throws Exception {
 		start(arg0);
 		
+	}
+	
+	private void calculaPrazoInicial(PersistenceEvent arg0) {
+		DynamicVO VO = (DynamicVO) arg0.getVo();
+		BigDecimal prazo = VO.asBigDecimal("PRAZO");
+		if(prazo!=null) {
+			Timestamp dataHoje = TimeUtils.getNow();
+			VO.setProperty("DTPROXMANUTENCAO", TimeUtils.dataAddDay(dataHoje, prazo.intValue()));
+		}
 	}
 	
 	private void start(PersistenceEvent arg0) throws Exception{

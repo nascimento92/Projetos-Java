@@ -14,6 +14,10 @@ import br.com.sankhya.jape.vo.DynamicVO;
 public class evento_valida_req_proj implements EventoProgramavelJava{
 	
 	//TODO::Quando selecionar o status de cancelado, preencher o cronograma cancelado e preencher a hora da finalização
+	
+	/**
+	 * 17/04/2023 - vs 1.3 - Gabriel Nascimento - Inserido no before insert a implementação para preencher o rank com 999.
+	 */
 
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
@@ -49,18 +53,10 @@ public class evento_valida_req_proj implements EventoProgramavelJava{
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		
-		Object cronograma = VO.getProperty("CRONOGRAMA");
-		Object status = VO.getProperty("STATUS");
-		
-		if(cronograma==null) {
-			VO.setProperty("CRONOGRAMA", "1");
-		}
-		
-		if(status==null) {
-			VO.setProperty("STATUS", "1");
-		}
-
-		//start(arg0);
+		VO.setProperty("CRONOGRAMA", "1");
+		VO.setProperty("STATUS", "1");
+		VO.setProperty("RANK", new BigDecimal(999));
+		start(arg0);
 	}
 
 	@Override

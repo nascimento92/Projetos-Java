@@ -57,6 +57,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 22/12/2022 vs 3.0 - Gabriel Nascimento - Ajuste NPE os métodos apenas secos, apenas congelados e tabaco estavam recebendo valores Nulos no campo VLRPAR inserido o método BigDecimalUtil.getvalueorzero
 	 * 05/01/2023 vs 3.1 - Gabriel Nascimento - Implementado método validaSeExistemAjustesPendentesRealizadosPeloSistema para verificar se o sistema ainda não ajustou a máquinas após ajuste da controladoria.
 	 * 18/01/2023 vs 3.2 - Gabriel Nascimento - Implementado o método validaSeExistemLocaisInativos para verificar se os locais das máquinas estão ativos, caso não, o sistema não deixa criar o pedido de abastecimento.
+	 * 17/04/2023 vs 3.3 - Gabriel Nascimento - Inserido no método identificaItens a verificação dos estoques negativos e zerar nestes casos.
 	 */
 	
 	String retornoNegativo = "";
@@ -2197,6 +2198,7 @@ FROM(
 			//String liberada = getGCINSTALACAO(patrimonio).asString("AD_LIBERADA");
 			
 			BigDecimal estoque = null;
+			BigDecimal estoqueNovo = null;
 			
 			//se a máquina estiver liberada, pegar o estoque a partir da API
 			// 26/04 - desabilitado.
@@ -2209,8 +2211,16 @@ FROM(
 			}
 			*/
 			estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
+			
+			// vs 3.3 - 17/04/23
+			if(estoque.intValue() < 0) {
+				estoqueNovo = new BigDecimal(0);
+			}else {
+				estoqueNovo = estoque;
+			}
+			// fim - 17/04/23
 					
-			BigDecimal falta = nivelpar.subtract(estoque);
+			BigDecimal falta = nivelpar.subtract(estoqueNovo);
 			BigDecimal valor = null;
 			BigDecimal valorSemICMS = obtemValorItemSemICMS(produto,empresaAbast);
 			
@@ -2260,7 +2270,7 @@ FROM(
 							}
 						}else { //n atingiu a qtd minima
 							valorTotal = valorParaCalculo.multiply(valor);
-							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.", nivelpar, estoque);
+							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.", nivelpar, estoqueNovo);
 						}
 						
 					}else { //não possui qtd mínima, pode inserir direto
@@ -2272,46 +2282,10 @@ FROM(
 					
 			}else {
 				//cortado zerado na filial
-				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoque);
+				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoqueNovo);
 			}
 			// vs 2.9 - /09/10/22 -- fim
-			
-			/* - validação até versão 2.8 neste caso o item só vai para a nota se na empresa tiver estoque >=
-			 * 
-			if(falta.doubleValue() <= estoqueNaEmpresa.doubleValue() && falta.doubleValue()>0) {
-				
-				if(qtdMinima.doubleValue()>1) { //possui qtd minima
-					
-					if(falta.doubleValue()>=qtdMinima.intValue()) {
-						BigDecimal qtdVezes = falta.divide(qtdMinima, 0, RoundingMode.HALF_EVEN);
-						BigDecimal qtdParaNota = qtdVezes.multiply(qtdMinima);
-						
-						if(qtdParaNota.doubleValue()<=nivelpar.doubleValue()) {
-							sequencia++;
-							insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNota, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
-						}else { //quantidade para nota, a cima do nível par.
-							//cortado
-							insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Falta "+falta+", quantidade para ser abastecida "+qtdParaNota+", nível par "+nivelpar+", quantidade para a nota superior ao nível par.", nivelpar, estoque);
-						}
-								
-					}else { //n atingiu a qtd minima
-						//cortado
-						insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Produto não atingiu a quantidade mínima de "+qtdMinima+" itens.", nivelpar, estoque);
-					}
-					
-				}else { //não possui qtd mínima, pode inserir direto
-					sequencia++;
-					insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
-				}
-				
-			}else {
-				//cortado
-				insereItemEmRuptura(nunota, empresaAbast, localAbast, produto, volume, falta, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, patrimonio, "Ruptura na filial", nivelpar, estoque);
-			}
-			*/
-			//TODO :: 15/07/22 PENDENTE ! Criar um log que registre todas as informações da visita, para que possamos avaliar se as informações do pedido não foram alteradas.
-			
-			
+
 			}
 		} catch (Exception e) {
 			salvarException(
