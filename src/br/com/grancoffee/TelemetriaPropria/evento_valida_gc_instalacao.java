@@ -30,8 +30,9 @@ import br.com.sankhya.ws.ServiceContext;
 public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 	
 	/**
-	 * 27/05/2022 vs 1.4 Inserida no before insert para j� marcar a m�quina como liberada.
-	 * 03/06/2022 vs 1.5 Inserido o m�todo para as valida��es gerais
+	 * 27/05/2022 vs 1.4 - Gabriel Nascimento - Inserida no before insert para marcar a maquina como liberada.
+	 * 03/06/2022 vs 1.5 - Gabriel Nascimento - Inserido o metodo para as validacoes gerais
+	 * 24/04/2023 vs 1.7 - Gabriel Nascimento - Inserido o metodo para registrar exception em caso de erro.
 	 */
 
 	@Override
@@ -106,16 +107,16 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			if("S".equals(loja)) {
 				
 				if(!verificaGrupoProdutoDaMaquina(patrimonio)) {
-					throw new Error("<br/><b>ATEN��O</b><br/>Patrim�nio n�o pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrim�nio o campo Loja n�o est� tickado!<br/><br/>");
+					throw new Error("<br/><b>ATENCAO</b><br/>Patrimonio nao pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrimonio o campo Loja nao esta tickado!<br/><br/>");
 				}
 				
 				if(verificaTeclasDuplicadas(patrimonio)) {
-					throw new Error("<br/><b>ATEN��O</b><br/>O patrim�nio possu� teclas com produtos repetidos, n�o � poss�vel transforma-lo em uma loja! Ajuste o planograma.<br/><br/>");
+					throw new Error("<br/><b>ATENCAO</b><br/>O Patrimonio possui teclas com produtos repetidos, nao e possivel transforma-lo em uma loja! Ajuste o planograma.<br/><br/>");
 				}
 			}
 			
 			if(verificaVisitaPendente(patrimonio)) {
-				throw new Error("<br/><b>ATEN��O</b><br/>O patrim�nio possu� visitas pendentes! n�o � poss�vel alterar de loja para m�quina ou vice e versa.<br/><br/>");
+				throw new Error("<br/><b>ATENCAO</b><br/>O Patrimonio possui visitas pendentes! nao e possivel alterar de loja para maquina ou vice e versa.<br/><br/>");
 			}else {
 				
 				//TODO::Excluir teclas 
@@ -230,7 +231,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		}
 		String terca = VO.asString("AD_TERCA");
 		if("S".equals(terca)) {
-			listaDeDias.add("Ter�a");
+			listaDeDias.add("Terça");
 		}
 		String quarta = VO.asString("AD_QUARTA");
 		if("S".equals(quarta)) {
@@ -288,7 +289,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("GCPlanograma", "this.CODBEM=?",new Object[] {codbem}));
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[verificaTeclasContrato] nao foi possivel excluir teclas do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
@@ -326,7 +327,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[verificaTeclasContrato] nao foi verificar teclas do contrato do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
@@ -352,7 +353,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 				
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[getEstoque] nao foi possivel obter estoque do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 		
 		return valor;
@@ -380,7 +381,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			
 			dwfFacade.createEntity("GCPlanograma", (EntityVO) VO);
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[insereTecla] nao foi possivel inserir tecla do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
@@ -413,7 +414,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		
 		if("S".equals(loja)) {
 			if(!verificaGrupoProdutoDaMaquina(patrimonio)) {
-				throw new Error("<br/><b>ATEN��O</b><br/>Patrim�nio n�o pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrim�nio o campo Loja n�o est� tickado!<br/><br/>");
+				throw new Error("<br/><b>ATENCAO</b><br/>Patrimonio nao pode ser marcado como <b>Micro Market</b>.<br/><br/><b>motivo:</b> No cadastro do grupo de produtos deste patrim�nio o campo Loja nao esta tickado!<br/><br/>");
 			}
 		}
 		
@@ -432,7 +433,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			
 			dwfFacade.createEntity("GCTelemInstalacao", (EntityVO) VO);
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[cadastraTelemetrias] nao foi possivel cadastrar a telemetria do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
@@ -455,7 +456,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 				}
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[verificaGrupoProdutoDaMaquina] nao foi possivel verificar o grupo de produtos do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 		
 		return valida;
@@ -478,8 +479,29 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			
 			dwfFacade.createEntity("AD_INTTP", (EntityVO) VO);
 		} catch (Exception e) {
-			// TODO: handle exception
+			salvarException("[registraFila] nao foi possivel registrar a fila do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
+	
+	private void salvarException(String mensagem) {
+		try {
+			
+			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
+			DynamicVO VO = (DynamicVO) NPVO;
+			
+			VO.setProperty("OBJETO", "evento_valida_gc_instalacao");
+			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
+			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("ERRO", mensagem);
+			
+			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+			
+		} catch (Exception e) {
+			//aqui n�o tem jeito rs tem que mostrar no log
+			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
+		}
+}
 	
 }
