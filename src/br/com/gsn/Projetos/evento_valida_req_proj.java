@@ -17,6 +17,7 @@ public class evento_valida_req_proj implements EventoProgramavelJava{
 	
 	/**
 	 * 17/04/2023 - vs 1.3 - Gabriel Nascimento - Inserido no before insert a implementação para preencher o rank com 999.
+	 * 27/04/2023 - vs 1.4 - Gabriel Nascimento - Alterado para o before insert não realizar as validações.
 	 */
 
 	@Override
@@ -56,7 +57,7 @@ public class evento_valida_req_proj implements EventoProgramavelJava{
 		VO.setProperty("CRONOGRAMA", "1");
 		VO.setProperty("STATUS", "1");
 		VO.setProperty("RANK", new BigDecimal(999));
-		start(arg0);
+		//start(arg0);
 	}
 
 	@Override
