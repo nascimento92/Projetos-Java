@@ -58,6 +58,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 05/01/2023 vs 3.1 - Gabriel Nascimento - Implementado método validaSeExistemAjustesPendentesRealizadosPeloSistema para verificar se o sistema ainda não ajustou a máquinas após ajuste da controladoria.
 	 * 18/01/2023 vs 3.2 - Gabriel Nascimento - Implementado o método validaSeExistemLocaisInativos para verificar se os locais das máquinas estão ativos, caso não, o sistema não deixa criar o pedido de abastecimento.
 	 * 17/04/2023 vs 3.3 - Gabriel Nascimento - Inserido no método identificaItens a verificação dos estoques negativos e zerar nestes casos.
+	 * 24/05/2023 vs 3.4 - Gabriel Nascimento - Ajuste para o pedido ser gerado pegando o usuário logado como o usuário de inclusão.
 	 */
 	
 	String retornoNegativo = "";
@@ -1875,8 +1876,15 @@ FROM(
 			  BigDecimal codlocal = null;
 			  BigDecimal numcontrato = contrato;
 			  String descricao = "CODBEM : "+patrimonio;
-			  BigDecimal codusuinc = new BigDecimal(3082);
-			  				 
+			  
+			  
+			  BigDecimal codusuinc = null;
+			  BigDecimal usuLogado = getUsuLogado();
+			  if(usuLogado!=null) {
+				  codusuinc =  usuLogado; 
+			  }else {
+				  codusuinc = new BigDecimal(3082);
+			  } 				 
 			  
 			  //descobre o código local da nota
 			  BigDecimal idPlanta = (BigDecimal) ad_enderecamento.getProperty("ID");

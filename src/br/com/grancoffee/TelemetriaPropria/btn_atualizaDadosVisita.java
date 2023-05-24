@@ -25,6 +25,7 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_atualizaDadosVisita implements AcaoRotinaJava {
+	
 	int c = 0;
 	int c2 = 0;
 	
@@ -48,7 +49,7 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 		if (verificaSeHouveContagem(numos)) {
 			c++;
 			linhas.setCampo("CONTAGEM", "S");
-			verificaTeclas(numos,id,patrimonio);
+			verificaTeclas(numos,id,patrimonio, arg0);
 		} else {
 			linhas.setCampo("CONTAGEM", "N");
 			verificaTeclasNaoContadas(numos, id, patrimonio);
@@ -101,7 +102,7 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 		return valida;
 	}
 	
-	private void verificaTeclas(BigDecimal numos, BigDecimal id, String patrimonio) {
+	private void verificaTeclas(BigDecimal numos, BigDecimal id, String patrimonio, ContextoAcao arg0) {
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("AD_ITENSRETABAST",
@@ -122,7 +123,7 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 				}else {
 					qtdContagem = new BigDecimal(0);
 				}
-				
+			
 				if(!"S".equals(ajustado)) {
 					BigDecimal saldoAntes = BigDecimalUtil.getValueOrZero(VO.asBigDecimal("SALDOANTERIOR"));
 					BigDecimal qtdpedido = BigDecimalUtil.getValueOrZero(VO.asBigDecimal("QTDPEDIDO"));
