@@ -9,7 +9,12 @@ import com.sankhya.util.TimeUtils;
 public class testando {
 	public static void main(String[] args) {
 		
-		Timestamp a = TimeUtils.getNow();
+		String planta = "0000031094001";
+		int numcontrato = Integer.parseInt(planta.substring(1, 10));
+		int idPLanta = Integer.parseInt(planta.substring(10, planta.length()));
+		System.out.println(numcontrato + "\n" + idPLanta);
+		
+		/*Timestamp a = TimeUtils.getNow();
 		
 		LocalDateTime now = a.toLocalDateTime();
 		LocalDateTime dt2 = now.plusHours(1).plusMinutes(30);
@@ -29,6 +34,7 @@ public class testando {
 		int ano = 2022;
 		
 		System.out.println(TimeUtils.buildData(dia, mes, ano));
+		*/
 	}
 	
 	private double diff (Timestamp dtinicial, Timestamp dtfinal) {
