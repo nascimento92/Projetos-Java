@@ -59,6 +59,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 18/01/2023 vs 3.2 - Gabriel Nascimento - Implementado o método validaSeExistemLocaisInativos para verificar se os locais das máquinas estão ativos, caso não, o sistema não deixa criar o pedido de abastecimento.
 	 * 17/04/2023 vs 3.3 - Gabriel Nascimento - Inserido no método identificaItens a verificação dos estoques negativos e zerar nestes casos.
 	 * 24/05/2023 vs 3.4 - Gabriel Nascimento - Ajuste para o pedido ser gerado pegando o usuário logado como o usuário de inclusão.
+	 * 29/05/2023 vs 3.5 - Gabriel Nascimento - Ajustado comparação de datas de atendimento, se a data de atendimento for igual a hoje, estava jogando um dia para frente.
 	 */
 	
 	String retornoNegativo = "";
@@ -88,8 +89,16 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		Timestamp dtvisita = (Timestamp) arg0.getParam("DTVISIT");
 		
 		if (dtvisita != null) {
-			if (dtvisita.before(TimeUtils.getNow())) {
+			
+			Timestamp dataVisita = ajustaDataRetirandoHoras(dtvisita);
+			Timestamp dataAtual = ajustaDataRetirandoHoras(TimeUtils.getNow());
+			
+			int comparacaoDeData = dataVisita.compareTo(dataAtual);
+			
+			if(comparacaoDeData < 0) { //datas Visita Inferior que agora
 				dtvisita = addDias(TimeUtils.getNow(), new BigDecimal(1));
+			}else if(comparacaoDeData == 0) { //data Visita Superior que agora
+				dtvisita = dataAtual;
 			}
 
 			if (dtAbastecimentoX != null) {
