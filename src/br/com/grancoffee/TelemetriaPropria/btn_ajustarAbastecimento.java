@@ -27,9 +27,10 @@ import br.com.sankhya.ws.ServiceContext;
 public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 
 	/**
-	 * 21/09/21 vs 1.6 inserido o método salvarNoHistorico e chamaPentaho.
-	 * 11/03/22 vs 1.7 inserido método validaSeExisteAjusteMaisRecente para impedir que um ajuste antigo seja realizado.
-	 * 31/10/22 vs 1.9 Ajuste do método para verificar se existem ajustes mais atuais
+	 * 21/09/21 vs 1.6 - Gabriel Nascimento - inserido o método salvarNoHistorico e chamaPentaho.
+	 * 11/03/22 vs 1.7 - Gabriel Nascimento - inserido método validaSeExisteAjusteMaisRecente para impedir que um ajuste antigo seja realizado.
+	 * 31/10/22 vs 1.9 - Gabriel Nascimento - Ajuste do método para verificar se existem ajustes mais atuais
+	 * 22/06/23 vs 2.0 - Gabriel Nascimento - Inserida funcionalidade para marcar a data do último inventário na tela gc_instalacao.
 	 */
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -65,7 +66,27 @@ public class btn_ajustarAbastecimento implements AcaoRotinaJava {
 				salvaResonsavelPeloAjuste(idObjeto, hora);
 				salvarNoHistorico(idabast);
 				
+				//inicio 22-06-23 vs 2.0
+				if("S".equals(getRETABAST(idabast).asString("CONTAGEM"))) {
+					Timestamp horaAbast = getRETABAST(idabast).asTimestamp("DTABAST");
+					String patrimonio = getRETABAST(idabast).asString("CODBEM");
+					if(horaAbast!=null && patrimonio!=null) {
+						salvaHoraAbastecimento(patrimonio, horaAbast);
+					}
+				}
+				//fim 22-06-23 vs 2.0
+				
 			}
+		}
+	}
+	
+	private void salvaHoraAbastecimento(String patrimonio, Timestamp horaabast) {
+		try {
+			JapeWrapper produtoDAO = JapeFactory.dao("GCInstalacao"); 
+			DynamicVO produtoVO = produtoDAO.findOne("CODBEM=?",new Object[] { patrimonio });
+			produtoDAO.prepareToUpdate(produtoVO).set("AD_DTULTCONTAGEM", horaabast).update();
+		} catch (Exception e) {
+			salvarException("[salvaHoraAbastecimento] Não foi cadastrar a hora na tela instalações pt: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -196,7 +217,7 @@ SELECT SUM(QTD) AS QTD FROM (
 				BigDecimal valor = saldoApos.subtract(saldoEsperado);
 				
 				if(codbem==null) {
-					codbem = getCodbem(idObjeto);
+					codbem = getRETABAST(idObjeto).asString("CODBEM");
 				}
 				
 				inserirSolicitacaoDeAjuste(codbem, tecla, produto, capacidade, nivelpar, saldoEsperado, valor,
@@ -287,11 +308,10 @@ SELECT SUM(QTD) AS QTD FROM (
 		}
 	}
 	
-	private String getCodbem(Object idabast) throws Exception {
+	private DynamicVO getRETABAST(Object idabast) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("AD_RETABAST");
 		DynamicVO VO = DAO.findOne("ID=?", new Object[] { idabast });
-		String codbem = VO.asString("CODBEM");
-		return codbem;
+		return VO;
 	}
 	
 	private void salvarException(String mensagem) {
