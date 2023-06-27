@@ -15,6 +15,8 @@ import br.com.sankhya.jape.dao.JdbcWrapper;
 import br.com.sankhya.jape.sql.NativeSql;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
 import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.modelcore.util.SPBeanUtils;
@@ -90,7 +92,14 @@ public class acao_ajustaHoraInventario implements ScheduledAction{
 	}
 	
 	private void atualizaDados(String codbem, Timestamp dtUltimaContagem) {
-		
+		try {
+			JapeWrapper produtoDAO = JapeFactory.dao("GCInstalacao"); 
+			DynamicVO produtoVO = produtoDAO.findOne("CODBEM=?",new Object[] { codbem });
+			produtoDAO.prepareToUpdate(produtoVO).set("AD_DTULTCONTAGEM", dtUltimaContagem).update();
+		} catch (Exception e) {
+			salvarException("[atualizaDados] Nao foi possivel atualizar a hora para o pt: "+codbem
+					+ e.getMessage() + "\n" + e.getCause());
+		}
 	}
 	
 	private Timestamp getDtUltimaContagem(String codbem) {
