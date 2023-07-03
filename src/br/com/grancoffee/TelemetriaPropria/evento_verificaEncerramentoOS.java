@@ -44,7 +44,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 	
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		
 
 	}
 
@@ -60,19 +60,19 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 
 	@Override
 	public void beforeCommit(TransactionContext arg0) throws Exception {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public void beforeInsert(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
+	
 
 	}
 
@@ -123,14 +123,14 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 		DynamicVO gc_SOLICITABAST = getGC_SOLICITABAST(numos);
 		String patrimonio = gc_SOLICITABAST.asString("CODBEM");
 		
-		// TODO :: Atualiza Saldo de estoque.
+		//Atualiza Saldo de estoque.
 		AtualizaSaldoDeEstoque(patrimonio);
 	}
 	
 	private void atualizaCamposFinal(BigDecimal numos) throws Exception {
 		DynamicVO gc_SOLICITABAST = getGC_SOLICITABAST(numos);
 		atualizaCampoParaFinalizacaoDaVisitaNoPentaho(gc_SOLICITABAST.asString("CODBEM"), numos);
-		//TODO :: implementar as rotinas do pentaho via API	
+		//implementar as rotinas do pentaho via API	
 	}
 	
 	private void realizaValidacoes(BigDecimal numos) {
@@ -143,15 +143,8 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 				String patrimonio = gc_SOLICITABAST.asString("CODBEM");
 				BigDecimal idretorno = gc_SOLICITABAST.asBigDecimal("IDABASTECIMENTO");
 				
-				// TODO :: verificar se houve retorno.
+				//verificar se houve retorno.
 				boolean houveretorno = validaSeHouveRetornos(numos, "QTDRET");
-				// TODO :: verificar se houve contagem.
-				boolean houvecontagem = validaSeHouveRetornos(numos, "QTDCONTAGEM");
-				// TODO :: verificar se houve abastecimento.
-				boolean houveabastecimento = validaSeHouveRetornos(numos, "QTDABAST");
-				
-				identificaPentaho();
-				//TODO :: Pegar o saldo do estoque via API
 				
 				if(houveretorno) {
 					atualizaDadosRetorno(idretorno, "S");
@@ -159,30 +152,35 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 					atualizaDadosRetorno(idretorno, "N");
 				}
 				
+				//verificar se houve contagem.
+				boolean houvecontagem = validaSeHouveRetornos(numos, "QTDCONTAGEM");
+				
 				if(houvecontagem) {
 					atualizaOutrosDadosContagem(patrimonio, idretorno, TimeUtils.getNow(), "S");	
 				}else {
 					atualizaOutrosDadosContagem(patrimonio, idretorno, null, "N");	
 				}
 				
-				//calculaDadosDaContagem(numos, idretorno);
-				//verificaDadosSemContagem(numos, idretorno);
-				
-				validaItensRetAbast(idretorno, patrimonio,numos,houvecontagem);
-				validaItensDaAppContagem(numos, idretorno, patrimonio, houvecontagem);
-				
-				//TODO :: valida itens AD_TROCADEGRADE onde o status = Retirar
-				validaItensTrocaDeGrade(numos,idretorno,patrimonio,houvecontagem);
-				
+				//verificar se houve abastecimento.
+				boolean houveabastecimento = validaSeHouveRetornos(numos, "QTDABAST");
 				
 				if(houveabastecimento) {
 					atualizaDadosAbastecimento(patrimonio);
-					//TODO :: planograma pendente para atual
+					//planograma pendente para atual
 					validaDadosAbastecimento(numos, gc_SOLICITABAST);
 				}else {
 					atualizaNivelPar(numos, gc_SOLICITABAST);
 				}
 				
+				//chama o pentaho que atualiza o saldo de estoque das máquinas
+				identificaPentaho();
+				
+				validaItensRetAbast(idretorno, patrimonio,numos,houvecontagem);
+				validaItensDaAppContagem(numos, idretorno, patrimonio, houvecontagem);
+				
+				//valida itens AD_TROCADEGRADE onde o status = Retirar
+				validaItensTrocaDeGrade(numos,idretorno,patrimonio,houvecontagem);
+					
 			}
 			
 		} catch (Exception e) {
@@ -221,12 +219,12 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			DynamicVO linhaDaAdTrocaDeGra = getLinhaDaAdTrocaDeGra(patrimonio,numos,produto,tecla);
 			
 			if(linhaDaContagem!=null) {
-				//TODO :: preenche dados com os valores da tela
+				//preenche dados com os valores da tela
 				qtdpedido = linhaDaContagem.asBigDecimal("QTDABAST");
 				contagem = linhaDaContagem.asBigDecimal("QTDCONTAGEM");
 			}else {
 				
-				//TODO :: preenche os dados vazios
+				//preenche os dados vazios
 				if(linhaDaAdTrocaDeGra!=null) {
 					qtdpedido = linhaDaAdTrocaDeGra.asBigDecimal("QTDABAST");
 					contagem = linhaDaAdTrocaDeGra.asBigDecimal("QTDCONTAGEM");
@@ -434,7 +432,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			item = VO;
 			
 		} catch (Exception e) {
-			// TODO: handle exception
+			
 		}
 		
 		return item;
@@ -450,7 +448,7 @@ public class evento_verificaEncerramentoOS implements EventoProgramavelJava {
 			item = VO;
 			
 		} catch (Exception e) {
-			// TODO: handle exception
+			
 		}
 		
 		return item;
