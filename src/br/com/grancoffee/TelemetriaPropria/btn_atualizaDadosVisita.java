@@ -118,6 +118,7 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 				String ajustado = VO.asString("AJUSTADO");
 				
 				DynamicVO contagem = getContagem(numos,tecla,produto);
+				
 				if(contagem!=null) {
 					qtdContagem = BigDecimalUtil.getValueOrZero(contagem.asBigDecimal("QTDCONTAGEM"));
 				}else {
@@ -136,6 +137,7 @@ public class btn_atualizaDadosVisita implements AcaoRotinaJava {
 					BigDecimal retornoParaCalculo = retorno.subtract(retornosAhSeremIgnorados);
 					
 					BigDecimal conteretorno = qtdContagem.add(retornoParaCalculo);
+					
 					diferenca = conteretorno.subtract(saldoesperado);
 					saldoapos = qtdContagem;
 														
