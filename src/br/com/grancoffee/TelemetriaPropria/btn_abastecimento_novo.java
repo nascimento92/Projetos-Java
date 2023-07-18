@@ -1209,15 +1209,6 @@ SELECT COUNT(*) AS QTD FROM LISTA_LOCAIS WHERE TABACO='N'
 		return qtdMinima;
 	}
 	
-	private BigDecimal validaEstoqueDoItem(BigDecimal est) {
-		BigDecimal estoque = null;
-		if(est!=null) {
-			estoque = est;
-		}else {
-			estoque = new BigDecimal(0);
-		}
-		return estoque;
-	}
 	
 	private String validaSeOhItemEhDeCongelados(BigDecimal produto) throws Exception {
 		String congelado = "";
@@ -2231,7 +2222,7 @@ FROM(
 				estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
 			}
 			*/
-			estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
+			estoque = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("ESTOQUE"));
 			
 			// vs 3.3 - 17/04/23
 			if(estoque.intValue() < 0) {
@@ -2489,12 +2480,12 @@ FROM(
 			
 			String tecla = (String) DynamicVO.getProperty("TECLA");
 			BigDecimal produto = (BigDecimal) DynamicVO.getProperty("CODPROD");
-			BigDecimal capacidade = (BigDecimal) DynamicVO.getProperty("CAPACIDADE");
-			BigDecimal nivelpar = (BigDecimal) DynamicVO.getProperty("NIVELPAR");
-			BigDecimal nivelalerta = (BigDecimal) DynamicVO.getProperty("NIVELALERTA");
-			BigDecimal estoque = validaEstoqueDoItem(DynamicVO.asBigDecimal("ESTOQUE"));
-			BigDecimal vlrpar = (BigDecimal) DynamicVO.getProperty("VLRPAR");
-			BigDecimal vlrfun = (BigDecimal) DynamicVO.getProperty("VLRFUN");
+			BigDecimal capacidade = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("CAPACIDADE"));
+			BigDecimal nivelpar = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("NIVELPAR"));
+			BigDecimal nivelalerta = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("NIVELALERTA"));
+			BigDecimal estoque = BigDecimalUtil.getValueOrZero(DynamicVO.asBigDecimal("ESTOQUE"));
+			BigDecimal vlrpar = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("VLRPAR"));
+			BigDecimal vlrfun = BigDecimalUtil.getValueOrZero((BigDecimal) DynamicVO.getProperty("VLRFUN"));
 			
 			salvaPlanogramaPendente(patrimonio,tecla,produto,numos,nunota,idSolicitacao,idRetorno,capacidade,nivelpar,nivelalerta,estoque,vlrpar,vlrfun);
 			

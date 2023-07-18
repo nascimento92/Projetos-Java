@@ -23,7 +23,8 @@ public class eventos_validacoesRetornos implements EventoProgramavelJava {
 	/**
 	 * Objeto para validações da tela Retornos AD_RETABAST
 	 * 
-	 * 18/01/2022 - vs 1.0 - Gabriel Nascimento - Criação do Objeto
+	 * 18-01-2022 - vs 1.0 - Gabriel Nascimento - Criação do Objeto
+	 * 12-07-2023 - vs 1.1 - Gabriel Nascimento - Implementação para impedir que registros sejam deletados.
 	 */
 	
 	@Override
@@ -52,8 +53,7 @@ public class eventos_validacoesRetornos implements EventoProgramavelJava {
 
 	@Override
 	public void beforeDelete(PersistenceEvent arg0) throws Exception {
-		// TODO Auto-generated method stub
-
+		throw new Error("NÃO É PERMITIDO A EXCLUSAO DE REGISTROS !!!! ");
 	}
 
 	@Override
