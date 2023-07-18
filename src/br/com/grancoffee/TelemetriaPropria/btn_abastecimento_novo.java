@@ -60,6 +60,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 17/04/2023 vs 3.3 - Gabriel Nascimento - Inserido no método identificaItens a verificação dos estoques negativos e zerar nestes casos.
 	 * 24/05/2023 vs 3.4 - Gabriel Nascimento - Ajuste para o pedido ser gerado pegando o usuário logado como o usuário de inclusão.
 	 * 29/05/2023 vs 3.5 - Gabriel Nascimento - Ajustado comparação de datas de atendimento, se a data de atendimento for igual a hoje, estava jogando um dia para frente.
+	 * 18/07/2023 vs 3.6 - Gabriel Nascimento - Inserido o campo AD_TPESTFILIAL na persistencia dos itens na nota, esse campo receberá o estoque da filial no momento da geração do pedido.
 	 */
 	
 	String retornoNegativo = "";
@@ -2080,7 +2081,7 @@ FROM(
 	}
 	
 	private void insereItemNaNota(BigDecimal nunota, BigDecimal empresa, BigDecimal local, BigDecimal produto, 
-			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast) {
+			String volume, BigDecimal qtdneg, BigDecimal sequencia, BigDecimal vlrtot, BigDecimal vlrunit, String tecla, BigDecimal top, DynamicVO gc_solicitabast, BigDecimal estoqueDaFilial) {
 		
 		try {
 			
@@ -2109,6 +2110,7 @@ FROM(
 					VO.setProperty("RESERVA", validaReserva(top));
 					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
 					VO.setProperty("AD_TECLA", tecla);
+					VO.setProperty("AD_TPESTFILIAL", estoqueDaFilial);
 					
 					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 					
@@ -2134,6 +2136,7 @@ FROM(
 					VO.setProperty("RESERVA", validaReserva(top));
 					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
 					VO.setProperty("AD_TECLA", tecla);
+					VO.setProperty("AD_TPESTFILIAL", estoqueDaFilial);
 					
 					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 					
@@ -2161,6 +2164,7 @@ FROM(
 					VO.setProperty("RESERVA", validaReserva(top));
 					VO.setProperty("ATUALESTOQUE", new BigDecimal(validaAtualEstoque(top)));
 					VO.setProperty("AD_TECLA", tecla);
+					VO.setProperty("AD_TPESTFILIAL", estoqueDaFilial);
 					
 					dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 					
@@ -2279,11 +2283,11 @@ FROM(
 							if(qtdParaNotaInt.intValue()<=nivelpar.intValue()) {
 								sequencia++;
 								valorTotal = qtdParaNotaInt.multiply(valor);
-								insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNotaInt, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+								insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNotaInt, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, estoqueNaEmpresa);
 							}else {
 								sequencia++;
 								valorTotal = nivelpar.multiply(valor);
-								insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, nivelpar, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+								insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, nivelpar, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, estoqueNaEmpresa);
 							}
 						}else { //n atingiu a qtd minima
 							valorTotal = valorParaCalculo.multiply(valor);
@@ -2293,7 +2297,7 @@ FROM(
 					}else { //não possui qtd mínima, pode inserir direto
 						sequencia++;
 						valorTotal = valorParaCalculo.multiply(valor);
-						insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast);
+						insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, valorParaCalculo, new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast, estoqueNaEmpresa);
 					}	
 				}
 					
