@@ -37,17 +37,17 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	int qtdTeclas = 99;
 	
 	/**
-	 * 23/10/2021 vs 1.1 Inserido método insereItemEmRuptura para salvar os itens que deveriam ser abastecidos porém não tinha em estoque na filial
-	 * 24/11/2021 vs 1.2 Ajustado a geração dos pedidos considerando a quantidade mínima.
-	 * 27/03/2022 vs 1.3 Pegar o valor do item da TGFCUS preço sem ICMS
-	 * 28/04/2022 vs 1.4 Ajusta validações dos itens da nota.
-	 * 06/05/2022 vs 1.6 Inserida validações para as visitas agendadas automaticamente.
-	 * 27/05/2022 vs 1.7 Inserido método para verificar o motivo de algumas máquinas estarem retornando o erro de "máquina sem planograma".
-	 * 31/05/2022 vs 1.8 Ajustes no método de validações.
-	 * 01/06/2022 vs 1.9 Inserida diversas modificações para o sistema gerar um pedido de tabaco.
-	 * 20/06/2022 vs 2.0 A pedido da Vania, foi retirada a validação de visita ajustada para as visistas automáticas.
-	 * 13/07/2022 vs 2.1 Ajuste do método getListaPendente.
-	 * 22/11/2022 vs 2.2 Ajustado método getList para considerar apenas this.NUMOS IS NULL
+	 * 23/10/2021 vs 1.1 - Gabriel Nascimento - Inserido método insereItemEmRuptura para salvar os itens que deveriam ser abastecidos porém não tinha em estoque na filial
+	 * 24/11/2021 vs 1.2 - Gabriel Nascimento - Ajustado a geração dos pedidos considerando a quantidade mínima.
+	 * 27/03/2022 vs 1.3 - Gabriel Nascimento - Pegar o valor do item da TGFCUS preço sem ICMS
+	 * 28/04/2022 vs 1.4 - Gabriel Nascimento - Ajusta validações dos itens da nota.
+	 * 06/05/2022 vs 1.6 - Gabriel Nascimento - Inserida validações para as visitas agendadas automaticamente.
+	 * 27/05/2022 vs 1.7 - Gabriel Nascimento - Inserido método para verificar o motivo de algumas máquinas estarem retornando o erro de "máquina sem planograma".
+	 * 31/05/2022 vs 1.8 - Gabriel Nascimento - Ajustes no método de validações.
+	 * 01/06/2022 vs 1.9 - Gabriel Nascimento - Inserida diversas modificações para o sistema gerar um pedido de tabaco.
+	 * 20/06/2022 vs 2.0 - Gabriel Nascimento - A pedido da Vania, foi retirada a validação de visita ajustada para as visistas automáticas.
+	 * 13/07/2022 vs 2.1 - Gabriel Nascimento - Ajuste do método getListaPendente.
+	 * 22/11/2022 vs 2.2 - Gabriel Nascimento - Ajustado método getList para considerar apenas this.NUMOS IS NULL
 	 * 23/12/2022 vs 2.3 - Gabriel Nascimento - Inserido a validação do BigDecimalUtil.getValueOrZero para garantir que mesmo se alguma informação estiver nula, o sistema irá obter o dado.
 	 */
 	
