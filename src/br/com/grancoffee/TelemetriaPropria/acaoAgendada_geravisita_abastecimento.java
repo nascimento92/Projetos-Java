@@ -49,6 +49,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 13/07/2022 vs 2.1 Ajuste do método getListaPendente.
 	 * 22/11/2022 vs 2.2 Ajustado método getList para considerar apenas this.NUMOS IS NULL
 	 * 23/12/2022 vs 2.3 - Gabriel Nascimento - Inserido a validação do BigDecimalUtil.getValueOrZero para garantir que mesmo se alguma informação estiver nula, o sistema irá obter o dado.
+	 * 01/08/2023 vs 2.4 - Gabriel Nascimento - Ajustado para inserir o usuário solicitante como usuário inclusão da nota e não o telemetria própria.
 	 */
 	
 	@Override
@@ -129,13 +130,14 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 									erro = validacoes(patrimonio, abastecimento, data, dataAtendimento, rota, id);
 									
 									if (erro == "") {
-										gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
+										gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto, solicitante);
 									}else {
 										cancelarVisita(patrimonio, id, erro, idretorno);
 									}
 									
 								}else {
-									gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto);
+									System.out.println(" ******** Geração pedido abastecimento. Patrimonio: "+patrimonio+" solicitante: "+solicitante);
+									gerarPedidoENota(patrimonio, DynamicVO, idretorno, id, nunota, substituto, solicitante);
 								}
 								
 								
@@ -215,14 +217,14 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * +patrimonio+" id: "+id+"\n"+e.getMessage()+"\n"+e.getCause()); } }
 	 */
 
-	private void gerarPedidoENota(String patrimonio, DynamicVO gc_solicitabast, BigDecimal idRetorno, BigDecimal idsolicitacao, BigDecimal nto, BigDecimal sub) throws Exception {
+	private void gerarPedidoENota(String patrimonio, DynamicVO gc_solicitabast, BigDecimal idRetorno, BigDecimal idsolicitacao, BigDecimal nto, BigDecimal sub, BigDecimal solicitante) throws Exception {
 		
 		BigDecimal nunota = null;
 		
 		if(nto!=null) {
 			nunota = nto;
 		}else {
-			nunota = geraCabecalho(patrimonio, gc_solicitabast);
+			nunota = geraCabecalho(patrimonio, gc_solicitabast, solicitante);
 		}
 			
 		if(nunota!=null) {
@@ -1421,7 +1423,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return reserva;
 	}
 	
-	private BigDecimal geraCabecalho(String patrimonio, DynamicVO gc_solicitabast) throws Exception {
+	private BigDecimal geraCabecalho(String patrimonio, DynamicVO gc_solicitabast, BigDecimal solicitante) throws Exception {
 		
 		  Timestamp dataAgendamento = (Timestamp) gc_solicitabast.getProperty("DTAGENDAMENTO");
 		  //int compareTo = dataAgendamento.compareTo(TimeUtils.getNow());
@@ -1442,7 +1444,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			  BigDecimal codlocal = null;
 			  BigDecimal numcontrato = contrato;
 			  String descricao = "CODBEM : "+patrimonio;
-			  BigDecimal codusuinc = new BigDecimal(3082);
+			  //BigDecimal codusuinc = new BigDecimal(3082);
 			  				 
 			  
 			  //descobre o código local da nota
@@ -1484,7 +1486,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				  NotaProdVO.setProperty("AD_CODBEM", patrimonio);
 				  NotaProdVO.setProperty("OBSERVACAO", descricao);
 				  NotaProdVO.setProperty("CODVEND", ModeloNPVO.asBigDecimal("CODVEND"));
-				  NotaProdVO.setProperty("CODUSUINC", codusuinc);
+				  NotaProdVO.setProperty("CODUSUINC", solicitante);
 				  NotaProdVO.setProperty("CODEMPNEGOC", empresaParaNota); 
 				  NotaProdVO.setProperty("TIPFRETE", "N");
 	
