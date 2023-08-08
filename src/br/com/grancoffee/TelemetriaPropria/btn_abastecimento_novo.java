@@ -62,6 +62,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 29/05/2023 vs 3.5 - Gabriel Nascimento - Ajustado comparação de datas de atendimento, se a data de atendimento for igual a hoje, estava jogando um dia para frente. 
 	 * 18/07/2023 vs 3.6 - Gabriel Nascimento - Inserido o campo AD_TPESTFILIAL na persistencia dos itens na nota, esse campo receberá o estoque da filial no momento da geração do pedido. 
 	 * 31/07/2023 vs 3.7 - Gabriel Nascimento - Ajustado o método verificarSeAhMaquinaEstaTotalmenteDesabastecida para verificar de uma view e não mais de um select no banco.
+	 * 03/08/2023 vs 3.8 - Gabriel Nascimento - Inserida a opção "Fila (Geração máx 5m.)" no parametro TIPABAST com isso o sistema colocará 1m na data de solciitação para entrar na fila e depender da ação agenda.
 	 */
 
 	String retornoNegativo = "";
@@ -80,7 +81,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 	private void start(Registro[] linhas, ContextoAcao arg0) throws Exception {
 
-		String tipoAbastecimento = (String) arg0.getParam("TIPABAST");// Tipo Abastecimento (1=Agora 2=Agendado)
+		String tipoAbastecimento = (String) arg0.getParam("TIPABAST");// Tipo Abastecimento (1=Agora 2=Agendado, 3=Fila de geração)
 		Timestamp dtGeracaoVisita = (Timestamp) arg0.getParam("DTABAST"); // Data Geração da Visita
 		String secosCongelados = (String) arg0.getParam("SECOSECONGELADOS");// Tipo Abascimento (1=Abastecer Apenas
 																			// Secos.2=Abastecer Apenas
@@ -114,11 +115,6 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				BigDecimal idflow = (BigDecimal) linhas[i].getCampo("AD_IDFLOW");
 
 				Timestamp dtAbastecimento = validacoes(linhas[i], arg0, tipoAbastecimento, secosCongelados, TPVALIDACOES);
-
-				/*
-				 * //31-07-2023 vs 3.7 if(dtAbastecimento==null) { dtAbastecimento =
-				 * addMinutes(dtAbastecimento, new BigDecimal(1)); } //fim vs 3.7
-				 */
 
 				if ("1".equals(secosCongelados)) { // apenas secos
 					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "S", "N", idflow, "N");// salva tela Abastecimento
@@ -920,7 +916,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 		
 		//31-07-23 vs 3.7 - inserida ajuste para sempre agendar a visita, impedindo a geração na hora.
-		if(dtAbastecimento==null) {
+		if("3".equals(tipoAbastecimento)) {
 			dtAbastecimento = addMinutes(TimeUtils.getNow(), new BigDecimal(1));
 		}
 
