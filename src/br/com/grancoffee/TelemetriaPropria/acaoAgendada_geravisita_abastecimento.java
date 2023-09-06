@@ -50,6 +50,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 22/11/2022 vs 2.2 - Gabriel Nascimento - Ajustado método getList para considerar apenas this.NUMOS IS NULL
 	 * 23/12/2022 vs 2.3 - Gabriel Nascimento - Inserido a validação do BigDecimalUtil.getValueOrZero para garantir que mesmo se alguma informação estiver nula, o sistema irá obter o dado.
 	 * 01/08/2023 vs 2.4 - Gabriel Nascimento - Ajustado para inserir o usuário solicitante como usuário inclusão da nota e não o telemetria própria.
+	 * 16/08/2023 vs 2.5 - Gabriel Nascimento - Inserido uma validação para puxar 2 pedidos por vez e o agendamento será a cada 1 minuto, para assegurar que não vai demorar muito a geração.
 	 */
 	
 	@Override
@@ -91,7 +92,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
 			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS=? AND this.REABASTECIMENTO=? AND this.NUMOS IS NULL", new Object[] { "1","S" }));
+					.findByDynamicFinder(new FinderWrapper("GCSolicitacoesAbastecimento", "this.STATUS=? AND this.REABASTECIMENTO=? AND this.NUMOS IS NULL AND DTAGENDAMENTO <= SYSDATE", new Object[] { "1","S" }));
 
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
@@ -144,9 +145,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 							} catch (Exception e) {
 								salvarException("[getListaPendente] Erro ao gerar a visita! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 							}
-							
 						}
-						
 					}
 				}
 			}

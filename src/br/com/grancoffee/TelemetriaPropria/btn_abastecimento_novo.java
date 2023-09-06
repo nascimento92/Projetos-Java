@@ -738,6 +738,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		impostos.setForcarRecalculo(true);
 		impostos.calcularTotalItens(nunota, true);
 		impostos.totalizarNota(nunota);
+		impostos.calcularImpostos(nunota);
 		impostos.salvarNota();
 	}
 
