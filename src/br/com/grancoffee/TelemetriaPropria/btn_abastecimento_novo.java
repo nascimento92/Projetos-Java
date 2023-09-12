@@ -63,6 +63,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	 * 18/07/2023 vs 3.6 - Gabriel Nascimento - Inserido o campo AD_TPESTFILIAL na persistencia dos itens na nota, esse campo receberá o estoque da filial no momento da geração do pedido. 
 	 * 31/07/2023 vs 3.7 - Gabriel Nascimento - Ajustado o método verificarSeAhMaquinaEstaTotalmenteDesabastecida para verificar de uma view e não mais de um select no banco.
 	 * 03/08/2023 vs 3.8 - Gabriel Nascimento - Inserida a opção "Fila (Geração máx 5m.)" no parametro TIPABAST com isso o sistema colocará 1m na data de solciitação para entrar na fila e depender da ação agenda.
+	 * 12/09/2023 vs 3.9 - Gabriel Nascimento - Retirado método para verificar se a máquina está totalmente abastecida
 	 */
 
 	String retornoNegativo = "";
@@ -104,13 +105,13 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 			}
 
 			// Verificar se o estoque está todo zerado, se estiver fazer a pergunta para o usuário, se ele quer de fato continuar...
-			boolean maquinaDesabastecida = verificarSeAhMaquinaEstaTotalmenteDesabastecida(TPVALIDACOES);
-			boolean confirmarSimNao = true;
-			if (maquinaDesabastecida) {
-				confirmarSimNao = arg0.confirmarSimNao("Atenção","A máquina está totalmente desabastecida, será gerado um pedido <b>cheio</b> para a máquina, </br> deseja abastecer mesmo assim ?",1);
-			}
+			//boolean maquinaDesabastecida = verificarSeAhMaquinaEstaTotalmenteDesabastecida(TPVALIDACOES);
+			//boolean confirmarSimNao = true;
+			//if (maquinaDesabastecida) {
+			//	confirmarSimNao = arg0.confirmarSimNao("Atenção","A máquina está totalmente desabastecida, será gerado um pedido <b>cheio</b> para a máquina, </br> deseja abastecer mesmo assim ?",1);
+			//}
 
-			if (confirmarSimNao) {
+			//if (confirmarSimNao) {
 
 				BigDecimal idflow = (BigDecimal) linhas[i].getCampo("AD_IDFLOW");
 
@@ -123,11 +124,9 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 						carregaItens(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
 
 						if (dtAbastecimento != null) {// agendado
-							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),
-									TimeUtils.getNow(), dtAbastecimento, idRetorno, "S", "N", dtvisita, "N");
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),TimeUtils.getNow(), dtAbastecimento, idRetorno, "S", "N", dtvisita, "N");
 						} else {// agora
-							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),
-									TimeUtils.getNow(), TimeUtils.getNow(), idRetorno, "S", "N", dtvisita, "N");
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),TimeUtils.getNow(), TimeUtils.getNow(), idRetorno, "S", "N", dtvisita, "N");
 
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
 						}
@@ -214,7 +213,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 				linhas[i].setCampo("AD_IDFLOW", null);
 
-			}
+			//}
 
 			linhas[i].setCampo("AD_IDFLOW", null);
 			linhas[i].setCampo("PLANOGRAMAPENDENTE", "S");
@@ -632,9 +631,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		try {
 
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-
-			Collection<?> parceiro = dwfEntityFacade
-					.findByDynamicFinder(new FinderWrapper("teclas", "this.CODBEM = ? ", new Object[] { codbem }));
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("teclas", "this.CODBEM = ? ", new Object[] { codbem }));
 
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
@@ -1060,8 +1057,8 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		boolean valida = false;
 
 		try {
-			String rota = TPVALIDACOES.asString("ROTA");
-			if ("S".equals(rota)) {
+			BigDecimal rota = TPVALIDACOES.asBigDecimal("ROTA");
+			if (rota.intValue() > 0) {
 				valida = true;
 			}
 		} catch (Exception e) {
@@ -1072,18 +1069,17 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		return valida;
 	}
 
-	private boolean verificarSeAhMaquinaEstaTotalmenteDesabastecida(DynamicVO TPVALIDACOES) throws Exception {
-		boolean valida = false;
-
-		BigDecimal qtdTeclas = TPVALIDACOES.asBigDecimal("QTDTECLAS");
-		BigDecimal qtdTeclasVazias = TPVALIDACOES.asBigDecimal("QTDTECLASVAZIAS");
-
-		if (qtdTeclas.intValue() == qtdTeclasVazias.intValue()) {
-			valida = true;
-		}
-		
-		return valida;
-	}
+	/*
+	 * private boolean verificarSeAhMaquinaEstaTotalmenteDesabastecida(DynamicVO
+	 * TPVALIDACOES) throws Exception { boolean valida = false;
+	 * 
+	 * BigDecimal qtdTeclas = TPVALIDACOES.asBigDecimal("QTDTECLAS"); BigDecimal
+	 * qtdTeclasVazias = TPVALIDACOES.asBigDecimal("QTDTECLASVAZIAS");
+	 * 
+	 * if (qtdTeclas.intValue() == qtdTeclasVazias.intValue()) { valida = true; }
+	 * 
+	 * return valida; }
+	 */
 
 	private boolean validaPedido(String patrimonio, String secosCongelados) {
 		boolean valida = false;
@@ -1558,8 +1554,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 	}
 
-	private DynamicVO agendarAbastecimento(String patrimonio, Timestamp dtSolicitacao, Timestamp dtAgendamento,
-			BigDecimal idAbastecimento, String seco, String congelado, Timestamp dtvisita, String tabaco) {
+	private DynamicVO agendarAbastecimento(String patrimonio, Timestamp dtSolicitacao, Timestamp dtAgendamento,BigDecimal idAbastecimento, String seco, String congelado, Timestamp dtvisita, String tabaco) {
 
 		DynamicVO gc_solicitabast = null;
 
@@ -1712,8 +1707,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 	}
 
-	private void carregaItens(BigDecimal idAbastecimento, Timestamp dtAbastecimento, String patrimonio)
-			throws Exception {
+	private void carregaItens(BigDecimal idAbastecimento, Timestamp dtAbastecimento, String patrimonio) throws Exception {
 		if (idAbastecimento != null) {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
