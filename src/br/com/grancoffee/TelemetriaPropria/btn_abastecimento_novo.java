@@ -135,19 +135,16 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				}
 
 				else if ("2".equals(secosCongelados)) {// apenas congelados
-					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S", idflow,
-							"N");
+					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "S", idflow, "N");
 
 					if (idRetorno != null) {
 						apenasCongelados(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());// carrega
 																												// itens
 
 						if (dtAbastecimento != null) {// agendado
-							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),
-									TimeUtils.getNow(), dtAbastecimento, idRetorno, "N", "S", dtvisita, "N");
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(), dtAbastecimento, idRetorno, "N", "S", dtvisita, "N");
 						} else {// agora
-							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),
-									TimeUtils.getNow(), TimeUtils.getNow(), idRetorno, "N", "S", dtvisita, "N");
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(), TimeUtils.getNow(), idRetorno, "N", "S", dtvisita, "N");
 
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
 						}
@@ -157,18 +154,15 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 				}
 
 				else if ("4".equals(secosCongelados)) { // Tabaco (Br Mania)
-					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "N", idflow,
-							"S");
+					idRetorno = cadastrarNovoAbastecimento(linhas[i].getCampo("CODBEM").toString(), "N", "N", idflow, "S");
 					if (idRetorno != null) {
 						apenasTabaco(idRetorno, dtAbastecimento, linhas[i].getCampo("CODBEM").toString());
 
 						// salva na tela instalações na aba solictiações de abastecimento
 						if (dtAbastecimento != null) { // agendado
-							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),
-									TimeUtils.getNow(), dtAbastecimento, idRetorno, "N", "N", dtvisita, "S");
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(), dtAbastecimento, idRetorno, "N", "N", dtvisita, "S");
 						} else { // agora
-							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(),
-									TimeUtils.getNow(), TimeUtils.getNow(), idRetorno, "N", "N", dtvisita, "S");
+							gc_solicitabast = agendarAbastecimento(linhas[i].getCampo("CODBEM").toString(), TimeUtils.getNow(), TimeUtils.getNow(), idRetorno, "N", "N", dtvisita, "S");
 							gerarPedidoENota(linhas[i], gc_solicitabast, arg0, idRetorno);
 						}
 						cont++;
@@ -1348,8 +1342,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		}
 	}
 
-	private boolean validaSeExisteNaPlanogramaPendenteOuAtual(String patrimonio, BigDecimal produto, String tecla,
-			BigDecimal numos, String tabela) {
+	private boolean validaSeExisteNaPlanogramaPendenteOuAtual(String patrimonio, BigDecimal produto, String tecla, BigDecimal numos, String tabela) {
 		boolean valida = false;
 
 		try {
@@ -1889,8 +1882,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		return nunota;
 	}
 
-	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno,
-			DynamicVO gc_solicitabast) {
+	private void salvaNumeroOS(BigDecimal numos, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno, DynamicVO gc_solicitabast) {
 
 		BigDecimal atendenteRota = getAtendenteRota(patrimonio, gc_solicitabast);
 
@@ -1941,8 +1933,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 
 	}
 
-	private void salvaNumeroDaNota(BigDecimal nunota, String patrimonio, BigDecimal idSolicitacao,
-			BigDecimal idRetorno) {
+	private void salvaNumeroDaNota(BigDecimal nunota, String patrimonio, BigDecimal idSolicitacao, BigDecimal idRetorno) {
 		try {
 
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
@@ -2234,9 +2225,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 								if (qtdParaNotaInt.intValue() <= nivelpar.intValue()) {
 									sequencia++;
 									valorTotal = qtdParaNotaInt.multiply(valor);
-									insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNotaInt,
-											new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast,
-											estoqueNaEmpresa);
+									insereItemNaNota(nunota, empresaAbast, localAbast, produto, volume, qtdParaNotaInt,new BigDecimal(sequencia), valorTotal, valor, tecla, top, gc_solicitabast,estoqueNaEmpresa);
 								} else {
 									sequencia++;
 									valorTotal = nivelpar.multiply(valor);
@@ -2280,6 +2269,7 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 	private BigDecimal obtemValorItemSemICMS(BigDecimal codprod, BigDecimal empresa) {
 		BigDecimal valor = null;
 		try {
+			
 			JdbcWrapper jdbcWrapper = null;
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
@@ -2540,18 +2530,15 @@ public class btn_abastecimento_novo implements AcaoRotinaJava {
 		if (nunota != null) {
 
 			identificaItens(nunota, linhas.getCampo("CODBEM").toString(), gc_solicitabast);
-			salvaNumeroDaNota(nunota, linhas.getCampo("CODBEM").toString(), gc_solicitabast.asBigDecimal("ID"),
-					idRetorno);
+			salvaNumeroDaNota(nunota, linhas.getCampo("CODBEM").toString(), gc_solicitabast.asBigDecimal("ID"),idRetorno);
 			totalizaImpostos(nunota);
 			BigDecimal numos = gerarCabecalhoOS(linhas.getCampo("CODBEM").toString());
 
 			if (numos != null) {
 				geraItemOS(numos, linhas.getCampo("CODBEM").toString(), gc_solicitabast);
-				salvaNumeroOS(numos, linhas.getCampo("CODBEM").toString(), gc_solicitabast.asBigDecimal("ID"),
-						idRetorno, gc_solicitabast);
+				salvaNumeroOS(numos, linhas.getCampo("CODBEM").toString(), gc_solicitabast.asBigDecimal("ID"), idRetorno, gc_solicitabast);
 
-				verificaPlanogramaPendente(linhas.getCampo("CODBEM").toString(), numos, nunota,
-						gc_solicitabast.asBigDecimal("ID"), idRetorno);
+				verificaPlanogramaPendente(linhas.getCampo("CODBEM").toString(), numos, nunota, gc_solicitabast.asBigDecimal("ID"), idRetorno);
 
 				validaAD_TROCADEGRADE(linhas.getCampo("CODBEM").toString(), numos, nunota);
 				validaItensDaTrocaDeGrade(linhas.getCampo("CODBEM").toString(), numos);
