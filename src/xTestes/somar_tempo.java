@@ -9,7 +9,7 @@ import java.util.GregorianCalendar;
 import com.sankhya.util.TimeUtils;
 
 public class somar_tempo {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		Timestamp horaAtual = new Timestamp(System.currentTimeMillis());
 		System.out.println(horaAtual);
 		
@@ -19,6 +19,19 @@ public class somar_tempo {
 		
 		System.out.println("Adicionando 7 dias: "+TimeUtils.dataAddDay(TimeUtils.getNow(), 7));
 		System.out.println("Adicionando 7 dias úteis: "+ new Timestamp(TimeUtils.addWorkingDays(TimeUtils.getNow().getTime(), 7)));
+		
+		System.out.println("Agora: "+TimeUtils.getNow());
+		System.out.println("Diferença em minutos entre as datas: "+TimeUtils.getDifferenceInMinutes(TimeUtils.getNow(), addMinutes(horaAtual, new BigDecimal(3))));
+		
+		long hrinicial = TimeUtils.getNow().getTime();
+		new Thread().sleep(2000); //aguardar 2 segundos
+		long hrfinal = TimeUtils.getNow().getTime();
+		long diferenca = hrfinal - hrinicial;
+		long diferencaSeg = diferenca / 1000;    //DIFERENCA EM SEGUNDOS   
+		long diferencaMin = diferenca / (60 * 1000);    //DIFERENCA EM MINUTOS   
+		long diferencaHoras = diferenca / (60 * 60 * 1000);    // DIFERENCA EM HORAS 
+		
+		System.out.println("Diferença: "+ diferenca / 1000);
 	}
 	
 	
