@@ -51,10 +51,10 @@ public class btn_ajustarAbastecimento_semContagemRetorno implements AcaoRotinaJa
 		
 		if(usuarioValidacao == null && "3".equals(status)) {
 			//TODO :: Contar a quantidade de teclas.
-			BigDecimal qtdTeclas = BigDecimalUtil.getValueOrZero(descobreQtdTeclas(id));
-			BigDecimal qtdContagem = BigDecimalUtil.getValueOrZero(descobreQtdContagem(id));
-			BigDecimal qtdRetorno = BigDecimalUtil.getValueOrZero(descobreQtdRetorno(id));
-			BigDecimal qtdDiferenca = BigDecimalUtil.getValueOrZero(descobreQtdDiferenca(id));
+			BigDecimal qtdTeclas = BigDecimalUtil.getValueOrZero(descobreQtdTeclas(id)); //98
+			BigDecimal qtdContagem = BigDecimalUtil.getValueOrZero(descobreQtdContagem(id)); //0
+			BigDecimal qtdRetorno = BigDecimalUtil.getValueOrZero(descobreQtdRetorno(id)); //2
+			BigDecimal qtdDiferenca = BigDecimalUtil.getValueOrZero(descobreQtdDiferenca(id)); //0
 			
 			if(qtdTeclas.intValue()>0) { //existem teclas
 				if(qtdContagem.intValue()==0 && qtdDiferenca.intValue()==0) {
@@ -235,8 +235,7 @@ public class btn_ajustarAbastecimento_semContagemRetorno implements AcaoRotinaJa
 					codbem = getCodbem(idObjeto);
 				}
 				
-				inserirSolicitacaoDeAjuste(codbem, tecla, produto, capacidade, nivelpar, saldoEsperado, valor,
-						idObjeto, hora);
+				inserirSolicitacaoDeAjuste(codbem, tecla, produto, capacidade, nivelpar, saldoEsperado, valor,idObjeto, hora);
 			}
 						
 			DynamicVO.setProperty("AJUSTADO", "S");
