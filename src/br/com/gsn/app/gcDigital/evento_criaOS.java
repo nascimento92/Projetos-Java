@@ -64,27 +64,29 @@ public class evento_criaOS implements EventoProgramavelJava{
 	private void start(PersistenceEvent arg0) throws Exception {
 		DynamicVO VO = (DynamicVO) arg0.getVo();
 		String patrimonio = VO.asString("CODBEM");
-		String nome = VO.asString("NOME");
-		String telefone = VO.asString("TELEFONE");
-		Timestamp dataSolicitacao = VO.asTimestamp("DTSOLICIT");
-		String email = VO.asString("EMAIL");
-		String descricao = VO.asString("DESCRICAO");
 		String tipo = VO.asString("TIPO");
-		String enderecoMaquina = null;
-		BigDecimal contrato = null;
-		String parceiro = null;
-		BigDecimal codparc = null;
-		BigDecimal servico = null;
-		BigDecimal motivo = null;
-		BigDecimal executante = null;
-		BigDecimal osModelo = null;
-		String problema = "";
-		String t = "";
-		BigDecimal codprod = null;
 		
 		if(patrimonio!=null && tipo!=null) {
 			
 			if(validaSeEhUmaMaquinaValida(patrimonio)) {
+				
+				String nome = VO.asString("NOME");
+				String telefone = VO.asString("TELEFONE");
+				Timestamp dataSolicitacao = VO.asTimestamp("DTSOLICIT");
+				String email = VO.asString("EMAIL");
+				String descricao = VO.asString("DESCRICAO");
+				String enderecoMaquina = null;
+				BigDecimal contrato = null;
+				String parceiro = null;
+				BigDecimal codparc = null;
+				BigDecimal servico = null;
+				BigDecimal motivo = null;
+				BigDecimal executante = null;
+				BigDecimal osModelo = null;
+				String problema = "";
+				String t = "";
+				BigDecimal codprod = null;
+				
 				enderecoMaquina = getEnderecoDaMaquina(patrimonio);
 				contrato = getContrato(patrimonio);
 				parceiro = getParceiro(patrimonio);
@@ -93,7 +95,7 @@ public class evento_criaOS implements EventoProgramavelJava{
 				if("1".equals(tipo)) { //Chamado Técnico
 					servico = new BigDecimal(515315);
 					motivo = new BigDecimal(4);
-					//TODO: obter o executante baseado na operação da planta do contrato
+					//obter o executante baseado na operação da planta do contrato
 					executante = getExecutanteChamadoTecnico(patrimonio);
 					t = "Chamado Técnico";
 					osModelo = new BigDecimal(629042);
@@ -105,32 +107,54 @@ public class evento_criaOS implements EventoProgramavelJava{
 					t = "Sugestão/Reclamação";
 					osModelo = new BigDecimal(629042);
 					
-				}else { //Reembolso
+				}else if("3".equals(tipo)) { //Reembolso
 					servico = new BigDecimal(200000);
 					motivo = new BigDecimal(8);
 					executante = new BigDecimal(54);
 					t = "Reembolso";
 					osModelo = new BigDecimal(629042);
+				}else if("4".equals(tipo)) { //CM
+					//TODO :: implementar
+					servico = new BigDecimal(515315);
+					motivo = new BigDecimal(4);
+					//obter o executante baseado na operação da planta do contrato
+					executante = getExecutanteChamadoTecnico(patrimonio);
+					t = "Solicitação CM";
+					osModelo = new BigDecimal(629042);
 				}
 				
-				problema = "Tipo de solicitação: "+t+
-						"\nPatrimônio: "+patrimonio+
-						"\nData Solicitação: "+TimeUtils.buildPrintableTimestamp(dataSolicitacao.getTime(), "dd/MM/yyyy HH:mm:ss")+
-						"\nContrato: "+contrato+
-						"\nParceiro: "+parceiro+
-						"\nSolicitante: "+nome+
-						"\nTelefone: "+telefone+
-						"\nE-mail: "+email+
-						"\nEndereço da máquina: "+enderecoMaquina+
-						"\nSolicitação: "+descricao;
-
-				codprod = getCodprod(patrimonio);
-				
-				BigDecimal numos = gerarCabecalhoOS(problema,osModelo,patrimonio,contrato,codparc);
-				if(numos.intValue()!=0) {
-					geraItemOS(numos,osModelo,motivo,servico,executante, codprod, patrimonio);
-					VO.setProperty("NUMOS", numos);
+				if (servico!=null) {
+					
+					problema = "Tipo de solicitação: "+t+
+							"\nPatrimônio: "+patrimonio+
+							"\nData Solicitação: "+TimeUtils.buildPrintableTimestamp(dataSolicitacao.getTime(), "dd/MM/yyyy HH:mm:ss")+
+							"\nContrato: "+contrato+
+							"\nParceiro: "+parceiro+
+							"\nSolicitante: "+nome+
+							"\nTelefone: "+telefone+
+							"\nE-mail: "+email+
+							"\nEndereço da máquina: "+enderecoMaquina+
+							"\nSolicitação: "+descricao;
+					
+					if("4".equals(tipo)) {
+						problema = 
+								"SOLICITAÇÃO CM"+
+								"\n"+problema;
+					}else {
+						problema = 
+								"SOLICITAÇÃO GC DIGITAL"+
+								"\n"+problema;
+					}
+					
+					codprod = getCodprod(patrimonio);
+					BigDecimal numos = gerarCabecalhoOS(problema,osModelo,patrimonio,contrato,codparc);
+					if(numos.intValue()!=0) {
+						geraItemOS(numos,osModelo,motivo,servico,executante, codprod, patrimonio);
+						VO.setProperty("NUMOS", numos);
+					}
+					
 				}
+				
 			}else {
 				VO.setProperty("ERRO", "Máquina "+patrimonio+" inválida!");
 			}
@@ -171,10 +195,6 @@ public class evento_criaOS implements EventoProgramavelJava{
 		
 		BigDecimal numos = BigDecimal.ZERO;
 		
-		String problema = 
-						"SOLICITAÇÃO GC DIGITAL"+
-						"\n"+solicitacao;
-		
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			DynamicVO ModeloNPVO = (DynamicVO) dwfFacade.findEntityByPrimaryKeyAsVO("OrdemServico", osModelo);
@@ -189,7 +209,7 @@ public class evento_criaOS implements EventoProgramavelJava{
 			NotaProdVO.setProperty("SITUACAO","P");
 			NotaProdVO.setProperty("CODUSUSOLICITANTE",usuario);
 			NotaProdVO.setProperty("CODUSURESP",usuario);
-			NotaProdVO.setProperty("DESCRICAO",problema);
+			NotaProdVO.setProperty("DESCRICAO",solicitacao);
 			NotaProdVO.setProperty("AD_MANPREVENTIVA", "N");
 			NotaProdVO.setProperty("AD_CHAMADOTI", "N");
 			NotaProdVO.setProperty("CODATEND", usuario);

@@ -19,6 +19,7 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 	/**
 	 * 13/04/2023 - vs 2.0 - Gabriel Nascimento - Alteração do recebimento do campo CODVOL pelo campo AD_UNIDADELV o e-comm está enviando assim.
+	 * 13/10/2023 - vs 2.1 - Gabriel Nascimento - Alteração das máquinas de 1117 para 1110
 	 */
 	@Override
 	public void afterDelete(PersistenceEvent arg0) throws Exception {
@@ -69,7 +70,7 @@ public class evento_valida_dados_ecomm implements EventoProgramavelJava{
 	    String codvol = VO.asString("CODVOL");
 	    BigDecimal quantidadeOriginal = VO.asBigDecimal("QTDNEG");
 	    BigDecimal valorOriginal = VO.asBigDecimal("VLRUNIT");
-	    BigDecimal novocodlocalorig = new BigDecimal(1117);
+	    BigDecimal novocodlocalorig = new BigDecimal(1110);
 	    
 	    if (nunota != null) {
 	      DynamicVO tgfcab = getTGFCAB(nunota);
