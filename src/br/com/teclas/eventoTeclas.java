@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 
+import com.sankhya.util.BigDecimalUtil;
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
@@ -78,8 +79,8 @@ public class eventoTeclas implements EventoProgramavelJava {
 		String codbem = teclasVo.asString("CODBEM");
 		BigDecimal tecla = teclasVo.asBigDecimal("TECLA");
 		BigDecimal contrato = teclasVo.asBigDecimal("NUMCONTRATO");
-		BigDecimal vlrpar = teclasVo.asBigDecimal("VLRPAR");
-		BigDecimal vlrfuncionario = teclasVo.asBigDecimal("VLRFUN");
+		BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(teclasVo.asBigDecimal("VLRPAR"));
+		BigDecimal vlrfuncionario = BigDecimalUtil.getValueOrZero(teclasVo.asBigDecimal("VLRFUN"));
 		//BigDecimal contratoPatrimonio = null;
 		
 		/*
@@ -236,12 +237,11 @@ public class eventoTeclas implements EventoProgramavelJava {
 		
 		BigDecimal produto = precoVO.asBigDecimal("CODPROD");
 		BigDecimal contrato = precoVO.asBigDecimal("NUMCONTRATO");
-		BigDecimal vlrpar = precoVO.asBigDecimal("VLRPAR");
-		BigDecimal vlrfuncionario = precoVO.asBigDecimal("VLRFUN");
+		BigDecimal vlrpar = BigDecimalUtil.getValueOrZero(precoVO.asBigDecimal("VLRPAR"));
+		BigDecimal vlrfuncionario = BigDecimalUtil.getValueOrZero(precoVO.asBigDecimal("VLRFUN"));
 		
-		BigDecimal total = vlrpar.add(vlrfuncionario);
-		
-		Timestamp dataAtual = new Timestamp(System.currentTimeMillis());
+		BigDecimal total = vlrpar.add(vlrfuncionario);	
+		Timestamp dataAtual = TimeUtils.getNow();
 		
 		Date dtAtual = new Date(System.currentTimeMillis());
 		SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy");
