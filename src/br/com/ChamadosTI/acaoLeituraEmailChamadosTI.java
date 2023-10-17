@@ -50,7 +50,7 @@ public class acaoLeituraEmailChamadosTI implements ScheduledAction {
 	//private String conteudo = null;
 	
 	public void onTime(ScheduledActionContext arg0) {
-
+		
 		hnd = null;
 	
 		try {
