@@ -1,6 +1,7 @@
 package br.com.gsn.contratos;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.event.PersistenceEvent;
@@ -56,6 +57,11 @@ public class evento_validacoes_tcscon implements EventoProgramavelJava{
 		BigDecimal prazo = VO.asBigDecimal("AD_PRAZOMES");
 		BigDecimal diaLeitura = VO.asBigDecimal("AD_DIALEITURA");
 		String tipo = VO.asString("AD_TIPCONT");
+		BigDecimal tipoNegociacao = VO.asBigDecimal("CODTIPVENDA");
+		
+		ArrayList<BigDecimal> tiposDeNegociacaoValidos = new ArrayList<BigDecimal>();
+		tiposDeNegociacaoValidos.add(new BigDecimal(100));
+		tiposDeNegociacaoValidos.add(new BigDecimal(1246));
 		
 		if("S".equals(diaFixo)) {
 			
@@ -67,8 +73,10 @@ public class evento_validacoes_tcscon implements EventoProgramavelJava{
 				throw new Error("<br/><b>ATENÇÃO</b><br/><br/>Contrato de Dia Fixo, preencha o campo <b>Prazo (Mês p/ dia Fixo)</b><br/><br/>0 = Mês corrente <br/> 1 = Mês atual +1 mês <br/> 2 = Mês atual +2 meses <br/> etc...");
 			}
 			
-			VO.setProperty("CODTIPVENDA", new BigDecimal(100));
-			
+			if(!tiposDeNegociacaoValidos.contains(tipoNegociacao)) {
+				throw new Error("<br/><b>ATENÇÃO</b><br/><br/> Tipo de negociação inválido, utilizar o 100 ou 1246");
+			}
+
 		}
 		
 		if(diaLeitura!=null) {

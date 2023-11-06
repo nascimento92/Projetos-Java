@@ -50,6 +50,10 @@ public class btn_ajustarAbastecimento_semContagemRetorno implements AcaoRotinaJa
 		String status = (String) linha.getCampo("STATUS");
 		BigDecimal numos = (BigDecimal) linha.getCampo("NUMOS");
 		String patrimonio = (String) linha.getCampo("CODBEM");
+		
+		if(validaSeExisteAjusteMaisRecente(id)) {
+			throw new Error("<br/><b>ATENÇÃO</b><br/>Não é possível ajustar essa visita, patrimonio <b>"+patrimonio+"</b> existem visitas mais recentes!<br/><br/>");
+		}
 
 		if (numos != null) {
 			
@@ -481,6 +485,107 @@ public class btn_ajustarAbastecimento_semContagemRetorno implements AcaoRotinaJa
 		BigDecimal codUsuLogado = BigDecimal.ZERO;
 		codUsuLogado = ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID();
 		return BigDecimalUtil.getValueOrZero(codUsuLogado);
+	}
+	
+	private boolean validaSeExisteAjusteMaisRecente(BigDecimal idabastecimento) {
+		boolean valida = false;
+		
+		try {
+			
+			JdbcWrapper jdbcWrapper = null;
+			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
+			ResultSet contagem;
+			NativeSql nativeSql = new NativeSql(jdbcWrapper);
+			nativeSql.resetSqlBuf();
+			nativeSql.appendSql(
+			"SELECT SUM(QTD) AS QTD FROM ("+
+			"SELECT COUNT(*) AS QTD  FROM ("+
+			"SELECT R.ID,A.CODBEM,A.AD_TIPOPRODUTOS,A.REABASTECIMENTO,A.DTABAST FROM AD_RETABAST R JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)) X "+
+			"WHERE X.DTABAST > (SELECT DTABAST FROM AD_RETABAST WHERE ID="+idabastecimento+") AND X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID="+idabastecimento+") AND X.AD_TIPOPRODUTOS = (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO="+idabastecimento+") AND X.REABASTECIMENTO ='S' AND X.DTABAST IS NOT NULL "+
+			"UNION ALL "+
+			"SELECT COUNT(*) AS QTD FROM ("+
+			"SELECT R.ID,A.CODBEM,A.AD_TIPOPRODUTOS,A.DTABAST FROM AD_RETABAST R JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)) X "+
+			"WHERE X.DTABAST > (SELECT DTABAST FROM AD_RETABAST WHERE ID="+idabastecimento+") AND X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID="+idabastecimento+") AND (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO="+idabastecimento+") IS NULL AND X.DTABAST IS NOT NULL "+
+			"UNION ALL "+
+			"SELECT COUNT(*) AS QTD FROM ("+
+			"SELECT R.ID,A.CODBEM,A.AD_TIPOPRODUTOS,A.DTABAST FROM AD_RETABAST R JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)) X "+
+			"WHERE X.DTABAST > (SELECT DTABAST FROM AD_RETABAST WHERE ID="+idabastecimento+") AND X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID="+idabastecimento+") AND (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO="+idabastecimento+") IN ('1','2') AND X.AD_TIPOPRODUTOS IS NULL AND X.DTABAST IS NOT NULL AND (SELECT STATUSVALIDACAO FROM AD_RETABAST WHERE ID=X.ID)='1')"
+			 );
+			contagem = nativeSql.executeQuery();
+			while (contagem.next()) {
+				int count = contagem.getInt("QTD");
+				if (count >= 1) {
+					valida = true;
+				}
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		/* EXEMPLO
+		 * 
+SELECT SUM(QTD) AS QTD FROM (
+	-- VISITA COM REABASTECIMENTO VALIDANDO SE TEVE DEPOIS VISITAS DO MESMO TIPO
+	SELECT COUNT(*) AS QTD  FROM (
+		SELECT 
+		R.ID,
+		A.CODBEM,
+		A.AD_TIPOPRODUTOS,
+		A.REABASTECIMENTO,
+        A.DTABAST
+		FROM AD_RETABAST R
+		JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)
+		) X
+	WHERE 
+	X.DTABAST > (SELECT DTABAST FROM AD_RETABAST WHERE ID=17921) AND 
+	X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID=17921) AND 
+	X.AD_TIPOPRODUTOS = (SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO=17921) AND 
+	X.REABASTECIMENTO ='S' AND
+    X.DTABAST IS NOT NULL
+
+	UNION ALL
+	
+	-- APENAS VISITAS VALIDANDO SE DEPOIS TEVE VISITAS COM REABASTECIMENTO
+	SELECT COUNT(*) AS QTD FROM (
+		SELECT 
+		R.ID,
+		A.CODBEM,
+		A.AD_TIPOPRODUTOS,
+        A.DTABAST
+		FROM AD_RETABAST R
+		JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)
+		) X
+	WHERE 
+	X.DTABAST > (SELECT DTABAST FROM AD_RETABAST WHERE ID=17921) AND 
+	X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID=17921) AND 
+	(SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO=17921) IS NULL AND 
+    X.DTABAST IS NOT NULL
+	
+	UNION ALL 
+	
+	-- VISITAS COM ABASTECIMENTO VALIDANDO SE DEPOIS TEVE APENAS VISITAS
+	SELECT COUNT(*) AS QTD FROM (
+		SELECT 
+		R.ID,
+		A.CODBEM,
+		A.AD_TIPOPRODUTOS,
+        A.DTABAST
+		FROM AD_RETABAST R
+		JOIN GC_SOLICITABAST A ON (A.IDABASTECIMENTO=R.ID)
+		) X
+	WHERE 
+	X.DTABAST > (SELECT DTABAST FROM AD_RETABAST WHERE ID=17921) AND 
+	X.CODBEM = (SELECT CODBEM FROM AD_RETABAST WHERE ID=17921) AND 
+	(SELECT AD_TIPOPRODUTOS FROM GC_SOLICITABAST WHERE IDABASTECIMENTO=17921) IN ('1','2') AND 
+	X.AD_TIPOPRODUTOS IS NULL AND
+    X.DTABAST IS NOT NULL
+	
+)
+		 */
+		
+		return valida;
 	}
 
 }

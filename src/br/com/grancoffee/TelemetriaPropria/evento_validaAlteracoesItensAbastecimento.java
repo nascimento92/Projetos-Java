@@ -92,8 +92,16 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 		BigDecimal retornoParaCalculo = null;
 		BigDecimal saldoapos = null;
 		DynamicVO oldVO = (DynamicVO) arg0.getOldVO();
-	
+		
 		if(numos!=null && numos.intValue()>0 && oldVO.asBigDecimal("SALDOANTERIOR") !=null) {
+			
+//			if(contagem.intValue()==0) {
+//				DynamicVO contgaemVO = getContagem(numos, tecla, produto);
+//				if(contgaemVO!=null) {
+//					contagem = BigDecimalUtil.getValueOrZero(contgaemVO.asBigDecimal("QTDCONTAGEM"));
+//				}		
+//			}
+
 			
 			BigDecimal saldoesperado = saldoAntes.add(qtdpedido);
 			BigDecimal retornosAhSeremIgnorados = getRetornosAhSeremIgnorados(id,produto,tecla);
@@ -146,6 +154,13 @@ public class evento_validaAlteracoesItensAbastecimento implements EventoPrograma
 		 */
 		 
 	}
+	
+//	private DynamicVO getContagem(BigDecimal numos, String tecla, BigDecimal produto) throws Exception {
+//		JapeWrapper DAO = JapeFactory.dao("AD_APPCONTAGEM");
+//		DynamicVO VO = DAO.findOne("this.NUMOS=? AND this.CODPROD=? AND this.TECLA=?",
+//				new Object[] { numos, produto, tecla });
+//		return VO;
+//	}
 	
 	private BigDecimal getRetornosAhSeremIgnorados(BigDecimal id, BigDecimal produto, String tecla) {
 		BigDecimal qtd = null;
