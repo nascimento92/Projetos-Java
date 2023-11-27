@@ -35,78 +35,101 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 	 * @autor Gabriel
 	 * @motivo Bot�o para envio do planograma para a Verti / Uppay
 	 * 
-	 * 27/07/22 vs 1.1 - Gabriel Nascimento - Unifica��o do bot�o para enviar para a Verti e para a Uppay.
-	 * 24/02/23 vs 1.3 - Gabriel Nascimento - Implementada validação para impedir que seja enviado o planograma, caso existam visitas pendentes.
+	 *         27/07/22 vs 1.1 - Gabriel Nascimento - unificação dos botões para enviar para a Verti e para a Uppay. 
+	 *         24/02/23 vs 1.3 - Gabriel Nascimento - Implementada validação para impedir que seja enviado o planograma, caso existam visitas pendentes. 
+	 *         27/11/23 vs 1.4 - Gabriel Nascimento - Inserido ajustes para os patrimônios agregados.
 	 */
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		Registro[] linhas = arg0.getLinhas();
-		String patrimonio = (String) linhas[0].getCampo("CODBEM");
-		String body = "";
-		
-		if(validaSeExistemPedidosPendentes(patrimonio)) { //existem pedidos pendentes
-			arg0.mostraErro("<b>ATENÇÃO</b><br/>Existem visitas pendentes! <br/><br/>não é possível efetivar um novo planograma com uma visita em andamento devido aos riscos de inconsistências de dados! <br/><br/>cancele a visita ou aguarde a sua finalização.<br/><br/>" );
-		}else {
-			boolean confirmarSimNao = arg0.confirmarSimNao("ATENÇÃO", "<br/><br/>O planograma será enviado para a Uppay (APP) e para a Verti (Totem) de forma <b>forçada</b>!"+
-					"<br/><br/>Este planograma será efetivado imediatamente ! (No caso da Verti é obrigatório que não tenha <b>NENHUM</b> picklist ou planograma pendente, consultar se deu certo na tela \"Planogramas Verti - TP\""
-					+ "<br/><br/>Se neste planograma atual ocorreu uma troca de grade, cuidado, pois se existir produtos físicos no cliente que estavam na grade anterior porém, nesta não, eles não passarão no totem na hora da bipagem."
-					+ "<br/><br/>Esta ação não pode ser desfeita, deseja continuar ?<br/><br/>", 0);
-					
-					if(confirmarSimNao) {
-						//TODO :: Envio para a Verti
-						DynamicVO instalacaoVO = getGcInstalacao(patrimonio);
-						String micromarketing = instalacaoVO.asString("TOTEM");
+
+		if (linhas.length > 0) {
+			String patrimonio = (String) linhas[0].getCampo("CODBEM");
+
+			String body = "";
+
+			if (validaSeExistemPedidosPendentes(patrimonio)) { // existem pedidos pendentes
+				arg0.mostraErro("<b>ATENÇÃO</b><br/>Existem visitas pendentes! <br/><br/>não é possível efetivar um novo planograma com uma visita em andamento devido aos riscos de inconsistências de dados! <br/><br/>cancele a visita ou aguarde a sua finalização.<br/><br/>");
+			} else {
+				boolean confirmarSimNao = arg0.confirmarSimNao("ATENÇÃO",
+						"<br/><br/>O planograma será enviado para a Uppay (APP) e para a Verti (Totem) de forma <b>forçada</b>! "
+								+ "<br/><br/>Este planograma será efetivado imediatamente ! (No caso da Verti é obrigatório que não tenha <b>NENHUM</b> picklist ou planograma pendente, consultar se deu certo na tela \"Planogramas Verti - TP\""
+								+ "<br/><br/>Se neste planograma atual ocorreu uma troca de grade, cuidado, pois se existir produtos físicos no cliente que estavam na grade anterior porém, nesta não, eles não passarão no totem na hora da bipagem."
+								+ "<br/><br/>Caso esse patriônio possua patrimônios agregados, a grade será replicada para todos."
+								+ "<br/><br/>Esta ação não pode ser desfeita, deseja continuar ?<br/><br/>",
+						0);
+
+				if (confirmarSimNao) {
+					// Envio para a Verti
+					DynamicVO instalacaoVO = getGcInstalacao(patrimonio);
+					String micromarketing = instalacaoVO.asString("TOTEM");
+
+					if ("S".equals(micromarketing)) {
+						body = montarBody(patrimonio);
+						cadastrarTeclas(patrimonio, body);
 						
-						if("S".equals(micromarketing)) {
-							body = montarBody(patrimonio);
-							cadastrarTeclas(patrimonio,body);
-						}else {
-							if(validaSeExistemTeclasDuplicadas(patrimonio)) {
-								arg0.mostraErro("<br/><b>Existem teclas repetidas! não é possível continuar</b><br/>");
-							}else {
-								body = montarBody(patrimonio);
-								cadastrarTeclas(patrimonio,body);
+						//vs 1.4
+						JapeWrapper DAO = JapeFactory.dao("AD_INSTALACAOAGREGADO");
+						Collection<DynamicVO> listaAgregados = DAO.find("this.CODBEM=?", new Object[] {patrimonio});
+						if(listaAgregados!=null) {
+							for(DynamicVO agregado : listaAgregados) {
+								cadastrarTeclas(agregado.asString("CODBEMAGREGADO"), body);
+								marcarBotaoPendente(agregado.asString("CODBEMAGREGADO"));
 							}
 						}
+						// fim vs 1.4
 						
-						//TODO :: Atualizar no Sankhya
-						
-						//if("S".equals(micromarketing)) {
-						marcarBotaoPendente(patrimonio);
-						//}
-						
-						arg0.setMensagemRetorno("Planograma Enviado!");
-						
-						//TODO :: Chamar pentaho
-						
-						Timer timer = new Timer(1000, new ActionListener() {
-
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								chamaPentaho();
-							}
-						});
-						timer.setRepeats(false);
-						timer.start();
-
-						//chamaPentaho();
+					} else {
+						if (validaSeExistemTeclasDuplicadas(patrimonio)) {
+							arg0.mostraErro("<br/><b>Existem teclas repetidas! não é possível continuar</b><br/>");
+						} else {
+							body = montarBody(patrimonio);
+							cadastrarTeclas(patrimonio, body);
+						}
 					}
+
+					// TODO :: Atualizar no Sankhya
+
+					// if("S".equals(micromarketing)) {
+					marcarBotaoPendente(patrimonio);
+					// }
+
+					arg0.setMensagemRetorno("Planograma Enviado!");
+
+					// TODO :: Chamar pentaho
+
+					Timer timer = new Timer(1000, new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							chamaPentaho();
+						}
+					});
+					timer.setRepeats(false);
+					timer.start();
+
+					// chamaPentaho();
+				}
+			}
+		}else {
+			arg0.mostraErro(
+					"<b>ATENÇÃO</b><br/>Não existem teclas para o patrimônio, caso seja um patrimônio agregado, forçar o planograma através do patrimônio principal.");
 		}
-				
+
 	}
-	
+
 	private boolean validaSeExistemPedidosPendentes(String patrimonio) {
 		boolean valida = false;
 		try {
-			
+
 			JdbcWrapper jdbcWrapper = null;
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
 			ResultSet contagem;
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
-			nativeSql.appendSql(
-					"SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='"+patrimonio+"' AND STATUS='1'");
+			nativeSql
+					.appendSql("SELECT COUNT(*) FROM GC_SOLICITABAST WHERE CODBEM='" + patrimonio + "' AND STATUS='1'");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				int count = contagem.getInt("COUNT(*)");
@@ -114,32 +137,33 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 					valida = true;
 				}
 			}
-			
+
 		} catch (Exception e) {
-			salvarException("[validaSeExistemPedidosPendentes] Não foi possível validar as teclas do patrimonio: "+patrimonio+"\n"+e.getMessage()+" "+e.getCause());
+			salvarException("[validaSeExistemPedidosPendentes] Não foi possível validar as teclas do patrimonio: "
+					+ patrimonio + "\n" + e.getMessage() + " " + e.getCause());
 		}
-		
+
 		return valida;
 	}
-	
-	//Envio para a Verti
-	
+
+	// Envio para a Verti
+
 	private DynamicVO getGcInstalacao(String patrimonio) throws Exception {
 		JapeWrapper DAO = JapeFactory.dao("GCInstalacao");
-		DynamicVO VO = DAO.findOne("CODBEM=?",new Object[] { patrimonio });
+		DynamicVO VO = DAO.findOne("CODBEM=?", new Object[] { patrimonio });
 		return VO;
 	}
-	
-	public String montarBody(String codbem){
-		
+
+	public String montarBody(String codbem) {
+
 		int cont = 1;
-		String head="{\"planogram\":{\"items_attributes\": [";
-		String bottom="]}}";
-		
+		String head = "{\"planogram\":{\"items_attributes\": [";
+		String bottom = "]}}";
+
 		String body = "";
-		
+
 		try {
-			
+
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 
 			Collection<?> parceiro = dwfEntityFacade
@@ -148,59 +172,53 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
-				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
-				
+				DynamicVO DynamicVO = (DynamicVO) ((DynamicVO) itemEntity.getValueObject())
+						.wrapInterface(DynamicVO.class);
+
 				String teclaAlternativa = DynamicVO.asString("TECLAALT");
 				String tecla = DynamicVO.asBigDecimal("TECLA").toString();
 				String name = "";
-				
-				if("0".equals(tecla)) {
-					tecla=String.valueOf(cont);
+
+				if ("0".equals(tecla)) {
+					tecla = String.valueOf(cont);
 					cont++;
 				}
-				
-				if(teclaAlternativa!=null) {
+
+				if (teclaAlternativa != null) {
 					name = teclaAlternativa;
-				}else {
+				} else {
 					name = tecla;
 				}
-				
+
 				BigDecimal produto = DynamicVO.asBigDecimal("CODPROD");
-				
-				
-				if(Iterator.hasNext()) {
-					body=body+"{"+
-							"\"type\": \"Coil\","+
-							"\"name\": \""+name+"\","+
-							"\"good_id\": "+getGoodId(produto)+","+
-							"\"capacity\": "+DynamicVO.asBigDecimal("AD_CAPACIDADE").toString()+","+
-							"\"par_level\": "+DynamicVO.asBigDecimal("AD_NIVELPAR").toString()+","+
-							"\"alert_level\": "+DynamicVO.asBigDecimal("AD_NIVELALERTA").toString()+","+
-							"\"desired_price\": "+DynamicVO.asBigDecimal("VLRFUN").add(DynamicVO.asBigDecimal("VLRPAR")).toString()+","+
-							"\"logical_locator\": "+tecla+","+
-							"\"status\": \"active\""
-							+ "},";
-				}else {
-					body=body+"{"+
-							"\"type\": \"Coil\","+
-							"\"name\": \""+DynamicVO.asBigDecimal("TECLA").toString()+"\","+
-							"\"good_id\": "+getGoodId(produto)+","+
-							"\"capacity\": "+DynamicVO.asBigDecimal("AD_CAPACIDADE").toString()+","+
-							"\"par_level\": "+DynamicVO.asBigDecimal("AD_NIVELPAR").toString()+","+
-							"\"alert_level\": "+DynamicVO.asBigDecimal("AD_NIVELALERTA").toString()+","+
-							"\"desired_price\": "+DynamicVO.asBigDecimal("VLRFUN").add(DynamicVO.asBigDecimal("VLRPAR")).toString()+","+
-							"\"logical_locator\": "+tecla+","+
-							"\"status\": \"active\""
-							+ "}";
+
+				if (Iterator.hasNext()) {
+					body = body + "{" + "\"type\": \"Coil\"," + "\"name\": \"" + name + "\"," + "\"good_id\": "
+							+ getGoodId(produto) + "," + "\"capacity\": "
+							+ DynamicVO.asBigDecimal("AD_CAPACIDADE").toString() + "," + "\"par_level\": "
+							+ DynamicVO.asBigDecimal("AD_NIVELPAR").toString() + "," + "\"alert_level\": "
+							+ DynamicVO.asBigDecimal("AD_NIVELALERTA").toString() + "," + "\"desired_price\": "
+							+ DynamicVO.asBigDecimal("VLRFUN").add(DynamicVO.asBigDecimal("VLRPAR")).toString() + ","
+							+ "\"logical_locator\": " + tecla + "," + "\"status\": \"active\"" + "},";
+				} else {
+					body = body + "{" + "\"type\": \"Coil\"," + "\"name\": \""
+							+ DynamicVO.asBigDecimal("TECLA").toString() + "\"," + "\"good_id\": " + getGoodId(produto)
+							+ "," + "\"capacity\": " + DynamicVO.asBigDecimal("AD_CAPACIDADE").toString() + ","
+							+ "\"par_level\": " + DynamicVO.asBigDecimal("AD_NIVELPAR").toString() + ","
+							+ "\"alert_level\": " + DynamicVO.asBigDecimal("AD_NIVELALERTA").toString() + ","
+							+ "\"desired_price\": "
+							+ DynamicVO.asBigDecimal("VLRFUN").add(DynamicVO.asBigDecimal("VLRPAR")).toString() + ","
+							+ "\"logical_locator\": " + tecla + "," + "\"status\": \"active\"" + "}";
 				}
-			
+
 			}
-			
+
 		} catch (Exception e) {
-			throw new Error("[montarBody] nao foi possivel montar o Body! patrimonio:"+codbem+"\n"+e.getMessage()+"\n"+e.getCause());
+			throw new Error("[montarBody] nao foi possivel montar o Body! patrimonio:" + codbem + "\n" + e.getMessage()
+					+ "\n" + e.getCause());
 		}
-		
-		return head+body+bottom;
+
+		return head + body + bottom;
 	}
 
 	public BigDecimal getGoodId(BigDecimal produto) throws Exception {
@@ -217,30 +235,31 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 
 		return id;
 	}
-	
+
 	private void cadastrarTeclas(String patrimonio, String body) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_PLANVERTI");
 			DynamicVO VO = (DynamicVO) NPVO;
-			
+
 			VO.setProperty("CODBEM", patrimonio);
 			VO.setProperty("BODY", body.toCharArray());
 			VO.setProperty("INTEGRADO", "N");
-			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
+			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
 			VO.setProperty("DTSOLICIT", TimeUtils.getNow());
-			
+
 			dwfFacade.createEntity("AD_PLANVERTI", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException("[cadastrarTeclas] erro ao tentar cadastrar teclas: "+patrimonio+"\n"+e.getMessage()+" "+e.getCause());
+			salvarException("[cadastrarTeclas] erro ao tentar cadastrar teclas: " + patrimonio + "\n" + e.getMessage()
+					+ " " + e.getCause());
 		}
 	}
-	
+
 	private boolean validaSeExistemTeclasDuplicadas(String patrimonio) {
 		boolean valida = false;
-		
+
 		try {
-			
+
 			JdbcWrapper jdbcWrapper = null;
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
 			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
@@ -248,7 +267,7 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 			NativeSql nativeSql = new NativeSql(jdbcWrapper);
 			nativeSql.resetSqlBuf();
 			nativeSql.appendSql(
-					"SELECT COUNT(*) AS QTD, TECLA FROM AD_TECLAS WHERE CODBEM='"+patrimonio+"' GROUP BY TECLA");
+					"SELECT COUNT(*) AS QTD, TECLA FROM AD_TECLAS WHERE CODBEM='" + patrimonio + "' GROUP BY TECLA");
 			contagem = nativeSql.executeQuery();
 			while (contagem.next()) {
 				int count = contagem.getInt("QTD");
@@ -256,22 +275,22 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 					valida = true;
 				}
 			}
-			
+
 		} catch (Exception e) {
-			salvarException("[validaSeExistemTeclasDuplicadas] erro ao verificar teclas duplicadas, patrimonio: "+patrimonio+"\n"+e.getMessage()+" "+e.getCause());
+			salvarException("[validaSeExistemTeclasDuplicadas] erro ao verificar teclas duplicadas, patrimonio: "
+					+ patrimonio + "\n" + e.getMessage() + " " + e.getCause());
 		}
-		
+
 		return valida;
 	}
-	
-	//fim -- Envio para a Verti
-	
+
+	// fim -- Envio para a Verti
 
 	public void marcarBotaoPendente(Object patrimonio) {
 		try {
 			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(new FinderWrapper("GCInstalacao",
-					"this.CODBEM=?", new Object[] {patrimonio}));
+			Collection<?> parceiro = dwfEntityFacade.findByDynamicFinder(
+					new FinderWrapper("GCInstalacao", "this.CODBEM=?", new Object[] { patrimonio }));
 			for (Iterator<?> Iterator = parceiro.iterator(); Iterator.hasNext();) {
 				PersistentLocalEntity itemEntity = (PersistentLocalEntity) Iterator.next();
 				EntityVO NVO = (EntityVO) ((DynamicVO) itemEntity.getValueObject()).wrapInterface(DynamicVO.class);
@@ -282,15 +301,17 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 				itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException("[marcarBotaoPendente] Nao foi possivel marcar o botao como pendente! codbem: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
+			salvarException("[marcarBotaoPendente] Nao foi possivel marcar o botao como pendente! codbem: " + patrimonio
+					+ "\n" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
-	
+
 	private void chamaPentaho() {
 
 		try {
 
-			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");;
+			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");
+			;
 			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 
@@ -300,10 +321,11 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 			si.runJob(path, objName);
 
 		} catch (Exception e) {
-			salvarException("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
+			salvarException(
+					"[chamaPentaho] nao foi possivel chamar o pentaho! " + e.getMessage() + "\n" + e.getCause());
 		}
 	}
-	
+
 	private void salvarException(String mensagem) {
 		try {
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
