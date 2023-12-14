@@ -101,7 +101,6 @@ public class WSPentaho {
 
 	}
 
-
 	private URLConnection openConn(String method, String body, String Filtros, String... parametros) throws Exception {
 		StringBuffer buf = new StringBuffer();
 		StringBuffer parameters = new StringBuffer();

@@ -15,14 +15,20 @@ public class btn_importar_planilha_pcp implements AcaoRotinaJava{
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
 		
-		Timer timer = new Timer(1000, new ActionListener() {	
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				chamaPentaho();				
-			}
-		});
-		timer.setRepeats(false);
-		timer.start();
+//		Timer timer = new Timer(1000, new ActionListener() {	
+//			@Override
+//			public void actionPerformed(ActionEvent e) {
+//								
+//			}
+//		});
+//		timer.setRepeats(false);
+//		timer.start();
+		
+		try {
+			chamaPentaho();
+		} catch (Exception e) {
+			throw new Error("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
+		}
 		
 		arg0.setMensagemRetorno("<br/><br/> <b>Atenção !</b> <br/><br/> A rotina demora alguns segundos para realizar a importação ! <br/> Atualize a página para visualizar os dados ! <br/><br/><br/>");
 
