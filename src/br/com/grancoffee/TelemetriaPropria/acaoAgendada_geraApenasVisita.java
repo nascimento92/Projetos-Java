@@ -12,6 +12,7 @@ import java.util.Iterator;
 import org.cuckoo.core.ScheduledAction;
 import org.cuckoo.core.ScheduledActionContext;
 
+import com.sankhya.util.JdbcUtils;
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.jape.EntityFacade;
@@ -31,6 +32,10 @@ import br.com.sankhya.modelcore.util.SPBeanUtils;
 import br.com.sankhya.ws.ServiceContext;
 
 public class acaoAgendada_geraApenasVisita implements ScheduledAction{
+	
+	/**
+	 * 30-01-2024 - vs 1.3 - Gabriel Nascimento - retirada o save na exception
+	 */
 
 	@Override
 	public void onTime(ScheduledActionContext arg0) {
@@ -43,7 +48,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			SPBeanUtils.setupContext(sctx);
 		} catch (Exception e) {
 			e.printStackTrace();
-			salvarException("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
 		} 
 				
 		JapeSession.SessionHandle hnd = null;
@@ -62,7 +67,9 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			
 
 		} catch (Exception e) {
-			salvarException("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
+		}finally {
+			JapeSession.close(hnd);
 		}
 		
 	}
@@ -110,7 +117,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 							}
 
 						} catch (Exception e) {
-							salvarException(
+							System.out.println(
 									"[getListaPendente] Nao foi possivel obter a lista! Patrimonio "+patrimonio
 											+ e.getMessage() + "\n" + e.getCause());
 						}
@@ -163,7 +170,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			numos = NotaProdVO.asBigDecimal("NUMOS");
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[gerarCabecalhoOS] Nao foi possivel Gerar o cabeçalho da OS! Patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -225,7 +232,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			dwfFacade.createEntity("ItemOrdemServico", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[insereItem] Nao foi possivel inserir o item! Patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -305,7 +312,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			}
 			
 		} catch (Exception e) {
-			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+			System.out.println("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 		}
 		
 		try {
@@ -325,7 +332,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+			System.out.println("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 		}
 	}
 	
@@ -364,7 +371,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 				}
 
 			} catch (Exception e) {
-				salvarException("[validaTeclasGC_PLANOGRAMA] Nao foi possivel verificar as teclas! patrimonio " + patrimonio
+				System.out.println("[validaTeclasGC_PLANOGRAMA] Nao foi possivel verificar as teclas! patrimonio " + patrimonio
 						+ e.getMessage() + "\n" + e.getCause());
 			}
 			
@@ -399,7 +406,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 				}
 
 			} catch (Exception e) {
-				salvarException("[validaTeclasGC_PLANOGRAMA] Nao foi possivel verificar as teclas! patrimonio " + patrimonio
+				System.out.println("[validaTeclasGC_PLANOGRAMA] Nao foi possivel verificar as teclas! patrimonio " + patrimonio
 						+ e.getMessage() + "\n" + e.getCause());
 			}
 		}	
@@ -434,7 +441,7 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			dwfFacade.createEntity("AD_TROCADEGRADE", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			salvarException("[validaTeclasGC_PLANOGRAMA] Nao foi possivel inserir na AD_TROCADEGRADE " + patrimonio
+			System.out.println("[validaTeclasGC_PLANOGRAMA] Nao foi possivel inserir na AD_TROCADEGRADE " + patrimonio
 					+ e.getMessage() + "\n" + e.getCause());	 
 		}
 	}
@@ -460,8 +467,11 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 				}
 			}
 			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
+			
 		} catch (Exception e) {
-			salvarException("[validaSeEhAhPrimeiraVisita] Nao foi possivel validar se é a primeira visita! patrimonio " + patrimonio
+			System.out.println("[validaSeEhAhPrimeiraVisita] Nao foi possivel validar se é a primeira visita! patrimonio " + patrimonio
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 		
@@ -485,27 +495,30 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 			while (contagem.next()) {
 				executante = contagem.getBigDecimal("CODABAST");
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 
 		} catch (Exception e) {
-			salvarException("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
+			System.out.println("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
 		}
 		
 		return executante;
 	}
 	
-	private void cadastraServicoParaOhExecutante(BigDecimal produto, BigDecimal atendente, BigDecimal servico) {
+	private void cadastraServicoParaOhExecutante(BigDecimal produto, BigDecimal usuario, BigDecimal servico) {
 		try {
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ServicoProdutoExecutante");
-			DynamicVO VO = (DynamicVO) NPVO;
 			
-			VO.setProperty("CODSERV", servico);
-			VO.setProperty("CODUSU", atendente);
-			VO.setProperty("CODPROD", produto);
+			JapeWrapper dao = JapeFactory.dao("ServicoProdutoExecutante");
+			DynamicVO servicoVO = dao.findOne("this.CODPROD=? AND this.CODUSU=? AND this.CODSERV=?", new Object[]{produto,usuario,servico});
 			
-			dwfFacade.createEntity("ServicoProdutoExecutante", (EntityVO) VO);
+			if(servicoVO==null) {
+				dao.create().set("CODSERV", servico).set("CODUSU", usuario).set("CODPROD", produto).save();
+			}
+			
 		} catch (Exception e) {
-			
+			System.out.println("[cadastraServicoParaOhExecutante] nfoi cadastrar o servi" + servico + " para o executante:"
+					+ usuario + "\n" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
 	
@@ -545,25 +558,24 @@ public class acaoAgendada_geraApenasVisita implements ScheduledAction{
 		return contrato;
 	}
 	
-	private void salvarException(String mensagem) {
-		try {
-			
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
-			DynamicVO VO = (DynamicVO) NPVO;
-			
-			VO.setProperty("OBJETO", "btn_visita");
-			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
-			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
-			VO.setProperty("CODUSU", new BigDecimal(0));
-			VO.setProperty("ERRO", mensagem);
-			
-			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
-			
-		} catch (Exception e) {
-			//aqui não tem jeito rs tem que mostrar no log
-			System.out.println("## [salvarException] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
-		}
-	}	
+	/*
+	 * private void salvarException(String mensagem) { try {
+	 * 
+	 * EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade(); EntityVO NPVO =
+	 * dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS"); DynamicVO VO =
+	 * (DynamicVO) NPVO;
+	 * 
+	 * VO.setProperty("OBJETO", "btn_visita"); VO.setProperty("PACOTE",
+	 * "br.com.grancoffee.TelemetriaPropria"); VO.setProperty("DTEXCEPTION",
+	 * TimeUtils.getNow()); VO.setProperty("CODUSU", new BigDecimal(0));
+	 * VO.setProperty("ERRO", mensagem);
+	 * 
+	 * dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+	 * 
+	 * } catch (Exception e) { //aqui não tem jeito rs tem que mostrar no log
+	 * System.out.
+	 * println("## [salvarException] ## - Nao foi possivel salvar a Exception! "+e.
+	 * getMessage()); } }
+	 */	
 	
 }

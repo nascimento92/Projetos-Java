@@ -10,6 +10,7 @@ import java.util.Iterator;
 
 import javax.swing.Timer;
 
+import com.sankhya.util.JdbcUtils;
 import com.sankhya.util.TimeUtils;
 
 import Helpers.WSPentaho;
@@ -24,12 +25,14 @@ import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.jape.wrapper.JapeFactory;
 import br.com.sankhya.jape.wrapper.JapeWrapper;
-import br.com.sankhya.modelcore.auth.AuthenticationInfo;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.modelcore.util.MGECoreParameter;
-import br.com.sankhya.ws.ServiceContext;
 
 public class btn_encerrarVisita implements AcaoRotinaJava{
+	
+	/**
+	 * 30-01-2024 - vs 1.1 - Gabriel Nascimento - Retirada a ação para salvar na exception.
+	 */
 
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -101,7 +104,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			}
 			
 		} catch (Exception e) {
-			salvarException("[realizaValidacoes] nao foi possivel calcular realizar as validações " + numos
+			System.out.println("[realizaValidacoes] nao foi possivel calcular realizar as validações " + numos
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
@@ -126,7 +129,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			}
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[atualizaCampoParaFinalizacaoDaVisitaNoPentaho] nao foi possivel atualizar o campo AD_FINALIZARVISITA patrimonio" + patrimonio + " numos "+numos
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -172,7 +175,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			}
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -204,7 +207,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			}
 			
 		} catch (Exception e) {
-			salvarException("[atualizaTecla] Nao foi possivel atualizar a tecla! patrimonio: " + patrimonio+ " produto: " + produto + "tecla "+tecla
+			System.out.println("[atualizaTecla] Nao foi possivel atualizar a tecla! patrimonio: " + patrimonio+ " produto: " + produto + "tecla "+tecla
 					+"\n" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
@@ -232,7 +235,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 
 			dwfFacade.createEntity("AD_PLANOGRAMAATUAL", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException("[insereTecla] Nao foi possivel inserir a tecla! patrimonio: " + patrimonio+ " produto: " + produto + "tecla "+tecla
+			System.out.println("[insereTecla] Nao foi possivel inserir a tecla! patrimonio: " + patrimonio+ " produto: " + produto + "tecla "+tecla
 					+"\n" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
@@ -242,7 +245,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("AD_PLANOGRAMAATUAL", "this.CODBEM=? AND this.TECLA=? AND this.CODPROD=?",new Object[] {patrimonio,tecla,produto}));
 		} catch (Exception e) {
-			salvarException("[alterarRetorno] Nao foi possivel excluir a tecla! patrimonio: " + patrimonio+ " produto: " + produto + "tecla "+tecla
+			System.out.println("[alterarRetorno] Nao foi possivel excluir a tecla! patrimonio: " + patrimonio+ " produto: " + produto + "tecla "+tecla
 					+"\n" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
@@ -258,7 +261,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 							 
 			PersistentLocalEntity.setValueObject(NVO);
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[atualizaDadosAbastecimento] nao foi possivel atualizar o campo AD_RETIRARPECAS" + patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -275,7 +278,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 							 
 			PersistentLocalEntity.setValueObject(NVO);
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[atualizaDadosRetorno] nao foi possivel atualizar dados do retorno id retorno " + idretorno
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -340,7 +343,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			}
 
 		} catch (Exception e) {
-			salvarException("[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
+			System.out.println("[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
@@ -360,7 +363,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 								 
 				PersistentLocalEntity.setValueObject(NVO);
 			} catch (Exception e) {
-				salvarException(
+				System.out.println(
 						"[atualizaOutrosDados] nao foi possivel atualizar data da ultima contagem " + patrimonio
 								+ e.getMessage() + "\n" + e.getCause());
 			}
@@ -377,7 +380,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 							 
 			PersistentLocalEntity.setValueObject(NVO);
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[atualizaOutrosDados] nao foi possivel atualizar data da ultima contagem " + patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -404,7 +407,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			}
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[AtualizaSaldoDeEstoque] nao foi possível atualizar o saldo de estoque patrimonio " + patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -468,7 +471,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			}
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[calculaDadosDaContagem] nao foi possivel calcular os dados da contagem. numos " + numos
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -488,7 +491,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 
 
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[validaSeExisteAhTeclaNaTelaDeRetorno] nao foi possivel validar se a tecla existe na tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -518,7 +521,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 				itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[atualizaAD_ITENSRETABAST] nao foi possivel atualizar a tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -549,7 +552,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 
 			dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[insereAD_HISTRETABAST] nao foi possivel inserir a tela de retorno no histórico "+patrimonio+" retorno "+idretorno+ " produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -580,7 +583,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 
 			dwfFacade.createEntity("AD_ITENSRETABAST", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[insereAD_ITENSRETABAST] nao foi possivel inserir a tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -606,9 +609,12 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 					valida = true;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[validaSeExisteAhTeclaNaTelaDeRetorno] nao foi possivel validar se a tecla existe na tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -639,7 +645,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 				itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[atualizaAD_ITENSRETABAST] nao foi possivel atualizar a tela de retorno "+patrimonio+" retorno "+idretorno+ " produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -698,7 +704,7 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 			si.runTrans(path, objName);
 
 		} catch (Exception e) {
-			salvarException("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[chamaPentaho] nao foi possivel chamar o pentaho! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -721,9 +727,12 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 					valida = true;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[validaSeEhDaTelemetriaPropria] nao foi possivel verificar se e uma OS da telemetria propria. "
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -731,74 +740,66 @@ public class btn_encerrarVisita implements AcaoRotinaJava{
 		return valida;
 	}
 	
-	private void chamaPentaho2() {
-
-		try {
-
-			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");
-			String Key = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ==";
-			WSPentaho si = new WSPentaho(site, Key);
-
-			String path = "home/GC_New/Transformation/Sankhya-EncerramentoOS/";
-			String objName = "J-Loop_visitas_encerradas";
-
-			si.runJob(path, objName);
-
-		} catch (Exception e) {
-			e.getMessage();
-		}
-	}
+	/*
+	 * private void chamaPentaho2() {
+	 * 
+	 * try {
+	 * 
+	 * String site = (String) MGECoreParameter.getParameter("PENTAHOIP"); String Key
+	 * = "Basic ZXN0YWNpby5jcnV6OkluZm9AMjAxNQ=="; WSPentaho si = new
+	 * WSPentaho(site, Key);
+	 * 
+	 * String path = "home/GC_New/Transformation/Sankhya-EncerramentoOS/"; String
+	 * objName = "J-Loop_visitas_encerradas";
+	 * 
+	 * si.runJob(path, objName);
+	 * 
+	 * } catch (Exception e) { e.getMessage(); } }
+	 */
 	
 
-	private boolean validaSeEhDaTelemetriaPropria(BigDecimal numos) {
-		boolean valida = false;
-		
-		try {
-
-			JdbcWrapper jdbcWrapper = null;
-			EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
-			jdbcWrapper = dwfEntityFacade.getJdbcWrapper();
-			ResultSet contagem;
-			NativeSql nativeSql = new NativeSql(jdbcWrapper);
-			nativeSql.resetSqlBuf();
-			nativeSql.appendSql("select COUNT(*) from gc_solicitabast where numos=" + numos);
-			contagem = nativeSql.executeQuery();
-			while (contagem.next()) {
-				int count = contagem.getInt("COUNT(*)");
-				if (count >= 1) {
-					valida = true;
-				}
-			}
-
-		} catch (Exception e) {
-			salvarException(
-					"[validaSeEhDaTelemetriaPropria] nao foi possivel verificar se e uma OS da telemetria propria. "
-							+ e.getMessage() + "\n" + e.getCause());
-		}
-
-		return valida;
-	}
+	/*
+	 * private boolean validaSeEhDaTelemetriaPropria(BigDecimal numos) { boolean
+	 * valida = false;
+	 * 
+	 * try {
+	 * 
+	 * JdbcWrapper jdbcWrapper = null; EntityFacade dwfEntityFacade =
+	 * EntityFacadeFactory.getDWFFacade(); jdbcWrapper =
+	 * dwfEntityFacade.getJdbcWrapper(); ResultSet contagem; NativeSql nativeSql =
+	 * new NativeSql(jdbcWrapper); nativeSql.resetSqlBuf();
+	 * nativeSql.appendSql("select COUNT(*) from gc_solicitabast where numos=" +
+	 * numos); contagem = nativeSql.executeQuery(); while (contagem.next()) { int
+	 * count = contagem.getInt("COUNT(*)"); if (count >= 1) { valida = true; } }
+	 * 
+	 * } catch (Exception e) { salvarException(
+	 * "[validaSeEhDaTelemetriaPropria] nao foi possivel verificar se e uma OS da telemetria propria. "
+	 * + e.getMessage() + "\n" + e.getCause()); }
+	 * 
+	 * return valida; }
+	 */
 	
-	private void salvarException(String mensagem) {
-		try {
-
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
-			DynamicVO VO = (DynamicVO) NPVO;
-
-			VO.setProperty("OBJETO", "evento_verificaEncerramentoOS");
-			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
-			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
-			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
-			VO.setProperty("ERRO", mensagem);
-
-			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
-
-		} catch (Exception e) {
-			// aqui não tem jeito rs tem que mostrar no log
-			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
-		}
-	}
+	/*
+	 * private void salvarException(String mensagem) { try {
+	 * 
+	 * EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade(); EntityVO NPVO =
+	 * dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS"); DynamicVO VO =
+	 * (DynamicVO) NPVO;
+	 * 
+	 * VO.setProperty("OBJETO", "evento_verificaEncerramentoOS");
+	 * VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+	 * VO.setProperty("DTEXCEPTION", TimeUtils.getNow()); VO.setProperty("CODUSU",
+	 * ((AuthenticationInfo)
+	 * ServiceContext.getCurrent().getAutentication()).getUserID());
+	 * VO.setProperty("ERRO", mensagem);
+	 * 
+	 * dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+	 * 
+	 * } catch (Exception e) { // aqui não tem jeito rs tem que mostrar no log
+	 * System.out.
+	 * println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " +
+	 * e.getMessage()); } }
+	 */
 	
 	
 }

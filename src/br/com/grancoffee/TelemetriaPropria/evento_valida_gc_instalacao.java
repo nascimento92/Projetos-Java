@@ -11,6 +11,7 @@ import java.util.GregorianCalendar;
 import java.util.Iterator;
 
 import com.sankhya.util.BigDecimalUtil;
+import com.sankhya.util.JdbcUtils;
 import com.sankhya.util.TimeUtils;
 
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
@@ -33,6 +34,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 	 * 27/05/2022 vs 1.4 - Gabriel Nascimento - Inserida no before insert para marcar a maquina como liberada.
 	 * 03/06/2022 vs 1.5 - Gabriel Nascimento - Inserido o metodo para as validacoes gerais
 	 * 24/04/2023 vs 1.7 - Gabriel Nascimento - Inserido o metodo para registrar exception em caso de erro.
+	 * 30/01/2024 vs 1.8 - Gabriel Nascimento - Retirada o save na exception.
 	 */
 
 	@Override
@@ -148,6 +150,9 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 					valida = true;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
@@ -275,6 +280,9 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 					valida = true;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
@@ -289,7 +297,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
 			dwfFacade.removeByCriteria(new FinderWrapper("GCPlanograma", "this.CODBEM=?",new Object[] {codbem}));
 		} catch (Exception e) {
-			salvarException("[verificaTeclasContrato] nao foi possivel excluir teclas do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
+			System.out.println("[verificaTeclasContrato] nao foi possivel excluir teclas do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
@@ -327,7 +335,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 
 			}
 		} catch (Exception e) {
-			salvarException("[verificaTeclasContrato] nao foi verificar teclas do contrato do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
+			System.out.println("[verificaTeclasContrato] nao foi verificar teclas do contrato do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
@@ -350,10 +358,12 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 				if(bigDecimal!=null) {
 					valor = bigDecimal;
 				}
-				
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 		} catch (Exception e) {
-			salvarException("[getEstoque] nao foi possivel obter estoque do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
+			System.out.println("[getEstoque] nao foi possivel obter estoque do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 		
 		return valor;
@@ -381,7 +391,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			
 			dwfFacade.createEntity("GCPlanograma", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException("[insereTecla] nao foi possivel inserir tecla do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
+			System.out.println("[insereTecla] nao foi possivel inserir tecla do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
@@ -433,7 +443,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			
 			dwfFacade.createEntity("GCTelemInstalacao", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException("[cadastraTelemetrias] nao foi possivel cadastrar a telemetria do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
+			System.out.println("[cadastraTelemetrias] nao foi possivel cadastrar a telemetria do patrimonio "+codbem+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
@@ -455,8 +465,11 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 					valida = false;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 		} catch (Exception e) {
-			salvarException("[verificaGrupoProdutoDaMaquina] nao foi possivel verificar o grupo de produtos do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
+			System.out.println("[verificaGrupoProdutoDaMaquina] nao foi possivel verificar o grupo de produtos do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 		
 		return valida;
@@ -479,29 +492,29 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 			
 			dwfFacade.createEntity("AD_INTTP", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException("[registraFila] nao foi possivel registrar a fila do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
+			System.out.println("[registraFila] nao foi possivel registrar a fila do patrimonio "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause()+"\n"+e.getStackTrace());
 		}
 	}
 	
-	private void salvarException(String mensagem) {
-		try {
-			
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
-			DynamicVO VO = (DynamicVO) NPVO;
-			
-			VO.setProperty("OBJETO", "evento_valida_gc_instalacao");
-			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
-			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
-			VO.setProperty("CODUSU", ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).getUserID());
-			VO.setProperty("ERRO", mensagem);
-			
-			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
-			
-		} catch (Exception e) {
-			//aqui n�o tem jeito rs tem que mostrar no log
-			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e.getMessage());
-		}
-}
+	/*
+	 * private void salvarException(String mensagem) { try {
+	 * 
+	 * EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade(); EntityVO NPVO =
+	 * dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS"); DynamicVO VO =
+	 * (DynamicVO) NPVO;
+	 * 
+	 * VO.setProperty("OBJETO", "evento_valida_gc_instalacao");
+	 * VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+	 * VO.setProperty("DTEXCEPTION", TimeUtils.getNow()); VO.setProperty("CODUSU",
+	 * ((AuthenticationInfo)ServiceContext.getCurrent().getAutentication()).
+	 * getUserID()); VO.setProperty("ERRO", mensagem);
+	 * 
+	 * dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+	 * 
+	 * } catch (Exception e) { //aqui n�o tem jeito rs tem que mostrar no log
+	 * System.out.
+	 * println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! "+e
+	 * .getMessage()); } }
+	 */
 	
 }

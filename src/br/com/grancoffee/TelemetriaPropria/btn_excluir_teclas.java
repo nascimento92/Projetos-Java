@@ -2,6 +2,8 @@ package br.com.grancoffee.TelemetriaPropria;
 
 import java.sql.ResultSet;
 
+import com.sankhya.util.JdbcUtils;
+
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
@@ -16,6 +18,7 @@ public class btn_excluir_teclas implements AcaoRotinaJava{
 	 * Botão para excluir teclas da GC_PLANOGRAMA (apenas das máquinas que não possuem teclas no contrato).
 	 * 
 	 * 23/03/2023 - vs 1.0 - Gabriel Nascimento - Criação do objeto.
+	 * 30/01/2024 - vs 1.1 - Gabriel Nascimento - Alteração  para encerrar a sessão do banco.
 	 */
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -65,6 +68,9 @@ public class btn_excluir_teclas implements AcaoRotinaJava{
 					valida = true;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 			
 		} catch (Exception e) {
 			// TODO: handle exception

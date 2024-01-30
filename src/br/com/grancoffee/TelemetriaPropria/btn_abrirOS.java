@@ -6,8 +6,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
-import com.sankhya.util.TimeUtils;
-
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.jape.EntityFacade;
@@ -21,6 +19,10 @@ import br.com.sankhya.modelcore.util.EntityFacadeFactory;
 import br.com.sankhya.ws.ServiceContext;
 
 public class btn_abrirOS implements AcaoRotinaJava {
+	
+	/**
+	 * 30-01-2024 - vs 1.2 - Gabriel Nascimento - Ajuste na geração da os para verificar se o executante já existe.
+	 */
 
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -82,7 +84,7 @@ public class btn_abrirOS implements AcaoRotinaJava {
 			numos = NotaProdVO.asBigDecimal("NUMOS");
 			
 		} catch (Exception e) {
-			salvarException("[gerarCabecalhoOS] - NAO FOI POSSIVEL GERAR CABECALHO DA OS, patrimonio:"+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[gerarCabecalhoOS] - NAO FOI POSSIVEL GERAR CABECALHO DA OS, patrimonio:"+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		return numos;
@@ -124,7 +126,7 @@ public class btn_abrirOS implements AcaoRotinaJava {
 
 
 		} catch (Exception e) {
-			salvarException("[geraItemOS] - NAO FOI POSSIVEL GERAR A SUB-OS, patrimonio:"+patrimonio+"\n"+" os: "+numos+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[geraItemOS] - NAO FOI POSSIVEL GERAR A SUB-OS, patrimonio:"+patrimonio+"\n"+" os: "+numos+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -160,39 +162,42 @@ public class btn_abrirOS implements AcaoRotinaJava {
 	
 	private void cadastraServicoParaOhExecutante(BigDecimal usuario, BigDecimal produto) {
 		try {
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ServicoProdutoExecutante");
-			DynamicVO VO = (DynamicVO) NPVO;
 			
-			VO.setProperty("CODSERV", new BigDecimal(200000));
-			VO.setProperty("CODUSU", usuario);
-			VO.setProperty("CODPROD", produto);
+			BigDecimal servico = new BigDecimal(200000);
 			
-			dwfFacade.createEntity("ServicoProdutoExecutante", (EntityVO) VO);
+			JapeWrapper dao = JapeFactory.dao("ServicoProdutoExecutante");
+			DynamicVO servicoVO = dao.findOne("this.CODPROD=? AND this.CODUSU=? AND this.CODSERV=?", new Object[]{produto,usuario,servico});
+			
+			if(servicoVO==null) {
+				dao.create().set("CODSERV", servico).set("CODUSU", usuario).set("CODPROD", produto).save();
+			}
+			
 		} catch (Exception e) {
-			//salvarException("[cadastraServicoParaOhExecutante] - Nao foi possivel cadastrar o serviço para o executante. "+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[btn_abrirOS] [cadastraServicoParaOhExecutante] n foi possivel cadastrar o servico 200000 para o executante:"
+					+ usuario + "\n" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
 	
-	private void salvarException(String mensagem) {
-		try {
-
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
-			DynamicVO VO = (DynamicVO) NPVO;
-
-			VO.setProperty("OBJETO", "btn_abrirOS");
-			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
-			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
-			VO.setProperty("CODUSU", ((AuthenticationInfo) ServiceContext.getCurrent().getAutentication()).getUserID());
-			VO.setProperty("ERRO", mensagem);
-
-			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
-
-		} catch (Exception e) {
-			// aqui não tem jeito rs tem que mostrar no log
-			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
-		}
-	}
+	
+	/*
+	 * private void salvarException(String mensagem) { try {
+	 * 
+	 * EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade(); EntityVO NPVO =
+	 * dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS"); DynamicVO VO =
+	 * (DynamicVO) NPVO;
+	 * 
+	 * VO.setProperty("OBJETO", "btn_abrirOS"); VO.setProperty("PACOTE",
+	 * "br.com.grancoffee.TelemetriaPropria"); VO.setProperty("DTEXCEPTION",
+	 * TimeUtils.getNow()); VO.setProperty("CODUSU", ((AuthenticationInfo)
+	 * ServiceContext.getCurrent().getAutentication()).getUserID());
+	 * VO.setProperty("ERRO", mensagem);
+	 * 
+	 * dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+	 * 
+	 * } catch (Exception e) { // aqui não tem jeito rs tem que mostrar no log
+	 * System.out.
+	 * println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " +
+	 * e.getMessage()); } }
+	 */
 
 }

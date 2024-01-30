@@ -13,6 +13,7 @@ import org.cuckoo.core.ScheduledAction;
 import org.cuckoo.core.ScheduledActionContext;
 
 import com.sankhya.util.BigDecimalUtil;
+import com.sankhya.util.JdbcUtils;
 import com.sankhya.util.TimeUtils;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
@@ -51,6 +52,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 	 * 23/12/2022 vs 2.3 - Gabriel Nascimento - Inserido a validação do BigDecimalUtil.getValueOrZero para garantir que mesmo se alguma informação estiver nula, o sistema irá obter o dado.
 	 * 01/08/2023 vs 2.4 - Gabriel Nascimento - Ajustado para inserir o usuário solicitante como usuário inclusão da nota e não o telemetria própria.
 	 * 16/08/2023 vs 2.5 - Gabriel Nascimento - Inserido uma validação para puxar 2 pedidos por vez e o agendamento será a cada 1 minuto, para assegurar que não vai demorar muito a geração.
+	 * 30/01/2024 vs 2.6 - Gabriel Nascimento - Retirada o save na exception.
 	 */
 	
 	@Override
@@ -64,7 +66,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			SPBeanUtils.setupContext(sctx);
 		} catch (Exception e) {
 			e.printStackTrace();
-			salvarException("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
 		} 
 				
 		JapeSession.SessionHandle hnd = null;
@@ -83,7 +85,9 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 
 		} catch (Exception e) {
-			salvarException("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
+		}finally {
+			JapeSession.close(hnd);
 		}
 		
 	}
@@ -143,7 +147,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 								
 								
 							} catch (Exception e) {
-								salvarException("[getListaPendente] Erro ao gerar a visita! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
+								System.out.println("[getListaPendente] Erro ao gerar a visita! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 							}
 						}
 					}
@@ -169,7 +173,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException("[cancelarVisita] Nao foi possivel cancelar a visita! patrimonio: "+patrimonio+" id: "+id+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[cancelarVisita] Nao foi possivel cancelar a visita! patrimonio: "+patrimonio+" id: "+id+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 		
 		try {
@@ -193,7 +197,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			//dwfFacade.removeByCriteria(new FinderWrapper("AD_RETABAST", "this.ID=?",new Object[] {idretorno}));
 
 		} catch (Exception e) {
-			salvarException("[cancelarVisita] Nao foi possivel excluir o retorno de abastecimento! id retorno: "+idretorno+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[cancelarVisita] Nao foi possivel excluir o retorno de abastecimento! id retorno: "+idretorno+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -277,7 +281,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			dwfFacade.createEntity("AD_TROCADEGRADE", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			salvarException("[validaTeclasGC_PLANOGRAMA] Nao foi possivel inserir na AD_TROCADEGRADE " + patrimonio
+			System.out.println("[validaTeclasGC_PLANOGRAMA] Nao foi possivel inserir na AD_TROCADEGRADE " + patrimonio
 					+ e.getMessage() + "\n" + e.getCause());	 
 		}
 	}
@@ -313,7 +317,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 			}
 		} catch (Exception e) {
-			salvarException("[validaItensDaTrocaDeGrade] Nao foi possivel verificar os produtos a serem retirados " + patrimonio
+			System.out.println("[validaItensDaTrocaDeGrade] Nao foi possivel verificar os produtos a serem retirados " + patrimonio
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 		
@@ -371,7 +375,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 			}
 		} catch (Exception e) {
-			salvarException("[validaItensDaTrocaDeGrade] Nao foi possivel verificar os produtos novos e existes " + patrimonio
+			System.out.println("[validaItensDaTrocaDeGrade] Nao foi possivel verificar os produtos novos e existes " + patrimonio
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 
@@ -401,7 +405,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			}
 			
 		} catch (Exception e) {
-			salvarException("[atualizaStatusPlanogramaPendente] Nao foi possivel atualizar o status na AD_TROCADEGRADE " + patrimonio + " produto "+produto
+			System.out.println("[atualizaStatusPlanogramaPendente] Nao foi possivel atualizar o status na AD_TROCADEGRADE " + patrimonio + " produto "+produto
 					+ e.getMessage() + "\n" + e.getCause());	 
 		}
 	}
@@ -431,10 +435,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 					valida = true;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 
 			
 		} catch (Exception e) {
-			salvarException("[validaSeExisteNoPlanogramaAtual] Nao foi possivel validar se existe a tecla na ad_planogramapendente! patrimonio " + patrimonio+ " tecla "+tecla
+			System.out.println("[validaSeExisteNoPlanogramaAtual] Nao foi possivel validar se existe a tecla na ad_planogramapendente! patrimonio " + patrimonio+ " tecla "+tecla
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 		
@@ -476,7 +483,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			}
 
 		} catch (Exception e) {
-			salvarException("[validaTeclasGC_PLANOGRAMA] Nao foi possivel verificar as teclas! patrimonio " + patrimonio
+			System.out.println("[validaTeclasGC_PLANOGRAMA] Nao foi possivel verificar as teclas! patrimonio " + patrimonio
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
@@ -493,7 +500,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			}
 
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[validaQuantidadeParaAbastecer] Nao foi possivel validar a quantidade para abastecer! Nunota "+nunota
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -526,7 +533,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 			}
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[verificaPlanogramaPendente] Nao foi possivel verifica os itens para o planograma pendente! patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -558,7 +565,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			dwfFacade.createEntity("AD_PLANOGRAMAPENDENTE", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[salvaPlanogramaPendente] Nao foi possivel salvar o planograma pendente! patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -599,7 +606,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			}
 			
 		} catch (Exception e) {
-			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+			System.out.println("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 		}
 		
 		try {
@@ -619,7 +626,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+			System.out.println("[salvaNumeroDaNota] Nao foi possivel salvar o numero da OS! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 		}
 	}
 	
@@ -643,9 +650,12 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				while (contagem.next()) {
 					executante = contagem.getBigDecimal("CODABAST");
 				}
+				
+				JdbcUtils.closeResultSet(contagem);
+				NativeSql.releaseResources(nativeSql);
 
 			} catch (Exception e) {
-				salvarException("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
+				System.out.println("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
 			}
 			
 		}else if ("3".equals(PedidoSecosCongelados)) { //tabaco
@@ -663,9 +673,12 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				while (contagem.next()) {
 					executante = contagem.getBigDecimal("CODABAST");
 				}
+				
+				JdbcUtils.closeResultSet(contagem);
+				NativeSql.releaseResources(nativeSql);
 
 			} catch (Exception e) {
-				salvarException("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
+				System.out.println("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
 			}
 			
 		}else {
@@ -683,9 +696,12 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				while (contagem.next()) {
 					executante = contagem.getBigDecimal("ABASTCONGELADOS");
 				}
+				
+				JdbcUtils.closeResultSet(contagem);
+				NativeSql.releaseResources(nativeSql);
 
 			} catch (Exception e) {
-				salvarException("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
+				System.out.println("[getAtendenteRota] Nao foi possibel o atendente da rota! patrimonio "+ patrimonio + e.getMessage() + "\n" + e.getCause());
 			}
 			
 		}
@@ -699,19 +715,19 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return VO;
 	}
 	
-	private void cadastraServicoParaOhExecutante(BigDecimal produto, BigDecimal atendente, BigDecimal servico) {
+	private void cadastraServicoParaOhExecutante(BigDecimal produto, BigDecimal usuario, BigDecimal servico) {
 		try {
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("ServicoProdutoExecutante");
-			DynamicVO VO = (DynamicVO) NPVO;
 			
-			VO.setProperty("CODSERV", servico);
-			VO.setProperty("CODUSU", atendente);
-			VO.setProperty("CODPROD", produto);
+			JapeWrapper dao = JapeFactory.dao("ServicoProdutoExecutante");
+			DynamicVO servicoVO = dao.findOne("this.CODPROD=? AND this.CODUSU=? AND this.CODSERV=?", new Object[]{produto,usuario,servico});
 			
-			dwfFacade.createEntity("ServicoProdutoExecutante", (EntityVO) VO);
+			if(servicoVO==null) {
+				dao.create().set("CODSERV", servico).set("CODUSU", usuario).set("CODPROD", produto).save();
+			}
+			
 		} catch (Exception e) {
-			
+			System.out.println("[cadastraServicoParaOhExecutante] nfoi cadastrar o servi" + servico + " para o executante:"
+					+ usuario + "\n" + e.getMessage() + "\n" + e.getCause());
 		}
 	}
 	
@@ -777,7 +793,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 
 
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[geraItemOS] Nao foi possivel Gerar a sub-os! Patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -844,7 +860,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			numos = NotaProdVO.asBigDecimal("NUMOS");
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[gerarCabecalhoOS] Nao foi possivel Gerar o cabeçalho da OS! Patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -878,7 +894,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			}
 			
 		} catch (Exception e) {
-			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da nota! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+			System.out.println("[salvaNumeroDaNota] Nao foi possivel salvar o numero da nota! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 		}
 		
 		try {
@@ -894,7 +910,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException("[salvaNumeroDaNota] Nao foi possivel salvar o numero da nota! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+			System.out.println("[salvaNumeroDaNota] Nao foi possivel salvar o numero da nota! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 		}
 	}
 	
@@ -1062,7 +1078,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				
 			}
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[getEstoqueDoItem] Nao foi possivel obter o estoque do item! Empresa "+empresa+" local "+local+" produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -1171,7 +1187,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 			}
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[identificaItens] Nao foi possivel identificar os itens! patrimonio "+patrimonio
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -1195,8 +1211,11 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 					valor = vlr;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[obtemValorItemSemICMS] Nao foi possivel obter o preço! produto "+codprod+" empresa "+empresa
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -1346,7 +1365,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[insereItemNaNota] Nao foi possivel inserir o item na nota! numero nota "+nunota+" produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -1392,7 +1411,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 			
 			
 		} catch (Exception e) {
-			salvarException(
+			System.out.println(
 					"[insereItemEmRuptura] Nao foi possivel inserir o item em ruptura! numero nota "+nunota+" produto "+produto
 							+ e.getMessage() + "\n" + e.getCause());
 		}
@@ -1493,7 +1512,7 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				  nunota = NotaProdVO.asBigDecimal("NUNOTA");
 
 			  } catch (Exception e) {
-			  salvarException("[geraCabecalho] Nao foi possivel gerar cabecalho! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
+				  System.out.println("[geraCabecalho] Nao foi possivel gerar cabecalho! patrimonio "+patrimonio+" abastecimento novo."+e.getMessage()+"\n"+e.getCause()); 
 			  }   	
 
 		  return nunota;
@@ -1522,26 +1541,25 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 		return VO;
 	}
 	
-	private void salvarException(String mensagem) {
-		try {
-
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
-			DynamicVO VO = (DynamicVO) NPVO;
-
-			VO.setProperty("OBJETO", "acaoAgendada_geravisita");
-			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
-			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
-			VO.setProperty("CODUSU", new BigDecimal(0));
-			VO.setProperty("ERRO", mensagem);
-
-			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
-
-		} catch (Exception e) {
-			// aqui não tem jeito rs tem que mostrar no log
-			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
-		}
-	}
+	/*
+	 * private void salvarException(String mensagem) { try {
+	 * 
+	 * EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade(); EntityVO NPVO =
+	 * dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS"); DynamicVO VO =
+	 * (DynamicVO) NPVO;
+	 * 
+	 * VO.setProperty("OBJETO", "acaoAgendada_geravisita"); VO.setProperty("PACOTE",
+	 * "br.com.grancoffee.TelemetriaPropria"); VO.setProperty("DTEXCEPTION",
+	 * TimeUtils.getNow()); VO.setProperty("CODUSU", new BigDecimal(0));
+	 * VO.setProperty("ERRO", mensagem);
+	 * 
+	 * dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+	 * 
+	 * } catch (Exception e) { // aqui não tem jeito rs tem que mostrar no log
+	 * System.out.
+	 * println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " +
+	 * e.getMessage()); } }
+	 */
 	
 	// VALIDAÇÕES
 	
@@ -1605,10 +1623,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 					valida = true;
 				}
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 
 		} catch (Exception e) {
 			
-			  salvarException("[validaSeAhMaquinaEstaNaRota] Não foi possivel verificar se a maquina "
+			System.out.println("[validaSeAhMaquinaEstaNaRota] Não foi possivel verificar se a maquina "
 			  + patrimonio + " esta na rota. " + e.getMessage() + "\n" + e.getCause());
 			 
 		}
@@ -1635,10 +1656,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 						this.qtdTeclas=count;
 					}
 				}
+				
+				JdbcUtils.closeResultSet(contagem);
+				NativeSql.releaseResources(nativeSql);
 
 			} catch (Exception e) {
 				
-				  salvarException(
+				System.out.println(
 				  "[verificaSeAhMaquinaPossuiPlanograma] Nao foi possivel validar a quantidade de itens no planograma! Patrimonio "
 				  + codbem + e.getMessage() + "\n" + e.getCause());
 				 
@@ -1703,10 +1727,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 						valida = true;
 					}
 				}
+				
+				JdbcUtils.closeResultSet(contagem);
+				NativeSql.releaseResources(nativeSql);
 
 			} catch (Exception e) {
 				
-				  salvarException(
+				System.out.println(
 				  "[validaSeOhPedidoDeAbastecimentoPoderaSerGerado] Nao foi possivel validar a quantidade de itens! Patrimonio "
 				  +codbem + e.getMessage() + "\n" + e.getCause());
 				 
@@ -1746,10 +1773,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 						valida = true;
 					}
 				}
+				
+				JdbcUtils.closeResultSet(contagem);
+				NativeSql.releaseResources(nativeSql);
 
 			} catch (Exception e) {
 				
-				  salvarException( "[validaPedido] Nao foi possivel validar o pedido! " +
+				System.out.println( "[validaPedido] Nao foi possivel validar o pedido! " +
 				  e.getMessage() + "\n" + e.getCause());
 				 
 			}
@@ -1786,10 +1816,13 @@ public class acaoAgendada_geravisita_abastecimento implements ScheduledAction {
 				pedido = contagem.getBigDecimal("NUMOS");
 				
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 
 		} catch (Exception e) {
 			
-			  salvarException( "[validaPedido] Nao foi possivel validar o pedido! " +
+			  System.out.println( "[validaPedido] Nao foi possivel validar o pedido! " +
 			  e.getMessage() + "\n" + e.getCause());
 			 
 		}
