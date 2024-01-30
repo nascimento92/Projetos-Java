@@ -35,9 +35,11 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 	 * @autor Gabriel
 	 * @motivo Bot�o para envio do planograma para a Verti / Uppay
 	 * 
-	 *         27/07/22 vs 1.1 - Gabriel Nascimento - unificação dos botões para enviar para a Verti e para a Uppay. 
-	 *         24/02/23 vs 1.3 - Gabriel Nascimento - Implementada validação para impedir que seja enviado o planograma, caso existam visitas pendentes. 
-	 *         27/11/23 vs 1.4 - Gabriel Nascimento - Inserido ajustes para os patrimônios agregados.
+	 *         27/07/22 vs 1.1 - Gabriel Nascimento - unificação dos botões para
+	 *         enviar para a Verti e para a Uppay. 24/02/23 vs 1.3 - Gabriel
+	 *         Nascimento - Implementada validação para impedir que seja enviado o
+	 *         planograma, caso existam visitas pendentes. 27/11/23 vs 1.4 - Gabriel
+	 *         Nascimento - Inserido ajustes para os patrimônios agregados.
 	 */
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
@@ -49,7 +51,8 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 			String body = "";
 
 			if (validaSeExistemPedidosPendentes(patrimonio)) { // existem pedidos pendentes
-				arg0.mostraErro("<b>ATENÇÃO</b><br/>Existem visitas pendentes! <br/><br/>não é possível efetivar um novo planograma com uma visita em andamento devido aos riscos de inconsistências de dados! <br/><br/>cancele a visita ou aguarde a sua finalização.<br/><br/>");
+				arg0.mostraErro(
+						"<b>ATENÇÃO</b><br/>Existem visitas pendentes! <br/><br/>não é possível efetivar um novo planograma com uma visita em andamento devido aos riscos de inconsistências de dados! <br/><br/>cancele a visita ou aguarde a sua finalização.<br/><br/>");
 			} else {
 				boolean confirmarSimNao = arg0.confirmarSimNao("ATENÇÃO",
 						"<br/><br/>O planograma será enviado para a Uppay (APP) e para a Verti (Totem) de forma <b>forçada</b>! "
@@ -67,18 +70,18 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 					if ("S".equals(micromarketing)) {
 						body = montarBody(patrimonio);
 						cadastrarTeclas(patrimonio, body);
-						
-						//vs 1.4
+
+						// vs 1.4
 						JapeWrapper DAO = JapeFactory.dao("AD_INSTALACAOAGREGADO");
-						Collection<DynamicVO> listaAgregados = DAO.find("this.CODBEM=?", new Object[] {patrimonio});
-						if(listaAgregados!=null) {
-							for(DynamicVO agregado : listaAgregados) {
+						Collection<DynamicVO> listaAgregados = DAO.find("this.CODBEM=?", new Object[] { patrimonio });
+						if (listaAgregados != null) {
+							for (DynamicVO agregado : listaAgregados) {
 								cadastrarTeclas(agregado.asString("CODBEMAGREGADO"), body);
 								marcarBotaoPendente(agregado.asString("CODBEMAGREGADO"));
 							}
 						}
 						// fim vs 1.4
-						
+
 					} else {
 						if (validaSeExistemTeclasDuplicadas(patrimonio)) {
 							arg0.mostraErro("<br/><b>Existem teclas repetidas! não é possível continuar</b><br/>");
@@ -111,7 +114,7 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 					// chamaPentaho();
 				}
 			}
-		}else {
+		} else {
 			arg0.mostraErro(
 					"<b>ATENÇÃO</b><br/>Não existem teclas para o patrimônio, caso seja um patrimônio agregado, forçar o planograma através do patrimônio principal.");
 		}
@@ -311,7 +314,6 @@ public class btn_novoEnviarPlanograma implements AcaoRotinaJava {
 		try {
 
 			String site = (String) MGECoreParameter.getParameter("PENTAHOIP");
-			;
 			String Key = "Basic Z2FicmllbC5uYXNjaW1lbnRvOkluZm9AMjAxNQ==";
 			WSPentaho si = new WSPentaho(site, Key);
 

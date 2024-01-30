@@ -1,10 +1,5 @@
 package br.com.gsn.PlanilhaInventario;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
-import javax.swing.Timer;
-
 import Helpers.WSPentaho;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
@@ -51,14 +46,14 @@ public class btn_importar_planilha implements AcaoRotinaJava{
 	
 	@Override
 	public void doAction(ContextoAcao arg0) throws Exception {
-		Timer timer = new Timer(1000, new ActionListener() {	
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				chamaPentaho();				
-			}
-		});
-		timer.setRepeats(false);
-		timer.start();
+		/*
+		 * Timer timer = new Timer(1000, new ActionListener() {
+		 * 
+		 * @Override public void actionPerformed(ActionEvent e) { chamaPentaho(); } });
+		 * timer.setRepeats(false); timer.start();
+		 */
+		
+		chamaPentaho();
 		
 		arg0.setMensagemRetorno("<br/><br/> <b>Atenção !</b> <br/><br/> A rotina demora alguns segundos para realizar a importação ! <br/> Atualize a página para visualizar os dados ! <br/><br/><br/>");
 	}
