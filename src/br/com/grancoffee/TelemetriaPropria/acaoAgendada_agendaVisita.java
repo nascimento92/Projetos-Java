@@ -9,6 +9,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import org.cuckoo.core.ScheduledAction;
 import org.cuckoo.core.ScheduledActionContext;
+
+import com.sankhya.util.JdbcUtils;
 import com.sankhya.util.TimeUtils;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.bmp.PersistentLocalEntity;
@@ -30,6 +32,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 	/**
 	 * 04/05/2022 1.0 - Desenvolvimento da ação agendada, objeto verificará as máquinas que tem abastecimento programada e realiza a criação do agendamento.
 	 * 06/05/2022 1.1 - Retirada as validações, esse objeto terá a responsabilidade apenas de agendar, as validações precisam estar no objeto que de fato faz a geração da OS/NOTA.
+	 * 30/01/2024 1.3 - Retira o save na exception.
 	 */
 
 	@Override
@@ -43,7 +46,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 			SPBeanUtils.setupContext(sctx);
 		} catch (Exception e) {
 			e.printStackTrace();
-			salvarException("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[onTime] não foi possível setar o usuário! "+e.getMessage()+"\n"+e.getCause());
 		} 
 		
 		JapeSession.SessionHandle hnd = null;
@@ -62,7 +65,9 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 			
 
 		} catch (Exception e) {
-			salvarException("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[onTime] não foi possível iniciar a sessão! "+e.getMessage()+"\n"+e.getCause());
+		}finally {
+			JapeSession.close(hnd);
 		}
 		
 	}
@@ -85,8 +90,11 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 				patrimonio = contagem.getString("CODBEM");
 				buildSolicitacao(patrimonio);
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 		} catch (Exception e) {
-			salvarException("[getListaPendente] Nao foi possivel obter a lista: "+patrimonio
+			System.out.println("[getListaPendente] Nao foi possivel obter a lista: "+patrimonio
 					+ e.getMessage() + "\n" + e.getCause());
 		}
 	
@@ -175,7 +183,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 
 				
 			} catch (Exception e) {
-				salvarException("[buildSolicitacao] Nao foi possivel criar a solicitação: "+patrimonio
+				System.out.println("[buildSolicitacao] Nao foi possivel criar a solicitação: "+patrimonio
 						+ e.getMessage() + "\n" + e.getCause());
 			}	
 			
@@ -217,7 +225,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 
 		} catch (Exception e) {
 			
-			  salvarException("[cadastrarNovoAbastecimento] Nao foi possivel cadastrar um novo abastecimento! "
+			System.out.println("[cadastrarNovoAbastecimento] Nao foi possivel cadastrar um novo abastecimento! "
 			  + e.getMessage() + "\n" + e.getCause());
 			 
 		}
@@ -271,7 +279,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 
 		} catch (Exception e) {
 			
-			  salvarException("[agendarAbastecimento] Nao foi possivel agendar o Abastecimento! patrimonio: "
+			System.out.println("[agendarAbastecimento] Nao foi possivel agendar o Abastecimento! patrimonio: "
 			  + patrimonio + "\n" + e.getMessage() + "\n" + e.getCause());
 			 
 		}
@@ -330,7 +338,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 
 					} catch (Exception e) {
 						
-						  salvarException(
+						System.out.println(
 						  "[carregaTeclasNosItensDeAbast] Nao foi possivel salvar as teclas na tela Retornos Abastecimento! "
 						  + e.getMessage() + "\n" + e.getCause());
 						 
@@ -400,7 +408,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 
 		} catch (Exception e) {
 			
-			  salvarException("[montarBody] nao foi possivel montar o Body! patrimonio:" +
+			System.out.println("[montarBody] nao foi possivel montar o Body! patrimonio:" +
 			  codbem + "\n" + e.getMessage() + "\n" + e.getCause());
 			 
 		}
@@ -443,7 +451,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 			dwfFacade.createEntity("AD_VISITASAGENDADAS", (EntityVO) VO);
 		} catch (Exception e) {
 			
-			  salvarException("[registrarAgendamento] Nao foi possivel registrar o agendamento! patrimonio: "
+			System.out.println("[registrarAgendamento] Nao foi possivel registrar o agendamento! patrimonio: "
 			  +patrimonio + e.getMessage() + "\n" + e.getCause());
 			 
 		}
@@ -489,7 +497,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 
 					} catch (Exception e) {
 						
-						  salvarException(
+						System.out.println(
 						  "[carregaTeclasNosItensDeAbast] Nao foi possivel salvar as teclas na tela Retornos Abastecimento! "
 						  + e.getMessage() + "\n" + e.getCause());
 						 
@@ -499,26 +507,25 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 		}
 	}
 	
-	private void salvarException(String mensagem) {
-		try {
-
-			EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
-			EntityVO NPVO = dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS");
-			DynamicVO VO = (DynamicVO) NPVO;
-
-			VO.setProperty("OBJETO", "acaoAgendada_agendaVisita");
-			VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
-			VO.setProperty("DTEXCEPTION", TimeUtils.getNow());
-			VO.setProperty("CODUSU", new BigDecimal(0));
-			VO.setProperty("ERRO", mensagem);
-
-			dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
-
-		} catch (Exception e) {
-			// aqui não tem jeito rs tem que mostrar no log
-			System.out.println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " + e.getMessage());
-		}
-	}
+	/*
+	 * private void salvarException(String mensagem) { try {
+	 * 
+	 * EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade(); EntityVO NPVO =
+	 * dwfFacade.getDefaultValueObjectInstance("AD_EXCEPTIONS"); DynamicVO VO =
+	 * (DynamicVO) NPVO;
+	 * 
+	 * VO.setProperty("OBJETO", "acaoAgendada_agendaVisita");
+	 * VO.setProperty("PACOTE", "br.com.grancoffee.TelemetriaPropria");
+	 * VO.setProperty("DTEXCEPTION", TimeUtils.getNow()); VO.setProperty("CODUSU",
+	 * new BigDecimal(0)); VO.setProperty("ERRO", mensagem);
+	 * 
+	 * dwfFacade.createEntity("AD_EXCEPTIONS", (EntityVO) VO);
+	 * 
+	 * } catch (Exception e) { // aqui não tem jeito rs tem que mostrar no log
+	 * System.out.
+	 * println("## [btn_cadastrarLoja] ## - Nao foi possivel salvar a Exception! " +
+	 * e.getMessage()); } }
+	 */
 	
 	//--- FIM FUNÇÕES
 	
@@ -540,9 +547,12 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 			while (contagem.next()) {
 				count = contagem.getInt("ID");
 			}
+			
+			JdbcUtils.closeResultSet(contagem);
+			NativeSql.releaseResources(nativeSql);
 
 		} catch (Exception e) {
-			salvarException("[getRota] Nao foi possibel obter a Rota! " + e.getMessage() + "\n" + e.getCause());
+			System.out.println("[getRota] Nao foi possibel obter a Rota! " + e.getMessage() + "\n" + e.getCause());
 		}
 
 		return count;
@@ -556,7 +566,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 			contrato = VO.asBigDecimal("NUMCONTRATO");
 		} catch (Exception e) {
 			
-			  salvarException("[getContrato] nao foi possivel obter o contrato, patrimonio:"
+			System.out.println("[getContrato] nao foi possivel obter o contrato, patrimonio:"
 			  + patrimonio + "\n" + e.getMessage() + "\n" + e.getCause());
 			 
 		}
@@ -588,7 +598,7 @@ public class acaoAgendada_agendaVisita implements ScheduledAction {
 	
 		} catch (Exception e) {
 			
-			  salvarException("[getParceiro] nao foi possivel obter o parceiro:" +
+			  System.out.println("[getParceiro] nao foi possivel obter o parceiro:" +
 			  patrimonio + "\n" + e.getMessage() + "\n" + e.getCause());
 			 
 		}
