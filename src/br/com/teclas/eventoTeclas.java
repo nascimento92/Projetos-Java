@@ -116,7 +116,7 @@ public class eventoTeclas implements EventoProgramavelJava {
 			*/
 
 		} catch (Exception e) {
-			salvarException("[start] Nao foi possivel realizar as alterações! patrimonio: "+codbem+" tecla: "+tecla+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[start] Nao foi possivel realizar as alterações! patrimonio: "+codbem+" tecla: "+tecla+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 		
 	}
@@ -193,7 +193,7 @@ public class eventoTeclas implements EventoProgramavelJava {
 			dwfFacade.createEntity(DynamicEntityNames.PRECO_CONTRATO, (EntityVO) precoVO);
 			
 		} catch (Exception e) {
-			salvarException("[salvaProduto] Nao foi possivel salvar o produto! contrato: "+numcontrato+" produto: "+codprod+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[salvaProduto] Nao foi possivel salvar o produto! contrato: "+numcontrato+" produto: "+codprod+"\n"+e.getMessage()+"\n"+e.getCause());
 		}	
 		
 	}
@@ -300,7 +300,7 @@ public class eventoTeclas implements EventoProgramavelJava {
 			dwfEntityFacade.createEntity("PrecoContrato",(EntityVO) tcspreVO);
 			
 		} catch (Exception e) {
-			salvarException("[novaReferencia] Nao foi possivel salvar a referencia! contrato: "+contrato+" produto: "+produto+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[novaReferencia] Nao foi possivel salvar a referencia! contrato: "+contrato+" produto: "+produto+"\n"+e.getMessage()+"\n"+e.getCause());
 		}	
 		
 	}
@@ -326,7 +326,7 @@ public class eventoTeclas implements EventoProgramavelJava {
 			}
 			
 		} catch (Exception e) {
-			salvarException("[atualizaReferencia] Nao foi possivel atualizar a referencia! contrato: "+contrato+" produto: "+produto+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[atualizaReferencia] Nao foi possivel atualizar a referencia! contrato: "+contrato+" produto: "+produto+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 		
 	}

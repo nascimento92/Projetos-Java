@@ -137,7 +137,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				}
 
 			} catch (Exception e) {
-				salvarException("[salvaDadosNaTelainstalacaoAbaPlanograma] Nao foi possivel atualizar a tecla! patrimonio: "+patrimonio+" tecla: "+tecla+e.getMessage()+"\n"+e.getCause());
+				System.out.println("[salvaDadosNaTelainstalacaoAbaPlanograma] Nao foi possivel atualizar a tecla! patrimonio: "+patrimonio+" tecla: "+tecla+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 	}
@@ -268,7 +268,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				dwfFacade.createEntity("GCPlanograma", (EntityVO) VO);
 				
 			} catch (Exception e) {
-				salvarException("[inserirTecla] Nao foi possivel cadastrar a tecla! patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+e.getMessage()+"\n"+e.getCause());
+				System.out.println("[inserirTecla] Nao foi possivel cadastrar a tecla! patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 	}
@@ -302,7 +302,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 			
 			dwfFacade.createEntity("AD_LOGTECLAS", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException("[BeforeInsert] nao foi possivel registrar o Insert da tecla no AD_LOGTECLAS, patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[BeforeInsert] nao foi possivel registrar o Insert da tecla no AD_LOGTECLAS, patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -325,7 +325,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 				
 				
 			} catch (Exception e) {
-				salvarException("[deletarTecla] Nao foi possivel excluir a tecla! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
+				System.out.println("[deletarTecla] Nao foi possivel excluir a tecla! patrimonio: "+patrimonio+"\n"+e.getMessage()+"\n"+e.getCause());
 			}
 		}
 		
@@ -354,7 +354,7 @@ public class evento_registraAlteracaoTecla implements EventoProgramavelJava {
 			
 			dwfFacade.createEntity("AD_LOGTECLAS", (EntityVO) VO);
 		} catch (Exception e) {
-			salvarException("[deletarTecla] nao foi possivel registrar o delete da tecla no AD_LOGTECLAS, patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+"\n"+e.getMessage()+"\n"+e.getCause());
+			System.out.println("[deletarTecla] nao foi possivel registrar o delete da tecla no AD_LOGTECLAS, patrimonio: "+patrimonio+" tecla: "+teclas.asBigDecimal("TECLA")+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	

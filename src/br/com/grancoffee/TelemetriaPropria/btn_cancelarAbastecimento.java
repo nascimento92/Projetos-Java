@@ -213,7 +213,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			  nunota = NotaProdVO.asBigDecimal("NUNOTA");
 	
 		  } catch (Exception e) {
-		  salvarException("[geraCabecalho] Nao foi possivel gerar cabecalho!"+e.getMessage()+"\n"+e.getCause()); 
+		  //salvarException("[geraCabecalho] Nao foi possivel gerar cabecalho!"+e.getMessage()+"\n"+e.getCause()); 
 		  } 
 		  
 		  return nunota;
@@ -251,9 +251,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			}
 	
 		} catch (Exception e) {
-			salvarException(
-					"[listaItensNotaModelo] Nao foi possivel pegar a lista de itens da nota: "+nunotaModelo
-							+ e.getMessage() + "\n" + e.getCause());
+			//salvarException("[listaItensNotaModelo] Nao foi possivel pegar a lista de itens da nota: "+nunotaModelo+ e.getMessage() + "\n" + e.getCause());
 		}
 	}
 	
@@ -287,9 +285,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			dwfFacade.createEntity("ItemNota", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			salvarException(
-					"[insereItemNaNotaDevolucao] Nao foi possivel inserir itens da nota: "+nunotaDev
-							+ e.getMessage() + "\n" + e.getCause());
+			//salvarException("[insereItemNaNotaDevolucao] Nao foi possivel inserir itens da nota: "+nunotaDev+ e.getMessage() + "\n" + e.getCause());
 		}
 		
 		
@@ -303,7 +299,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			dwfFacade.removeEntity("CabecalhoNota", new Object[] { nunota });
 
 		} catch (Exception e) {
-			salvarException("[excluirNota] Nao foi possivel excluir a nota! "+e.getMessage()+"\n"+e.getCause());
+			//salvarException("[excluirNota] Nao foi possivel excluir a nota! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 
@@ -329,7 +325,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 
 			}
 		} catch (Exception e) {
-			salvarException("[cancelarOS] Nao foi possivel cancelar a OS! "+e.getMessage()+"\n"+e.getCause());
+			//salvarException("[cancelarOS] Nao foi possivel cancelar a OS! "+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -353,7 +349,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 				itemEntity.setValueObject(NVO);
 			}
 		} catch (Exception e) {
-			salvarException("[cancelarSubOS] Nao foi possivel cancelar a sub-OS! "+numos+"\n"+e.getMessage()+"\n"+e.getCause());
+			//salvarException("[cancelarSubOS] Nao foi possivel cancelar a sub-OS! "+numos+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -379,7 +375,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			//dwfFacade.removeByCriteria(new FinderWrapper("AD_RETABAST", "this.ID=?",new Object[] {idretorno}));
 
 		} catch (Exception e) {
-			salvarException("[excluirRetornoAbastecimento] Nao foi possivel excluir o retorno de abastecimento! id retorno: "+idretorno+"\n"+e.getMessage()+"\n"+e.getCause());
+			//salvarException("[excluirRetornoAbastecimento] Nao foi possivel excluir o retorno de abastecimento! id retorno: "+idretorno+"\n"+e.getMessage()+"\n"+e.getCause());
 		}
 	}
 	
@@ -400,8 +396,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			dwfFacade.createEntity("RelacionamentoUsuario", (EntityVO) VO);
 			
 		} catch (Exception e) {
-			salvarException("[insertTcsrus] não foi possível alterar usuário numos:" + numos + "\n" + e.getMessage()
-			+ "\n" + e.getCause());
+			//salvarException("[insertTcsrus] não foi possível alterar usuário numos:" + numos + "\n" + e.getMessage()+ "\n" + e.getCause());
 
 		}
 	}
