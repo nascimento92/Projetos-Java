@@ -213,7 +213,7 @@ public class btn_cancelarAbastecimento implements AcaoRotinaJava {
 			  nunota = NotaProdVO.asBigDecimal("NUNOTA");
 	
 		  } catch (Exception e) {
-		  //salvarException("[geraCabecalho] Nao foi possivel gerar cabecalho!"+e.getMessage()+"\n"+e.getCause()); 
+		  salvarException("[geraCabecalho] Nao foi possivel gerar cabecalho!"+e.getMessage()+"\n"+e.getCause()); 
 		  } 
 		  
 		  return nunota;
