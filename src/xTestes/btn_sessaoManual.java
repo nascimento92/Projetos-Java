@@ -20,6 +20,8 @@ public class btn_sessaoManual implements AcaoRotinaJava{
 	
 	private void teste(ContextoAcao arg0) throws Exception {
 		SessionHandle hnd = null;
+		
+		String x = "";
 
 		try {
 			hnd = JapeSession.open();
