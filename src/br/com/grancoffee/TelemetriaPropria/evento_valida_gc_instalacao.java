@@ -35,6 +35,7 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 	 * 03/06/2022 vs 1.5 - Gabriel Nascimento - Inserido o metodo para as validacoes gerais
 	 * 24/04/2023 vs 1.7 - Gabriel Nascimento - Inserido o metodo para registrar exception em caso de erro.
 	 * 30/01/2024 vs 1.8 - Gabriel Nascimento - Retirada o save na exception.
+	 * 17/07/2024 vs 1.9 - Gabriel Nascimento - inserida validação para n deixar desmarcar uma loja, caso seja uma loja de fato.
 	 */
 
 	@Override
@@ -105,6 +106,12 @@ public class evento_valida_gc_instalacao implements EventoProgramavelJava{
 		String oldLoja = oldVO.asString("TOTEM");
 		
 		if(loja!=oldLoja) {
+			
+			if("S".equals(oldLoja) && "N".equals(loja)) {
+				if(verificaGrupoProdutoDaMaquina(patrimonio)) {
+					throw new Error("<br/><b>ATENCAO</b><br/>Patrimonio é um <b>Micro Market</b> o campo Micro Market não pode ser desmarcado!<br/><br/>");
+				}
+			}
 			
 			if("S".equals(loja)) {
 				
